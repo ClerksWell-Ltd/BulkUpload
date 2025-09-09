@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33020.496
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{53295067-7FA4-45D5-9529-BFFF324BCDED}"
+	ProjectSection(SolutionItems) = preProject
+		..\LICENSE = ..\LICENSE
+		..\.github\README.md = ..\.github\README.md
+		..\umbraco-marketplace.json = ..\umbraco-marketplace.json
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkUpload", "BulkUpload\BulkUpload.csproj", "{24D42E47-F914-448D-A3A9-AA002B7F0EBF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkUpload.TestSite", "BulkUpload.TestSite\BulkUpload.TestSite.csproj", "{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{24D42E47-F914-448D-A3A9-AA002B7F0EBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{24D42E47-F914-448D-A3A9-AA002B7F0EBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{24D42E47-F914-448D-A3A9-AA002B7F0EBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{24D42E47-F914-448D-A3A9-AA002B7F0EBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6F07004F-9903-4AEB-9ED0-BE57A0326D20}
+	EndGlobalSection
+EndGlobal
