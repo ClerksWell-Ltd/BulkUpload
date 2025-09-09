@@ -354,3 +354,4 @@ MigrationBackup/
 
 # Rider
 src/.idea
+/src/BulkUpload.TestSite/umbraco/Data
