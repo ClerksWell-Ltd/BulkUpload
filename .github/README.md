@@ -30,9 +30,6 @@ Install via NuGet:
 dotnet add package Umbraco.Community.BulkUpload
 ```
 
-<img alt="..." src="https://github.com/prjseal/BulkUpload/blob/develop/docs/screenshots/screenshot.png">
--->
-
 Or download from the [Umbraco Marketplace](https://marketplace.umbraco.com/package/bulkupload).
 
 ## Documentation
