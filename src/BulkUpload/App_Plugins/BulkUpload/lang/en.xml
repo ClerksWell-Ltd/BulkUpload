@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <language alias="en" intName="English (UK)" localName="English (UK)" lcid="" culture="en-GB">
   <area alias="dashboardTabs">
-    <key alias="bulkUpload">Bulk Upload</key>
+    <key alias="bulkUploadDashboard">Bulk Upload</key>
+  </area>
+  <area alias="sections">
+    <key alias="bulkUploadSection">Bulk Upload</key>
   </area>
 </language>
