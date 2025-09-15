@@ -1,0 +1,14 @@
+{
+    "dashboards": [
+        {
+            "alias": "bulkUpload",
+            "view": "~/App_Plugins/BulkUpload/bulkUploadDashboard.html",
+            "sections": [ "content" ],
+            "weight": 60
+        }
+    ],
+    "javascript": [
+        "~/App_Plugins/BulkUpload/bulkUpload.controller.js",
+        "~/App_Plugins/BulkUpload/bulkUploadImportApiService.js"
+    ]
+}

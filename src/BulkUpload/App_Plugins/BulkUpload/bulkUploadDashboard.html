@@ -1,0 +1,22 @@
+<div ng-controller="bulkUploadController">
+  ﻿<umb-box>
+    <umb-box-header title="Import"></umb-box-header>
+    <div style="padding:1em; border: 1px solid #f0ad4e; background-color: #fcf8e3; color:#8a6d3b;border-radius:4px">
+      <strong>⚠ Note: </strong>The "parentId", "docTypeAlias" and "name" columns are required.
+    </div>
+    <umb-box-content>
+      <p>Please upload the CSV file</p>
+      <umb-pane>
+        <input type="file" ngf-select ng-model="bulkUploadImportFile" ng-multiple="false" ngf-change="onFileSelected(bulkUploadImportFile,$event)" ng-disabled="loading" />
+        <umb-button type="button"
+                    button-style="action"
+                    label="Import"
+                    ng-click="onUploadClicked()">
+        </umb-button>
+      </umb-pane>
+      <umb-box-content style="position: relative;">
+        <umb-load-indicator ng-if="loading" />
+      </umb-box-content>
+    </umb-box-content>
+  </umb-box>
+</div>

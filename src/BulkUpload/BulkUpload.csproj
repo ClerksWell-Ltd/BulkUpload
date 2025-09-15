@@ -21,10 +21,14 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
+  <ItemGroup>
+    <Content Include="App_Plugins\BulkUpload\lang\en.xml" />
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.0.0" />
-    <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.0.0" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.10.0" />
+    <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.10.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,6 +36,19 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Include="D:\Code\GitHub\BulkUpload\src\BulkUpload\.editorconfig" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Helpers\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="D:\Code\GitHub\BulkUpload\src\BulkUpload\.editorconfig" />
+  </ItemGroup>
+  
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="dotnet format --severity warn --verbosity diagnostic" />
+  </Target>
 
 </Project>
