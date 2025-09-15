@@ -30,7 +30,7 @@ public class ContentIdsToContentUdisResolver : IResolver
             {
                 var udi = Udi.Create("document", contentItem.Key);
                 if (udi.UriValue is not null)
-                { 
+                {
                     udis.Add(udi.UriValue.ToString());
                 }
             }
