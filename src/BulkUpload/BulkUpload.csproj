@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,7 +12,7 @@
     <PackageTags>umbraco;umbraco-marketplace</PackageTags>
     <RootNamespace>Umbraco.Community.BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>0.1.0</Version>
+    <Version>0.1.6</Version>
     <Authors>Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
     <PackageProjectUrl>https://github.com/prjseal/BulkUpload</PackageProjectUrl>
@@ -20,10 +20,8 @@
     <PackageReadmeFile>README_nuget.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIconUrl>https://github.com/prjseal/BulkUpload/blob/main/images/logo.png?raw=true</PackageIconUrl>
   </PropertyGroup>
-  <ItemGroup>
-    <Content Include="App_Plugins\BulkUpload\lang\en.xml" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.1.0" />
@@ -40,11 +38,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Helpers\" />
+    <EditorConfigFiles Remove="D:\Code\GitHub\BulkUpload\src\BulkUpload\.editorconfig" />
   </ItemGroup>
 
   <ItemGroup>
-    <EditorConfigFiles Remove="D:\Code\GitHub\BulkUpload\src\BulkUpload\.editorconfig" />
+    <Content Include="App_Plugins\BulkUpload\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
+    <None Include="buildTransitive\**" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
   
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
