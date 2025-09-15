@@ -6,10 +6,12 @@ public class TextResolver : IResolver
 
     public object Resolve(object value)
     {
-        if (value is string output) return output;
+        if (value is string output)
+            return output;
 
-        if (value is not null) return value.ToString();
+        if (value is not null)
+            return value.ToString();
 
-        return default(string);
+        return string.Empty;
     }
 }

@@ -14,23 +14,25 @@ public class MediaIdsToMediaUdisResolver : IResolver
 
     public object Resolve(object value)
     {
-        using var contextReference = _contextFactory.EnsureUmbracoContext();
-
-        if (value is not string)
+        if (value is not string str || string.IsNullOrWhiteSpace(str))
             return string.Empty;
 
+        using var contextReference = _contextFactory.EnsureUmbracoContext();
         var udis = new List<string>();
 
-        foreach (var item in value.ToString().Split(','))
+        foreach (var item in str.Split(','))
         {
             if (!int.TryParse(item.Trim(), out var id))
                 continue;
 
-            var mediaItem = contextReference.UmbracoContext.Media.GetById(id);
+            var mediaItem = contextReference.UmbracoContext.Media?.GetById(id);
             if (mediaItem is not null)
             {
-                var udi = Udi.Create("document", mediaItem.Key);
-                udis.Add(udi.UriValue.ToString());
+                var udi = Udi.Create("media", mediaItem.Key);
+                if (udi.UriValue is not null)
+                {
+                    udis.Add(udi.UriValue.ToString());
+                }
             }
         }
 

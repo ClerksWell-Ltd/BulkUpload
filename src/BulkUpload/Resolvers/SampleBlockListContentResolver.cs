@@ -13,55 +13,41 @@ public class SampleBlockListContentResolver : IResolver
 
     public object Resolve(object value)
     {
-        if (value is not string)
-            return null;
+        if (value is not string str || string.IsNullOrWhiteSpace(str))
+            return string.Empty;
 
-        IHtmlContent newHtmlContent;
-
-
-        var trimmed = value.ToString().Trim();
+        var trimmed = str.Trim();
         var looksLikeHtml = trimmed.StartsWith("<") && trimmed.EndsWith(">");
 
-        if (looksLikeHtml)
-        {
-            newHtmlContent = new HtmlString(trimmed);
-        }
-        else
-        {
-            newHtmlContent = new HtmlString($"<p>{value.ToString()}</p>");
-        }
-
-        var blockListModel = new BlockList();
-        var contentUdiDictionary = new List<Dictionary<string, string>>();
-        var settingsUdiDictionary = new List<Dictionary<string, string>>();
-
-        var contentData = new List<Dictionary<string, string>>();
+        var newHtmlContent = new HtmlString(looksLikeHtml ? trimmed : $"<p>{trimmed}</p>");
 
         var contentUdi = new GuidUdi("element", Guid.NewGuid());
-        contentData.Add(new Dictionary<string, string>()
-            {
-                { "contentTypeKey", "dd183f78-7d69-4eda-9b4c-a25970583a28" },
-                { "udi", contentUdi.ToString() },
-                { "content", newHtmlContent.ToString() }
-            });
-
-        contentUdiDictionary.Add(new Dictionary<string, string> { { "contentUdi", contentUdi.ToString() } });
-
-        var settingsData = new List<Dictionary<string, string>>();
-
         var settingsUdi = new GuidUdi("element", Guid.NewGuid());
-        settingsData.Add(new Dictionary<string, string>()
+
+        var blockListModel = new BlockList
+        {
+            layout = new BlockListUdi(new List<Dictionary<string, string>>
             {
-                { "contentTypeKey", "da15dc43-43f6-45f6-bda8-1fd17a49d25c" },
-                { "udi", settingsUdi.ToString() }
-            });
-
-        settingsUdiDictionary.Add(new Dictionary<string, string> { { "contentUdi", settingsUdi.ToString() } });
-
-
-        blockListModel.layout = new BlockListUdi(contentUdiDictionary);
-        blockListModel.contentData = contentData;
-        blockListModel.settingsData = settingsData;
+                new() { { "contentUdi", contentUdi.ToString() } }
+            }),
+            contentData = new List<Dictionary<string, string>>
+            {
+                new()
+                {
+                    { "contentTypeKey", "dd183f78-7d69-4eda-9b4c-a25970583a28" },
+                    { "udi", contentUdi.ToString() },
+                    { "content", newHtmlContent.ToString() }
+                }
+            },
+            settingsData = new List<Dictionary<string, string>>
+            {
+                new()
+                {
+                    { "contentTypeKey", "da15dc43-43f6-45f6-bda8-1fd17a49d25c" },
+                    { "udi", settingsUdi.ToString() }
+                }
+            }
+        };
 
         return JsonConvert.SerializeObject(blockListModel);
     }

@@ -13,20 +13,16 @@ public class GuidToMediaUdiResolver : IResolver
 
     public object Resolve(object value)
     {
-        using (var contextReference = _contextFactory.EnsureUmbracoContext())
-        {
-            if (value is not string)
-                return default(string);
+        if (value is not string str || !Guid.TryParse(str, out var guid))
+            return string.Empty;
 
-            var guid = new Guid(value.ToString());
+        using var contextReference = _contextFactory.EnsureUmbracoContext();
+        var mediaItem = contextReference.UmbracoContext.Media?.GetById(guid);
 
-            var mediaItem = contextReference.UmbracoContext.Media.GetById(guid);
+        if (mediaItem is null)
+            return string.Empty;
 
-            if (mediaItem is null)
-                return default(string);
-
-            var udi = Udi.Create("media", guid);
-            return udi.UriValue;
-        }
+        var udi = Udi.Create("media", guid);
+        return udi.UriValue != null ? udi.UriValue.ToString() : string.Empty;
     }
 }

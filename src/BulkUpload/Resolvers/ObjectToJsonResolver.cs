@@ -8,8 +8,6 @@ public class ObjectToJsonResolver : IResolver
 
     public object Resolve(object value)
     {
-        if (value is not null) return JsonConvert.SerializeObject(value);
-
-        return value;
+        return value is not null ? JsonConvert.SerializeObject(value) : string.Empty;
     }
 }

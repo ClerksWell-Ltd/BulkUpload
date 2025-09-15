@@ -14,28 +14,28 @@ public class GuidsToContentUdisResolver : IResolver
 
     public object Resolve(object value)
     {
+        if (value is not string str || string.IsNullOrWhiteSpace(str))
+            return string.Empty;
+
         using var contextReference = _contextFactory.EnsureUmbracoContext();
-
-        if (value is not string)
-            return Enumerable.Empty<string>();
-
         var udis = new List<string>();
 
-        foreach (var item in value.ToString().Split(','))
+        foreach (var item in str.Split(','))
         {
-            if (item is null || !Guid.TryParse(item.ToString(), out var guid))
-            {
+            if (!Guid.TryParse(item.Trim(), out var guid))
                 continue;
-            }
 
-            var contentItem = contextReference.UmbracoContext.Content.GetById(guid);
+            var contentItem = contextReference.UmbracoContext.Content?.GetById(guid);
             if (contentItem is not null)
             {
                 var udi = Udi.Create("document", guid);
-                udis.Add(udi.UriValue.ToString());
+                if (udi.UriValue is not null)
+                {
+                    udis.Add(udi.UriValue.ToString());
+                }
             }
         }
 
-        return string.Join(',', udis);
+        return string.Join(",", udis);
     }
 }

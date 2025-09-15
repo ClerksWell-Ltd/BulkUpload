@@ -13,20 +13,18 @@ public class GuidToContentUdiResolver : IResolver
 
     public object Resolve(object value)
     {
+        if (value is not string str || !Guid.TryParse(str, out var guid))
+            return string.Empty;
+
         using (var contextReference = _contextFactory.EnsureUmbracoContext())
         {
-            if (value is not string)
-                return default(string);
-
-            var guid = new Guid(value.ToString());
-
-            var contentItem = contextReference.UmbracoContext.Content.GetById(guid);
+            var contentItem = contextReference.UmbracoContext.Content?.GetById(guid);
 
             if (contentItem is null)
-                return default(string);
+                return string.Empty;
 
             var udi = Udi.Create("document", guid);
-            return udi.UriValue;
+            return udi.UriValue != null ? udi.UriValue.ToString() : string.Empty;
         }
     }
 }

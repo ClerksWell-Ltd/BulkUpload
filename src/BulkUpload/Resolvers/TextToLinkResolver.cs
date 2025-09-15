@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 
 using Umbraco.Cms.Core.Models;
+
 namespace Umbraco.Community.BulkUpload.Resolvers;
 
 public class TextToLinkResolver : IResolver
@@ -9,25 +10,21 @@ public class TextToLinkResolver : IResolver
 
     public object Resolve(object value)
     {
-        if (value is not string linkText)
-            return null;
-
-        if (string.IsNullOrWhiteSpace(linkText))
-            return null;
+        if (value is not string linkText || string.IsNullOrWhiteSpace(linkText))
+            return string.Empty;
 
         if (!linkText.StartsWith("http://") && !linkText.StartsWith("https://"))
-        {
             linkText = "https://" + linkText;
-        }
 
-        var links = new List<Link>();
-
-        links.Add(new Link()
+        var links = new List<Link>
         {
-            Url = linkText,
-            Name = linkText,
-            Type = LinkType.External
-        });
+            new()
+            {
+                Url = linkText,
+                Name = linkText,
+                Type = LinkType.External
+            }
+        };
 
         return JsonConvert.SerializeObject(links);
     }

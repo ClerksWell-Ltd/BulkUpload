@@ -6,12 +6,15 @@ public class BooleanResolver : IResolver
 
     public object Resolve(object value)
     {
-        if (value == null) return default(bool);
+        if (value is null)
+            return false;
 
-        if (value is bool output) return output;
+        if (value is bool output)
+            return output;
 
-        if (bool.TryParse(value.ToString(), out var boolValue)) return boolValue;
+        if (value is string str && bool.TryParse(str, out var boolValue))
+            return boolValue;
 
-        return default(bool);
+        return false;
     }
 }

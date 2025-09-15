@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 using Umbraco.Cms.Core.Web;
 namespace Umbraco.Community.BulkUpload.Resolvers;
 
@@ -14,10 +16,9 @@ public class StringArrayResolver : IResolver
     {
         using var contextReference = _contextFactory.EnsureUmbracoContext();
 
-        if (value is not string)
-            return Enumerable.Empty<string>();
+        if (value is not string str || string.IsNullOrWhiteSpace(str))
+            return string.Empty;
 
-        return Newtonsoft.Json.JsonConvert.SerializeObject(value.ToString().Split(','));
-
+        return JsonConvert.SerializeObject(str.Split(',').Select(s => s.Trim()));
     }
 }
