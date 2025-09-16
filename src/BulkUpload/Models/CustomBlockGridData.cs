@@ -20,7 +20,6 @@ public class CustomBlockGridData
 
 }
 
-// this is a wrapper for the block grid layout, purely required for correct serialization
 public class BlockGridLayout
 {
     public BlockGridLayout(BlockGridLayoutItem[] layoutItems) => LayoutItems = layoutItems;
@@ -29,7 +28,6 @@ public class BlockGridLayout
     public BlockGridLayoutItem[] LayoutItems { get; }
 }
 
-// this represents an item in the block grid layout collection
 public class BlockGridLayoutItem
 {
     public BlockGridLayoutItem(Udi contentUdi, Udi settingsUdi, int columnSpan, int rowSpan)
@@ -43,7 +41,6 @@ public class BlockGridLayoutItem
     public Udi ContentUdi { get; }
 
     [JsonProperty("areas")]
-    // areas are omitted from this sample for abbreviation
     public object[] Areas { get; } = { };
 
     [JsonProperty("columnSpan")]
@@ -54,7 +51,6 @@ public class BlockGridLayoutItem
 
 }
 
-// this represents an item in the block grid content or settings data collection
 public class BlockGridElementData
 {
     public BlockGridElementData(Guid contentTypeKey, Udi udi, Dictionary<string, object> data)

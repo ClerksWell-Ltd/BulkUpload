@@ -23,6 +23,11 @@ public class ImportUtilityService : IImportUtilityService
 
     public virtual ImportObject CreateImportObject(dynamic? record)
     {
+        if (record == null)
+        {
+            _logger.LogError("Bulk Upload: Record is null");
+            throw new ArgumentNullException(nameof(record));
+        }
 
         var dynamicProperties = (IDictionary<string, object>)record;
 

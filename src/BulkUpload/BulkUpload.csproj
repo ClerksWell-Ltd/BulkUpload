@@ -12,8 +12,8 @@
     <PackageTags>umbraco;umbraco-marketplace</PackageTags>
     <RootNamespace>Umbraco.Community.BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>0.1.6</Version>
-    <Authors>Paul Seal</Authors>
+    <Version>0.1.7</Version>
+    <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
     <PackageProjectUrl>https://github.com/prjseal/BulkUpload</PackageProjectUrl>
     <RepositoryUrl>https://github.com/prjseal/BulkUpload</RepositoryUrl>
