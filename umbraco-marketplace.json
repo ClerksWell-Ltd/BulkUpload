@@ -1,13 +1,13 @@
 {
     "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json", 
     "AuthorDetails": {
-      "Name": "Paul Seal",
-      "ImageUrl": "https://github.com/prjseal.png"
+      "Name": "ClerksWell",
+      "ImageUrl": "https://github.com/ClerksWell-Ltd.png"
     },
     "Category": "",
     "Description": "",
     "LicenseTypes": [ "Free" ],
-    "IssueTrackerUrl": "https://github.com/prjseal/BulkUpload/issues",
+    "IssueTrackerUrl": "https://github.com/ClerksWell-Ltd/BulkUpload/issues",
     "PackageType": "Package",
     "Tags": [],
     "Title": "Bulk Upload "

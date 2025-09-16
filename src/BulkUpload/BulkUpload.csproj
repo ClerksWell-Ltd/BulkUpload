@@ -15,12 +15,12 @@
     <Version>0.1.7</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
-    <PackageProjectUrl>https://github.com/prjseal/BulkUpload</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/prjseal/BulkUpload</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ClerksWell-Ltd/BulkUpload</RepositoryUrl>
     <PackageReadmeFile>README_nuget.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageIconUrl>https://github.com/prjseal/BulkUpload/blob/main/images/logo.png?raw=true</PackageIconUrl>
+    <PackageIconUrl>https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/images/logo.png?raw=true</PackageIconUrl>
   </PropertyGroup>
 
   <ItemGroup>

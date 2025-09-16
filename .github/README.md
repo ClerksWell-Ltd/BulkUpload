@@ -2,7 +2,7 @@
 
 [![Downloads](https://img.shields.io/nuget/dt/Umbraco.Community.BulkUpload?color=cc9900)](https://www.nuget.org/packages/Umbraco.Community.BulkUpload/)
 [![NuGet](https://img.shields.io/nuget/vpre/Umbraco.Community.BulkUpload?color=0273B3)](https://www.nuget.org/packages/Umbraco.Community.BulkUpload)
-[![GitHub license](https://img.shields.io/github/license/prjseal/BulkUpload?color=8AB803)](../LICENSE)
+[![GitHub license](https://img.shields.io/github/license/ClerksWell-Ltd/BulkUpload?color=8AB803)](../LICENSE)
 
 # BulkUpload for Umbraco
 
@@ -38,4 +38,4 @@ See the [docs/README_nuget.md](../docs/README_nuget.md) for more details and usa
 
 ## License
 
-MIT © Paul Seal
+MIT © ClerksWell Ltd
