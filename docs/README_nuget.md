@@ -8,6 +8,8 @@
 
 BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.
 
+It currently just works with Umbraco 13, but we are looking at releasing it for Umbraco 16/17 soon.
+
 ## Features
 
 - **CSV Import:** Upload and process CSV files to create or update Umbraco content nodes.
@@ -31,6 +33,45 @@ dotnet add package Umbraco.Community.BulkUpload
 ```
 
 Or download from the [Umbraco Marketplace](https://marketplace.umbraco.com/package/bulkupload).
+
+This script will install the package with Clean Starter Kit so you can test it straight away
+
+```ps1
+# Ensure we have the version specific Umbraco templates
+dotnet new install Umbraco.Templates::13.10.0 --force
+
+# Create solution/project
+dotnet new sln --name "MySolution"
+dotnet new umbraco --force -n "MyProject"  --friendly-name "Administrator" --email "admin@example.com" --password "1234567890" --development-database-type SQLite
+dotnet sln add "MyProject"
+
+
+#Add starter kit
+dotnet add "MyProject" package clean --version 4.2.2
+
+#Add BulkUpload package
+dotnet add "MyProject" package Umbraco.Community.BulkUpload
+
+#Add Packages
+#Ignored Clean as it was added as a starter kit
+
+dotnet run --project "MyProject"
+#Running
+```
+
+In the umbraco backoffice, go to the users section and add the Bulk Upload section to the relevant group e.g. Administrators and refresh the page. You will see a new section called Bulk Upload.
+
+## Using the tool
+
+- You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv?raw=true" download>download this sample CSV file</a>
+
+- In the Bulk Upload section, click on the upload button, choose your CSV file and then click on the import button.
+
+- It will attempt to import the content for you. 
+
+- If it is successful you will see a green success message and can go to the content tree and find your new content. 
+
+- If it errors, it will show you a red message. You will be able to see the error details in the Log Viewer
 
 ## Documentation
 
