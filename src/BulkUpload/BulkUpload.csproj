@@ -20,7 +20,7 @@
     <PackageReadmeFile>README_nuget.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageIconUrl>https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/images/logo.png?raw=true</PackageIconUrl>
+      <PackageIconUrl>https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/images/logo.png?raw=true</PackageIconUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,6 +35,7 @@
       <PackagePath>\</PackagePath>
     </None>
     <None Include="D:\Code\GitHub\BulkUpload\src\BulkUpload\.editorconfig" />
+    <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>
 
   <ItemGroup>

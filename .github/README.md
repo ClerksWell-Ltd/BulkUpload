@@ -73,10 +73,97 @@ In the umbraco backoffice, go to the users section and add the Bulk Upload secti
 
 - If it errors, it will show you a red message. You will be able to see the error details in the Log Viewer
 
-## Documentation
+## Resolvers
 
-See the [docs/README_nuget.md](../docs/README_nuget.md) for more details and usage instructions.
+This package is basically an engine which you can create resolvers for and use them to convert the values from the CSV file into values that will be stored in Umbraco.
+
+Here is the DateTime resolver:
+
+```cs
+namespace Umbraco.Community.BulkUpload.Resolvers;
+
+public class DateTimeResolver : IResolver
+{
+    public string Alias() => "dateTime";
+
+    public object Resolve(object value)
+    {
+        if (value is not string str || !DateTime.TryParse(str, out var dateTime))
+            return string.Empty;
+
+        // Format as ISO 8601 (e.g., "2025-09-12T14:30:00")
+        return dateTime.ToString("o");
+    }
+}
+```
+
+In our [example CSV file](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv) there is a column called `articleDate` and it uses the `dateTime` resolver. The way we tell it to use it is by making the column header look like this:
+
+`articleDate|dateTime`
+
+### Creating your own Resolvers
+
+Create a class in your project and inherit from the IResolver interface
+
+```cs
+using Umbraco.Community.BulkUpload.Resolvers;
+
+public class ExampleResolver : IResolver
+{
+    public string Alias() => "example";
+
+    public object Resolve(object value)
+    {
+        throw new NotImplementedException();
+    }
+}
+```
+
+Then implement the resolve method. You could make it do whatever you want. Get it to pull content from Umbraco, get it to generate content from an AI, anything really and then return it to be stored in Umbraco.
+
+### Registering your resolver
+
+If you want to use the resolver you created, you will need to create a composer and register it in the services like this:
+
+```cs
+using Umbraco.Cms.Core.Composing;
+using Umbraco.Cms.Core.DependencyInjection;
+
+namespace Umbraco.Community.BulkUpload.Resolvers;
+internal class MyComposer : IComposer
+{
+    public void Compose(IUmbracoBuilder builder)
+    {
+        // if you are just converting values and not depending on any services, use AddSingleton
+        builder.Services.AddSingleton<IResolver, ExampleResolver>();
+
+        // if you need to inject services into your resolver, use AddTransient
+        builder.Services.AddTransient<IResolver, ExampleResolver>();
+    }
+}
+```
+
+### Using your resolver
+
+In your CSV file add a column e.g. `title` and get it to use the `example` resolver like this:
+
+`title|example`
 
 ## License
 
-MIT © ClerksWell Ltd
+MIT &copy; ClerksWell Ltd
+
+This project is licensed under the [MIT License](https://opensource.org/license/mit) which means you can basically do what you want with it. Also be aware of the third party dependencies below though
+
+## Third-Party Dependencies
+
+This project uses the following third-party libraries:
+
+### CsvHelper
+
+**Package:** CsvHelper
+**Author:** Josh Close
+**License:** Dual licensed under [Apache License 2.0](https://opensource.org/license/apache-2-0) or
+[Microsoft Public License (MS-PL)](https://opensource.org/license/ms-pl-html)
+
+CsvHelper is used as a NuGet dependency and is not modified in this project. Please refer to its license terms if you redistribute or bundle it with your software. The licenses are fairly permissive and should allow for commercial use and redistribution, but as always double check yourself.
