@@ -81,23 +81,33 @@ public class ImportUtilityService : IImportUtilityService
 
     public virtual void ImportSingleItem(ImportObject importObject, bool publish = false)
     {
-        var newItem = _contentService.Create(importObject!.Name, importObject.ParentId, importObject.ContentTypeAlais);
+        // Try to find an existing item under the same parent with the same name
+        var existingItem = _contentService
+            .GetPagedChildren(importObject.ParentId, 0, int.MaxValue, out _)
+            .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
 
+        // Create or reuse existing item
+        var contentItem = existingItem
+            ?? _contentService.Create(importObject!.Name, importObject.ParentId, importObject.ContentTypeAlais);
+
+
+        // Update properties (same for both new and existing)
         if (importObject.Properties != null && importObject.Properties.Any())
         {
             foreach (var property in importObject.Properties)
             {
-                newItem.SetValue(property.Key, property.Value);
+                contentItem.SetValue(property.Key, property.Value);
             }
         }
 
+        // Save or publish
         if (publish)
         {
-            _contentService.SaveAndPublish(newItem);
+            _contentService.SaveAndPublish(contentItem);
         }
         else
         {
-            _contentService.Save(newItem);
+            _contentService.Save(contentItem);
         }
     }
 }
