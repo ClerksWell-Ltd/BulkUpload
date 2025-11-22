@@ -9,6 +9,5 @@ public class ImportObject
     public bool CanImport => !string.IsNullOrWhiteSpace(Name)
         && !string.IsNullOrWhiteSpace(ContentTypeAlais)
         && ParentId > 0;
-
-
+    public bool PublishOnImport { get; set; } = false;
 }

@@ -63,10 +63,9 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                             ImportObject importObject = _importUtilityService.CreateImportObject(item);
                             if (importObject.CanImport)
                             {
-                                _importUtilityService.ImportSingleItem(importObject);
+                                _importUtilityService.ImportSingleItem(importObject, importObject.PublishOnImport);
                             }
                         }
-
                     }
 
                     _logger.LogInformation("Bulk Upload: Successfully imported {Count} records from CSV", records.Count);
