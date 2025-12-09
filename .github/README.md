@@ -32,7 +32,7 @@ Install via NuGet:
 dotnet add package Umbraco.Community.BulkUpload
 ```
 
-Or download from the [Umbraco Marketplace](https://marketplace.umbraco.com/package/bulkupload).
+Or download from the [Umbraco Marketplace](https://marketplace.umbraco.com/package/umbraco.community.bulkupload).
 
 This script will install the package with Clean Starter Kit so you can test it straight away
 
