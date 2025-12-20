@@ -17,16 +17,16 @@ public class UrlToStreamResolver : IResolver
         _logger = logger;
     }
 
-    public string Alias => "urlToStream";
+    public string Alias() => "urlToStream";
 
-    public object? Resolve(object? value)
+    public object Resolve(object value)
     {
         try
         {
             if (value == null)
             {
                 _logger.LogWarning("UrlToStreamResolver: Received null value");
-                return null;
+                return string.Empty;
             }
 
             string? url = null;
@@ -44,7 +44,7 @@ public class UrlToStreamResolver : IResolver
                 if (string.IsNullOrWhiteSpace(valueStr))
                 {
                     _logger.LogWarning("UrlToStreamResolver: Empty value provided");
-                    return null;
+                    return string.Empty;
                 }
 
                 // Check if value contains pipe separator for inline parameter
@@ -60,21 +60,21 @@ public class UrlToStreamResolver : IResolver
             if (string.IsNullOrWhiteSpace(url))
             {
                 _logger.LogWarning("UrlToStreamResolver: URL is empty");
-                return null;
+                return string.Empty;
             }
 
             // Validate URL format
             if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
                 _logger.LogError("UrlToStreamResolver: Invalid URL format: {Url}", url);
-                return null;
+                return string.Empty;
             }
 
             // Validate URL scheme (only HTTP/HTTPS)
             if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
             {
                 _logger.LogError("UrlToStreamResolver: Only HTTP/HTTPS URLs are supported: {Url}", url);
-                return null;
+                return string.Empty;
             }
 
             // Return MediaSource object with URL information
@@ -88,7 +88,7 @@ public class UrlToStreamResolver : IResolver
         catch (Exception ex)
         {
             _logger.LogError(ex, "UrlToStreamResolver: Error resolving URL");
-            return null;
+            return string.Empty;
         }
     }
 }

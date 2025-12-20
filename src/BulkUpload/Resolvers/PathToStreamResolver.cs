@@ -17,16 +17,16 @@ public class PathToStreamResolver : IResolver
         _logger = logger;
     }
 
-    public string Alias => "pathToStream";
+    public string Alias() => "pathToStream";
 
-    public object? Resolve(object? value)
+    public object Resolve(object value)
     {
         try
         {
             if (value == null)
             {
                 _logger.LogWarning("PathToStreamResolver: Received null value");
-                return null;
+                return string.Empty;
             }
 
             string? filePath = null;
@@ -44,7 +44,7 @@ public class PathToStreamResolver : IResolver
                 if (string.IsNullOrWhiteSpace(valueStr))
                 {
                     _logger.LogWarning("PathToStreamResolver: Empty value provided");
-                    return null;
+                    return string.Empty;
                 }
 
                 // Check if value contains pipe separator for inline parameter
@@ -60,14 +60,14 @@ public class PathToStreamResolver : IResolver
             if (string.IsNullOrWhiteSpace(filePath))
             {
                 _logger.LogWarning("PathToStreamResolver: File path is empty");
-                return null;
+                return string.Empty;
             }
 
             // Validate file exists
             if (!File.Exists(filePath))
             {
                 _logger.LogError("PathToStreamResolver: File not found: {FilePath}", filePath);
-                return null;
+                return string.Empty;
             }
 
             // Return MediaSource object with file path information
@@ -81,7 +81,7 @@ public class PathToStreamResolver : IResolver
         catch (Exception ex)
         {
             _logger.LogError(ex, "PathToStreamResolver: Error resolving file path");
-            return null;
+            return string.Empty;
         }
     }
 }
