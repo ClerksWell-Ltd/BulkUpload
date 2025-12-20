@@ -37,5 +37,6 @@ internal class BulkUploadComposer : IComposer
 
         builder.Services.AddSingleton<IResolverFactory, ResolverFactory>();
         builder.Services.AddSingleton<IImportUtilityService, ImportUtilityService>();
+        builder.Services.AddSingleton<IMediaImportService, MediaImportService>();
     }
 }

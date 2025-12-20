@@ -6,16 +6,18 @@
 
 # BulkUpload for Umbraco
 
-BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.
+BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content and media into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes and media items, making it ideal for migrations, bulk updates, or onboarding new data.
 
 It currently just works with Umbraco 13, but we are looking at releasing it for Umbraco 16/17 soon.
 
 ## Features
 
-- **CSV Import:** Upload and process CSV files to create or update Umbraco content nodes.
+- **Content CSV Import:** Upload and process CSV files to create or update Umbraco content nodes.
+- **Media ZIP Import:** Upload ZIP files containing CSV metadata and media files (images, documents, videos) for bulk media creation.
 - **Custom Mapping:** Supports mapping CSV columns to Umbraco content properties, including complex types.
 - **Content Type Support:** Import data for different content types by specifying aliases and parent nodes.
 - **Extensible Resolvers:** Includes a set of resolvers for handling various property types (e.g., text, dates, media, block lists).
+- **Export Results:** Download CSV files containing IDs of imported media items for use in subsequent content imports.
 - **Error Handling & Logging:** Provides feedback and logging for import operations to help diagnose issues.
 
 ## How It Works
@@ -63,15 +65,54 @@ In the umbraco backoffice, go to the users section and add the Bulk Upload secti
 
 ## Using the tool
 
+### Content Import
+
 - You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv?raw=true" download>download this sample CSV file</a>
 
-- In the Bulk Upload section, click on the upload button, choose your CSV file and then click on the import button.
+- In the Bulk Upload section, click on the **Content Import** tab.
+
+- Click on the upload button, choose your CSV file and then click on the import button.
 
 - It will attempt to import the content for you.
 
 - If it is successful you will see a green success message and can go to the content tree and find your new content.
 
 - If it errors, it will show you a red message. You will be able to see the error details in the Log Viewer
+
+### Media Import
+
+The package now supports bulk importing media files (images, documents, videos, etc.) using a ZIP file approach.
+
+- You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-sample.csv?raw=true" download>download this sample media CSV file</a>
+
+**How it works:**
+
+1. **Prepare your media files** - Collect all images, PDFs, videos, or other files you want to import
+2. **Create a CSV file** with the following required columns:
+   - `fileName` - The exact filename of the media file in the ZIP
+   - `parentId` - The ID of the parent media folder in Umbraco
+   - Optional columns: `name`, `mediaTypeAlias`, plus any custom media properties (e.g., `altText`, `caption`)
+3. **Create a ZIP file** containing both the CSV and all media files
+4. **Upload the ZIP** via the **Media Import** tab in the Bulk Upload dashboard
+5. **Download results** - After import, you can download a CSV with IDs of all created media items
+
+**CSV Example:**
+```csv
+fileName,parentId,name,altText,caption
+product-hero.jpg,1150,Product Hero Image,Red widget product,Main product photo
+user-manual.pdf,1151,User Manual V2,,Product documentation
+```
+
+**Using imported media in content:**
+
+After media import, download the results CSV which contains `mediaId`, `mediaGuid`, and `mediaUdi` for each imported item. You can then use these IDs in your content import CSV:
+
+```csv
+parentId,docTypeAlias,name,heroImage|mediaIdToMediaUdi
+1100,productPage,Red Widget,2001
+```
+
+For detailed instructions, see the [Media Import Guide](../docs/media-import-guide.md).
 
 ## Resolvers
 
