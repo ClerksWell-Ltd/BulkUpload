@@ -170,14 +170,21 @@ public class MediaImportService : IMediaImportService
             {
                 fileStream.Position = 0;
 
-                // Use MediaFileManager to save the file and get the file path
-                var filePath = _mediaFileManager.GetMediaPath(importObject.FileName, out var _);
+                // Get the media path using the property type and media item's key
+                var propertyType = mediaItem.Properties["umbracoFile"]?.PropertyType;
+                if (propertyType == null)
+                {
+                    result.ErrorMessage = "Media type does not have umbracoFile property";
+                    return result;
+                }
 
-                // Save the stream using MediaFileManager
-                _mediaFileManager.FileSystem.AddFile(filePath, fileStream, true);
+                var mediaPath = _mediaFileManager.GetMediaPath(importObject.FileName, propertyType.Key, mediaItem.Key);
+
+                // Save the file to the media file system
+                _mediaFileManager.FileSystem.AddFile(mediaPath, fileStream, true);
 
                 // Set the file path on the media item
-                mediaItem.SetValue(_contentTypeBaseServiceProvider, _shortStringHelper, "umbracoFile", filePath);
+                mediaItem.SetValue("umbracoFile", mediaPath);
             }
             else
             {
