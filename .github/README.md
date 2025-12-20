@@ -95,7 +95,11 @@ The package supports bulk importing media files (images, documents, videos, etc.
    - `fileName` - The exact filename of the media file in the ZIP (optional if using external sources)
    - `mediaSource|pathToStream` - Import from local/network file path (optional)
    - `mediaSource|urlToStream` - Download from URL (optional)
-   - `parentId` - The ID of the parent media folder in Umbraco
+   - `parent` - Parent folder specification supporting:
+     - Integer ID: `1150`
+     - GUID: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`
+     - Path: `/Products/Images/` (auto-creates folders)
+     - Legacy `parentId` column still supported
    - Optional columns: `name`, `mediaTypeAlias`, plus any custom media properties (e.g., `altText`, `caption`)
 3. **Create a ZIP file** containing the CSV and any media files referenced by `fileName`
 4. **Upload the ZIP** via the **Media Import** tab in the Bulk Upload dashboard
@@ -103,33 +107,33 @@ The package supports bulk importing media files (images, documents, videos, etc.
 
 **CSV Examples:**
 
-**Traditional ZIP approach:**
+**Traditional ZIP approach with auto-created folders:**
 ```csv
-fileName,parentId,name,altText,caption
-product-hero.jpg,1150,Product Hero Image,Red widget product,Main product photo
-user-manual.pdf,1151,User Manual V2,,Product documentation
+fileName,parent,name,altText,caption
+product-hero.jpg,/Products/Images/,Product Hero Image,Red widget product,Main product photo
+user-manual.pdf,/Docs/Manuals/,User Manual V2,,Product documentation
 ```
 
-**Import from file paths:**
+**Import from file paths with folder paths:**
 ```csv
-mediaSource|pathToStream,parentId,name,altText
-C:/Assets/Images/product-hero.jpg,1150,Product Hero Image,Red widget product
-\\nas\share\media\user-manual.pdf,1151,User Manual V2,User guide
+mediaSource|pathToStream,parent,name,altText
+C:/Assets/Images/product-hero.jpg,/Products/Images/,Product Hero Image,Red widget product
+\\nas\share\media\user-manual.pdf,/Docs/Manuals/,User Manual V2,User guide
 ```
 
-**Import from URLs:**
+**Import from URLs with integer ID:**
 ```csv
-mediaSource|urlToStream,parentId,name,altText
+mediaSource|urlToStream,parent,name,altText
 https://cdn.example.com/images/hero.jpg,1150,Product Hero Image,Red widget product
-https://example.com/docs/manual.pdf,1151,User Manual V2,User guide
+https://example.com/docs/manual.pdf,1150,User Manual V2,User guide
 ```
 
-**Mixed sources in one import:**
+**Mixed sources with flexible parent formats:**
 ```csv
-fileName,mediaSource|pathToStream,mediaSource|urlToStream,parentId,name
-logo.png,,,1150,Company Logo
+fileName,mediaSource|pathToStream,mediaSource|urlToStream,parent,name
+logo.png,,,/Brand/Logos/,Company Logo
 ,C:/Assets/banner.jpg,,1150,Homepage Banner
-,,https://cdn.example.com/hero.jpg,1150,Hero Image
+,,https://cdn.example.com/hero.jpg,/Marketing/Headers/,Hero Image
 ```
 
 For more examples and detailed instructions, see the [samples directory](../samples/).

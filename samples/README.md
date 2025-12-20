@@ -18,10 +18,10 @@ Demonstrates importing media from multiple sources in a single upload:
 3. Files will be imported from all three sources
 
 ### 2. bulk-upload-with-folder-paths.csv
-Demonstrates using folder path parameters to automatically organize media:
-- Uses `mediaSource|pathToStream:/Products/Images/` syntax
-- Automatically creates `/Products/Images/` folder structure
-- All media items are organized into the specified folder
+Demonstrates using flexible parent folder specification to automatically organize media:
+- Uses `parent` column with folder paths like `/Products/Bikes/`
+- Automatically creates folder structures if they don't exist
+- Media items are organized into the specified folders
 
 **Usage:**
 1. Create a ZIP file containing only this CSV file (no media files needed)
@@ -34,7 +34,11 @@ Demonstrates using folder path parameters to automatically organize media:
 ### Required Columns
 
 - **fileName**: Name of file in ZIP archive (optional if using external source)
-- **parentId**: ID of parent media folder (optional if using folder path parameter)
+- **parent**: Parent folder specification - supports three formats:
+  - Integer ID: `1150`
+  - GUID: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`
+  - Path: `/Products/Images/` (auto-creates folders if they don't exist)
+  - **Note**: Legacy `parentId` column is still supported for backward compatibility
 
 ### Optional Columns
 
@@ -77,54 +81,56 @@ Any additional columns can be used to set properties on media items using resolv
 
 ## Examples
 
-### Example 1: Simple ZIP Upload (Existing Behavior)
+### Example 1: Simple ZIP Upload with Folder Paths
 ```csv
-fileName,parentId,name
-logo.png,1150,Company Logo
-banner.jpg,1150,Homepage Banner
+fileName,parent,name
+logo.png,/Brand/Logos/,Company Logo
+banner.jpg,/Marketing/Banners/,Homepage Banner
 ```
 
-### Example 2: Import from Network Share
+### Example 2: Import from Network Share with Auto-Created Folders
 ```csv
-mediaSource|pathToStream,parentId,name
-\\\\nas.company.local\\assets\\logo.png,1150,Company Logo
-\\\\nas.company.local\\assets\\banner.jpg,1150,Homepage Banner
+mediaSource|pathToStream,parent,name
+\\\\nas.company.local\\assets\\logo.png,/Brand/Logos/,Company Logo
+\\\\nas.company.local\\assets\\banner.jpg,/Marketing/Banners/,Homepage Banner
 ```
 
-### Example 3: Import from CDN
+### Example 3: Import from CDN with Integer Parent ID
 ```csv
-mediaSource|urlToStream,parentId,name
+mediaSource|urlToStream,parent,name
 https://cdn.example.com/images/logo.png,1150,Company Logo
 https://cdn.example.com/images/banner.jpg,1150,Homepage Banner
 ```
 
 ### Example 4: Mixed Sources with Properties
 ```csv
-fileName,mediaSource|pathToStream,mediaSource|urlToStream,parentId,name,altText|text,tags|stringArray
-local.jpg,,,1150,Local Image,From ZIP,"featured,homepage"
-,C:/Assets/network.jpg,,1150,Network Image,From network share,"products,gallery"
-,,https://example.com/cdn.jpg,1150,CDN Image,From CDN,"external,stock"
+fileName,mediaSource|pathToStream,mediaSource|urlToStream,parent,name,altText|text,tags|stringArray
+local.jpg,,,/Gallery/Featured/,Local Image,From ZIP,"featured,homepage"
+,C:/Assets/network.jpg,,/Products/Gallery/,Network Image,From network share,"products,gallery"
+,,https://example.com/cdn.jpg,/Stock/External/,CDN Image,From CDN,"external,stock"
 ```
 
-### Example 5: Organize into Folders with Auto-Creation
+### Example 5: Organize with GUID Parent Reference
 ```csv
-mediaSource|pathToStream:/Blog/Headers/,name,altText|text
-C:/Assets/Headers/tech-post.jpg,Tech Blog Header,Technology article header
-C:/Assets/Headers/news-post.jpg,News Blog Header,News article header
+mediaSource|pathToStream,parent,name,altText|text
+C:/Assets/Headers/tech-post.jpg,a1b2c3d4-e5f6-7890-abcd-ef1234567890,Tech Blog Header,Technology article header
+C:/Assets/Headers/news-post.jpg,a1b2c3d4-e5f6-7890-abcd-ef1234567890,News Blog Header,News article header
 ```
-This creates the `/Blog/Headers/` folder structure automatically.
 
 ## Tips
 
 1. **Empty ZIP Files**: When using only external sources (paths or URLs), you can upload a ZIP containing just the CSV file.
 
-2. **Folder Organization**: Use the parameter syntax (`resolver:parameter`) to specify parent folders by:
-   - ID: `pathToStream:1234`
-   - GUID: `pathToStream:a1b2c3d4-e5f6-7890-abcd-ef1234567890`
-   - Path: `pathToStream:/Gallery/Photos/` (auto-creates folders)
+2. **Flexible Parent Specification**: The `parent` column accepts three formats:
+   - **Integer ID**: `1150` - Direct media folder ID
+   - **GUID**: `a1b2c3d4-e5f6-7890-abcd-ef1234567890` - Folder GUID
+   - **Path**: `/Gallery/Photos/` - Auto-creates folder structure if it doesn't exist
 
 3. **Error Handling**: Check the import results CSV for detailed error messages if any imports fail.
 
 4. **Performance**: Downloading from URLs may take longer than local files. Consider the timeout settings for large files.
 
-5. **Backward Compatibility**: Existing CSV files using only `fileName` continue to work without modification.
+5. **Backward Compatibility**:
+   - Existing CSV files using `parentId` column still work
+   - Files with only `fileName` continue to work without modification
+   - Mix old and new formats if needed
