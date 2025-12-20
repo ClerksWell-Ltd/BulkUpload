@@ -178,13 +178,13 @@ public class MediaImportService : IMediaImportService
                     Directory.CreateDirectory(tempDir);
                 }
 
-                using (var tempFileStream = File.Create(tempPath))
+                using (var tempFileStream = System.IO.File.Create(tempPath))
                 {
                     fileStream.CopyTo(tempFileStream);
                 }
 
                 // Set the file on the media item
-                using (var savedFileStream = File.OpenRead(tempPath))
+                using (var savedFileStream = System.IO.File.OpenRead(tempPath))
                 {
                     mediaItem.SetValue(_mediaFileManager, _shortStringHelper, _contentTypeBaseServiceProvider, "umbracoFile", importObject.FileName, savedFileStream);
                 }
@@ -192,9 +192,9 @@ public class MediaImportService : IMediaImportService
                 // Clean up temp file
                 try
                 {
-                    if (File.Exists(tempPath))
+                    if (System.IO.File.Exists(tempPath))
                     {
-                        File.Delete(tempPath);
+                        System.IO.File.Delete(tempPath);
                     }
                     if (tempDir != null && Directory.Exists(tempDir))
                     {
