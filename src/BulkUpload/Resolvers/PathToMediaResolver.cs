@@ -6,6 +6,7 @@ using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
+using IOFile = System.IO.File;
 
 namespace Umbraco.Community.BulkUpload.Resolvers;
 
@@ -87,7 +88,7 @@ public class PathToMediaResolver : IResolver
         try
         {
             // Validate and resolve file path
-            if (!File.Exists(filePath))
+            if (!IOFile.Exists(filePath))
             {
                 _logger.LogWarning("File not found at path: {FilePath}", filePath);
                 return string.Empty;
@@ -103,7 +104,7 @@ public class PathToMediaResolver : IResolver
             byte[] fileBytes;
             try
             {
-                fileBytes = File.ReadAllBytes(filePath);
+                fileBytes = IOFile.ReadAllBytes(filePath);
             }
             catch (UnauthorizedAccessException ex)
             {
