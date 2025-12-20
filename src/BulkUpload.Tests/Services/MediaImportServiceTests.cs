@@ -312,12 +312,14 @@ public class MediaImportServiceTests
         var mockPropertyCollection = new Mock<PropertyCollection>();
 
         mockMedia.Setup(m => m.Properties).Returns(mockPropertyCollection.Object);
-        mockPropertyCollection.Setup(p => p[It.IsAny<string>()]).Returns((IProperty?)null);
+        mockPropertyCollection.Setup(p => p[It.IsAny<string>()]).Returns(default(IProperty));
 
         _mockMediaTypeService.Setup(s => s.Get("Image")).Returns(mockMediaType.Object);
-        _mockMediaService.Setup(s => s.GetPagedChildren(123, 0, int.MaxValue, out It.Ref<long>.IsAny))
+
+        long totalRecords = 0;
+        _mockMediaService.Setup(s => s.GetPagedChildren(It.IsAny<int>(), It.IsAny<long>(), It.IsAny<int>(), out totalRecords))
             .Returns(Array.Empty<IMedia>());
-        _mockMediaService.Setup(s => s.CreateMedia(It.IsAny<string>(), 123, "Image"))
+        _mockMediaService.Setup(s => s.CreateMedia(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
             .Returns(mockMedia.Object);
 
         // Act
