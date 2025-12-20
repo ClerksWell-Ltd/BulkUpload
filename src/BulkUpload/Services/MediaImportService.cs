@@ -7,6 +7,7 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Resolvers;
+using Umbraco.Extensions;
 
 namespace Umbraco.Community.BulkUpload.Services;
 
@@ -169,8 +170,41 @@ public class MediaImportService : IMediaImportService
             {
                 fileStream.Position = 0;
 
-                // Set the file using the extension method
-                mediaItem.SetValue(_contentTypeBaseServiceProvider, _mediaFileManager, _shortStringHelper, _logger, "umbracoFile", importObject.FileName, fileStream);
+                // Save file to temporary location first
+                var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), importObject.FileName);
+                var tempDir = Path.GetDirectoryName(tempPath);
+                if (tempDir != null && !Directory.Exists(tempDir))
+                {
+                    Directory.CreateDirectory(tempDir);
+                }
+
+                using (var tempFileStream = File.Create(tempPath))
+                {
+                    fileStream.CopyTo(tempFileStream);
+                }
+
+                // Set the file on the media item
+                using (var savedFileStream = File.OpenRead(tempPath))
+                {
+                    mediaItem.SetValue(_mediaFileManager, _shortStringHelper, _contentTypeBaseServiceProvider, "umbracoFile", importObject.FileName, savedFileStream);
+                }
+
+                // Clean up temp file
+                try
+                {
+                    if (File.Exists(tempPath))
+                    {
+                        File.Delete(tempPath);
+                    }
+                    if (tempDir != null && Directory.Exists(tempDir))
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete temporary file: {TempPath}", tempPath);
+                }
             }
             else
             {
