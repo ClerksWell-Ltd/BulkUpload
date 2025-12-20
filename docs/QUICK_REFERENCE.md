@@ -6,8 +6,7 @@
 |--------|---------|----------------|---------|
 | `main` | N/A | Development | Latest features |
 | `release/v13.x` | 13.x | 1.x.x | Umbraco 13 releases |
-| `release/v16.x` | 16.x | 2.x.x | Umbraco 16 releases |
-| `release/v17.x` | 17.x | 3.x.x | Umbraco 17 releases |
+| `release/v17.x` | 17.x | 2.x.x | Umbraco 17 releases |
 
 ## Common Commands
 
@@ -32,10 +31,10 @@ git pull origin release/v13.x
 git cherry-pick <commit-hash>
 git push origin release/v13.x
 
-git checkout release/v16.x
-git pull origin release/v16.x
+git checkout release/v17.x
+git pull origin release/v17.x
 git cherry-pick <commit-hash>
-git push origin release/v16.x
+git push origin release/v17.x
 ```
 
 ### Bug Fix (Specific Version)
@@ -58,9 +57,9 @@ git checkout main
 git cherry-pick <commit-hash>
 git push origin main
 
-git checkout release/v16.x
+git checkout release/v17.x
 git cherry-pick <commit-hash>
-git push origin release/v16.x
+git push origin release/v17.x
 ```
 
 ### Release New Version
@@ -103,23 +102,23 @@ dotnet nuget push bin/Release/Umbraco.Community.BulkUpload.1.2.0.nupkg \
 # 1. Create release branch from main
 git checkout main
 git pull origin main
-git checkout -b release/v16.x
+git checkout -b release/v17.x
 
 # 2. Update .csproj dependencies
 # Edit src/BulkUpload/BulkUpload.csproj:
-# - Umbraco.Cms.Web.Website → 16.0.0
-# - Umbraco.Cms.Web.BackOffice → 16.0.0
+# - Umbraco.Cms.Web.Website → 17.0.0
+# - Umbraco.Cms.Web.BackOffice → 17.0.0
 # - Version → 2.0.0
 
-# 3. Test with Umbraco 16
+# 3. Test with Umbraco 17
 
 # 4. Update documentation
-# Update README.md to mention Umbraco 16 support
+# Update README.md to mention Umbraco 17 support
 
 # 5. Push and tag
 git add .
-git commit -m "feat: add Umbraco 16 support"
-git push -u origin release/v16.x
+git commit -m "feat: add Umbraco 17 support"
+git push -u origin release/v17.x
 git tag v2.0.0
 git push origin v2.0.0
 ```
@@ -128,12 +127,12 @@ git push origin v2.0.0
 
 ### Pattern: MAJOR.MINOR.PATCH
 
-| Change Type | Umbraco 13 | Umbraco 16 | Umbraco 17 |
-|-------------|-----------|-----------|-----------|
-| New Umbraco version | N/A | 2.0.0 | 3.0.0 |
-| New feature | 1.1.0 | 2.1.0 | 3.1.0 |
-| Bug fix | 1.0.1 | 2.0.1 | 3.0.1 |
-| Security fix | 1.0.2 | 2.0.2 | 3.0.2 |
+| Change Type | Umbraco 13 | Umbraco 17 |
+|-------------|-----------|-----------|
+| New Umbraco version | N/A | 2.0.0 |
+| New feature | 1.1.0 | 2.1.0 |
+| Bug fix | 1.0.1 | 2.0.1 |
+| Security fix | 1.0.2 | 2.0.2 |
 
 ## Git Commit Messages
 
@@ -166,7 +165,7 @@ docs(readme): add troubleshooting section
 git log release/v13.x..main --oneline
 
 # See commits in one release not in another
-git log release/v13.x..release/v16.x --oneline
+git log release/v13.x..release/v17.x --oneline
 ```
 
 ### Cherry-pick single commit
@@ -238,7 +237,6 @@ git cherry-pick <commit-hash>
 Use these labels on PRs and issues:
 
 - `v13` - Affects Umbraco 13 version
-- `v16` - Affects Umbraco 16 version
 - `v17` - Affects Umbraco 17 version
 - `needs-backport` - Should be cherry-picked to release branches
 - `breaking-change` - Breaking API change

@@ -8,8 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Version Mapping
 
 - **v1.x.x** - Umbraco 13 support
-- **v2.x.x** - Umbraco 16 support (planned)
-- **v3.x.x** - Umbraco 17 support (planned)
+- **v2.x.x** - Umbraco 17 support (planned)
 
 ## [Unreleased]
 
@@ -55,12 +54,12 @@ When releasing for multiple Umbraco versions, use this format:
 
 ```markdown
 ## [1.2.0] - 2025-12-20 (Umbraco 13)
-## [2.1.0] - 2025-12-20 (Umbraco 16)
+## [2.1.0] - 2025-12-20 (Umbraco 17)
 
 ### Added
 - New CSV validation feature (both versions)
 
 ### Fixed
 - [v13 only] Fixed compatibility issue with Umbraco 13.5
-- [v16 only] Fixed API changes in Umbraco 16.2
+- [v17 only] Fixed API changes in Umbraco 17.2
 ```

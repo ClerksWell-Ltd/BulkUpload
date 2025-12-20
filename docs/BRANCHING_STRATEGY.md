@@ -7,7 +7,7 @@ This document outlines the branching and release strategy for BulkUpload to supp
 ## Current State
 
 - **Version 1.0.0** supports Umbraco 13
-- Planning to support Umbraco 16 and 17
+- Planning to support Umbraco 17 as v2.x
 - Most business logic is version-agnostic
 - Version-specific code is primarily in dependencies and APIs
 
@@ -18,7 +18,6 @@ This document outlines the branching and release strategy for BulkUpload to supp
 ```
 main (or master)
 ├── release/v13.x    # For Umbraco 13 (current)
-├── release/v16.x    # For Umbraco 16 (upcoming)
 └── release/v17.x    # For Umbraco 17 (upcoming)
 ```
 
@@ -28,8 +27,7 @@ main (or master)
 |--------|---------|-----------------|------------------------|
 | `main` | Development, latest features | N/A | Development only |
 | `release/v13.x` | Production releases for Umbraco 13 | 13.x | 1.x.x |
-| `release/v16.x` | Production releases for Umbraco 16 | 16.x | 2.x.x |
-| `release/v17.x` | Production releases for Umbraco 17 | 17.x | 3.x.x |
+| `release/v17.x` | Production releases for Umbraco 17 | 17.x | 2.x.x |
 
 ### Key Principles
 
@@ -46,8 +44,7 @@ Use semantic versioning (MAJOR.MINOR.PATCH) aligned with Umbraco version support
 
 ```
 Umbraco 13 → BulkUpload 1.x.x
-Umbraco 16 → BulkUpload 2.x.x
-Umbraco 17 → BulkUpload 3.x.x
+Umbraco 17 → BulkUpload 2.x.x
 ```
 
 ### Version Bumping Rules
@@ -62,9 +59,8 @@ Umbraco 17 → BulkUpload 3.x.x
 1.0.0  - Initial release (Umbraco 13)
 1.1.0  - Add new resolver feature (Umbraco 13)
 1.1.1  - Fix CSV parsing bug (Umbraco 13)
-2.0.0  - Initial release (Umbraco 16)
-2.0.1  - Fix CSV parsing bug (Umbraco 16) - backported from 1.1.1
-3.0.0  - Initial release (Umbraco 17)
+2.0.0  - Initial release (Umbraco 17)
+2.0.1  - Fix CSV parsing bug (Umbraco 17) - backported from 1.1.1
 ```
 
 ## Workflow Scenarios
@@ -91,12 +87,12 @@ git checkout release/v13.x
 git cherry-pick <commit-hash>
 git push origin release/v13.x
 
-git checkout release/v16.x
+git checkout release/v17.x
 git cherry-pick <commit-hash>
-git push origin release/v16.x
+git push origin release/v17.x
 
 # 5. Release new versions
-# 1.2.0, 2.1.0, 3.1.0 (depending on current version)
+# 1.2.0, 2.1.0 (depending on current version)
 ```
 
 ### Scenario 2: Bug Fix
@@ -119,9 +115,6 @@ git push origin bugfix/csv-parsing-issue
 git checkout main
 git cherry-pick <commit-hash>
 
-git checkout release/v16.x
-git cherry-pick <commit-hash>
-
 git checkout release/v17.x
 git cherry-pick <commit-hash>
 
@@ -134,15 +127,15 @@ git cherry-pick <commit-hash>
 
 ```bash
 # 1. Create branch from specific release branch
-git checkout release/v16.x
-git checkout -b fix/umbraco16-specific-api
+git checkout release/v17.x
+git checkout -b fix/umbraco17-specific-api
 
 # 2. Make version-specific changes
 # ... make changes ...
 
 # 3. Create PR to that release branch only
-git push origin fix/umbraco16-specific-api
-# Open PR → release/v16.x
+git push origin fix/umbraco17-specific-api
+# Open PR → release/v17.x
 
 # 4. Release new version for that branch only (e.g., 2.0.1)
 ```
@@ -163,7 +156,7 @@ git checkout -b release/v17.x
 # - Update TargetFramework if needed
 
 # 3. Update version and metadata
-# - Update <Version> to 3.0.0
+# - Update <Version> to 2.0.0
 # - Update README/docs to mention Umbraco 17 support
 
 # 4. Test thoroughly with Umbraco 17
@@ -171,9 +164,9 @@ git checkout -b release/v17.x
 # 5. Push branch and create initial release
 git push -u origin release/v17.x
 
-# 6. Tag and release 3.0.0
-git tag v3.0.0
-git push origin v3.0.0
+# 6. Tag and release 2.0.0
+git tag v2.0.0
+git push origin v2.0.0
 ```
 
 ## Release Process
@@ -255,8 +248,6 @@ For minor version differences within the same codebase:
 ```csharp
 #if UMBRACO13
     // Umbraco 13 specific code
-#elif UMBRACO16
-    // Umbraco 16 specific code
 #else
     // Umbraco 17 specific code
 #endif
@@ -284,7 +275,7 @@ public interface IUmbracoContentService
 
 // Version-specific implementations
 public class Umbraco13ContentService : IUmbracoContentService { }
-public class Umbraco16ContentService : IUmbracoContentService { }
+public class Umbraco17ContentService : IUmbracoContentService { }
 ```
 
 ## Maintenance Strategy
@@ -294,8 +285,7 @@ public class Umbraco16ContentService : IUmbracoContentService { }
 | Umbraco Version | BulkUpload Version | Support Status | End of Life |
 |----------------|-------------------|----------------|-------------|
 | 13.x | 1.x.x | Active | TBD |
-| 16.x | 2.x.x | Planned | TBD |
-| 17.x | 3.x.x | Planned | TBD |
+| 17.x | 2.x.x | Planned | TBD |
 
 ### Support Levels
 
@@ -358,8 +348,8 @@ Consider using tools like:
    - Tag current version as v1.0.0
    - Update documentation
 
-2. **Week 2-3: Umbraco 16 Support**
-   - Branch `release/v16.x` from main
+2. **Week 2-3: Umbraco 17 Support**
+   - Branch `release/v17.x` from main
    - Update dependencies
    - Test and release v2.0.0
 
@@ -401,7 +391,7 @@ Consider using tools like:
 ### Internal Team
 
 - Document all version-specific changes in PR descriptions
-- Use labels: `v13`, `v16`, `v17`, `needs-backport`
+- Use labels: `v13`, `v17`, `needs-backport`
 - Regular sync meetings to discuss multi-version changes
 
 ### External Users

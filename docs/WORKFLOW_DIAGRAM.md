@@ -16,24 +16,24 @@
                   │                 │                 │
                   │ cherry-pick     │ cherry-pick     │ cherry-pick
                   │                 │                 │
-         ┌────────▼────────┐ ┌──────▼──────┐ ┌───────▼──────┐
-         │  release/v13.x  │ │release/v16.x│ │release/v17.x │
-         │                 │ │             │ │              │
-         │  Umbraco 13     │ │ Umbraco 16  │ │ Umbraco 17   │
-         │  Package v1.x.x │ │Package v2.x.x│ │Package v3.x.x│
-         └────────┬────────┘ └──────┬──────┘ └───────┬──────┘
-                  │                 │                 │
-            ┌─────▼─────┐     ┌─────▼─────┐   ┌──────▼─────┐
-            │   v1.0.0  │     │   v2.0.0  │   │   v3.0.0   │
-            │   v1.1.0  │     │   v2.1.0  │   │   v3.1.0   │
-            │   v1.2.0  │     │   v2.2.0  │   │   v3.2.0   │
-            └───────────┘     └───────────┘   └────────────┘
+         ┌────────▼────────┐ ┌───────▼──────┐
+         │  release/v13.x  │ │release/v17.x │
+         │                 │ │              │
+         │  Umbraco 13     │ │ Umbraco 17   │
+         │  Package v1.x.x │ │Package v2.x.x│
+         └────────┬────────┘ └───────┬──────┘
+                  │                  │
+            ┌─────▼─────┐      ┌─────▼─────┐
+            │   v1.0.0  │      │   v2.0.0  │
+            │   v1.1.0  │      │   v2.1.0  │
+            │   v1.2.0  │      │   v2.2.0  │
+            └───────────┘      └───────────┘
 ```
 
 ## Feature Development Flow
 
 ```
-Developer          main            release/v13.x    release/v16.x
+Developer          main            release/v13.x    release/v17.x
     │                │                    │                │
     │ 1. Create      │                    │                │
     │   feature      │                    │                │
@@ -66,7 +66,7 @@ Developer          main            release/v13.x    release/v16.x
 ## Bug Fix Flow (Specific Version)
 
 ```
-Developer      release/v13.x        main        release/v16.x
+Developer      release/v13.x        main        release/v17.x
     │                │                │                │
     │ 1. Create      │                │                │
     │   bugfix       │                │                │
@@ -89,7 +89,7 @@ Developer      release/v13.x        main        release/v16.x
     │                ├───────────────►│                │
     │                │                │                │
     │                │                │ 6. Cherry-pick │
-    │                │                │    to v16.x    │
+    │                │                │    to v17.x    │
     │                │                ├───────────────►│
     │                │                │                │
     │                │ 7. Release     │                │
@@ -100,7 +100,7 @@ Developer      release/v13.x        main        release/v16.x
 ## New Umbraco Version Support Flow
 
 ```
-Developer          main          release/v16.x       NuGet
+Developer          main          release/v17.x       NuGet
     │                │                  │              │
     │ 1. Branch      │                  │              │
     │   from main    │                  │              │
@@ -109,7 +109,7 @@ Developer          main          release/v16.x       NuGet
     │ 2. Update      │                  │              │
     │   dependencies │                  │              │
     │   to Umbraco   │                  │              │
-    │   16.x         │                  │              │
+    │   17.x         │                  │              │
     │◄───────────────┼──────────────────┤              │
     │                │                  │              │
     │ 3. Update      │                  │              │
@@ -118,7 +118,7 @@ Developer          main          release/v16.x       NuGet
     │◄───────────────┼──────────────────┤              │
     │                │                  │              │
     │ 4. Test with   │                  │              │
-    │   Umbraco 16   │                  │              │
+    │   Umbraco 17   │                  │              │
     │                │                  │              │
     │                │                  │              │
     │ 5. Commit &    │                  │              │
@@ -138,9 +138,9 @@ Developer          main          release/v16.x       NuGet
 ## Version Timeline
 
 ```
-Timeline    Umbraco 13          Umbraco 16          Umbraco 17
-            (v1.x.x)            (v2.x.x)            (v3.x.x)
-───────────────────────────────────────────────────────────────
+Timeline    Umbraco 13          Umbraco 17
+            (v1.x.x)            (v2.x.x)
+──────────────────────────────────────────────
 
 2025-Q1     v1.0.0 ●────┐
             Initial      │
@@ -150,18 +150,18 @@ Timeline    Umbraco 13          Umbraco 16          Umbraco 17
             New         │      Initial      │
             Features    │      Release      │
                         │                   │
-2025-Q3     v1.2.0 ●    │      v2.1.0 ●     │      v3.0.0 ●
-            More        │      Parity       │      Initial
-            Features    │      with v1.1    │      Release
+2025-Q3     v1.2.0 ●    │      v2.1.0 ●     │
+            More        │      Parity       │
+            Features    │      with v1.1    │
                         │                   │
-2025-Q4     v1.3.0 ●    │      v2.2.0 ●     │      v3.1.0 ●
-            Advanced    │      Advanced     │      Parity
-            Features    │      Features     │      with v2.1
+2025-Q4     v1.3.0 ●    │      v2.2.0 ●     │
+            Advanced    │      Advanced     │
+            Features    │      Features     │
                         │                   │
-2026-Q1     v1.3.1 ●    │      v2.2.1 ●     │      v3.1.1 ●
-            Bug Fixes   │      Bug Fixes    │      Bug Fixes
+2026-Q1     v1.3.1 ●    │      v2.2.1 ●     │
+            Bug Fixes   │      Bug Fixes    │
                         │                   │
-───────────────────────────────────────────────────────────────
+──────────────────────────────────────────────
 
 Legend:
   ●  Release
@@ -188,25 +188,16 @@ Step 2: Cherry-pick to main
         │ git cherry-pick C
         │
 
-Step 3: Cherry-pick to release/v16.x
+Step 3: Cherry-pick to release/v17.x
 ┌─────────────────┐
-│ release/v16.x   │
+│ release/v17.x   │
 │   ●─────●───●'' │  ← Commit C'' (cherry-picked from C)
 └─────────────────┘
         ▲
         │ git cherry-pick C
         │
 
-Step 4: Cherry-pick to release/v17.x
-┌─────────────────┐
-│ release/v17.x   │
-│   ●─────●───●'''│  ← Commit C''' (cherry-picked from C)
-└─────────────────┘
-        ▲
-        │ git cherry-pick C
-        │
-
-Note: C, C', C'', C''' contain the same logical change
+Note: C, C', C'' contain the same logical change
       but may have different commit hashes
 ```
 
@@ -248,7 +239,7 @@ Note: C, C', C'', C''' contain the same logical change
         │      ┌────────────┼────────┐         │
         │      │            │        │         │
         │  ┌───▼───┐   ┌────▼───┐ ┌─▼──┐     │
-        │  │ v13.x │   │  v16.x │ │main│     │
+        │  │ v13.x │   │  v17.x │ │main│     │
         │  └───┬───┘   └────┬───┘ └─┬──┘     │
         │      │            │       │         │
         └──────┼────────────┼───────┘         │
