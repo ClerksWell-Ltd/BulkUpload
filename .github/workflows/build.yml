@@ -17,6 +17,7 @@ jobs:
 
     - name: Extract .NET version from csproj
       id: dotnet-version
+      shell: bash
       run: |
         # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
         DOTNET_VERSION=$(grep -oP '<TargetFramework>net\K[0-9]+' src/BulkUpload/BulkUpload.csproj)
