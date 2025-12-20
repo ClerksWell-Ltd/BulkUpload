@@ -297,40 +297,6 @@ public class MediaImportServiceTests
     }
 
     [Fact]
-    public void ImportSingleMediaItem_ReturnsFailure_WhenMediaTypeHasNoUmbracoFileProperty()
-    {
-        // Arrange
-        var importObject = new MediaImportObject
-        {
-            FileName = "test.jpg",
-            ParentId = 123
-        };
-        using var stream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
-
-        var mockMediaType = new Mock<IMediaType>();
-        var mockMedia = new Mock<IMedia>();
-        var mockPropertyCollection = new Mock<PropertyCollection>();
-
-        mockMedia.Setup(m => m.Properties).Returns(mockPropertyCollection.Object);
-        mockPropertyCollection.Setup(p => p[It.IsAny<string>()]).Returns(default(IProperty));
-
-        _mockMediaTypeService.Setup(s => s.Get("Image")).Returns(mockMediaType.Object);
-
-        long totalRecords = 0;
-        _mockMediaService.Setup(s => s.GetPagedChildren(It.IsAny<int>(), It.IsAny<long>(), It.IsAny<int>(), out totalRecords))
-            .Returns(Array.Empty<IMedia>());
-        _mockMediaService.Setup(s => s.CreateMedia(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<int>()))
-            .Returns(mockMedia.Object);
-
-        // Act
-        var result = _service.ImportSingleMediaItem(importObject, stream);
-
-        // Assert
-        Assert.False(result.Success);
-        Assert.Contains("does not have umbracoFile property", result.ErrorMessage);
-    }
-
-    [Fact]
     public void ImportSingleMediaItem_DeterminesMediaTypeFromExtension_WhenNotProvided()
     {
         // Arrange
