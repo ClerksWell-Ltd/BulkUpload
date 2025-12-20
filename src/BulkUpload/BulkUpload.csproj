@@ -20,7 +20,7 @@
     <PackageReadmeFile>README_nuget.md</PackageReadmeFile>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-      <PackageIconUrl>https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/images/logo.png?raw=true</PackageIconUrl>
+    <PackageIcon>icon.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>

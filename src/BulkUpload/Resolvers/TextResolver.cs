@@ -10,7 +10,7 @@ public class TextResolver : IResolver
             return output;
 
         if (value is not null)
-            return value.ToString();
+            return value.ToString() ?? string.Empty;
 
         return string.Empty;
     }
