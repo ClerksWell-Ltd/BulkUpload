@@ -174,7 +174,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            Parent = "1",
+            ParentId = 1,
             Properties = null
         };
 
@@ -193,7 +193,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            Parent = "1",
+            ParentId = 1,
             Properties = new Dictionary<string, object>()
         };
 
@@ -212,7 +212,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            Parent = "1",
+            ParentId = 1,
             Properties = new Dictionary<string, object>
             {
                 { "Title", "Test Title" },

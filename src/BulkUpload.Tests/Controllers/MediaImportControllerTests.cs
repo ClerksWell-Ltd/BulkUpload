@@ -136,7 +136,7 @@ public class MediaImportControllerTests
                 return new MediaImportObject
                 {
                     FileName = $"test{callCount}.jpg",
-                    ParentId = callCount == 1 ? 123 : 456
+                    Parent = callCount == 1 ? "123" : "456"
                 };
             });
 
@@ -165,7 +165,7 @@ public class MediaImportControllerTests
                 return new MediaImportObject
                 {
                     FileName = callCount == 1 ? "test.jpg" : "valid.jpg",
-                    ParentId = callCount == 1 ? 0 : 123
+                    Parent = callCount == 1 ? null : "123"
                 };
             });
 
