@@ -145,54 +145,56 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                         break;
 
                                     case Models.MediaSourceType.Url:
-                                        var url = importObject.ExternalSource.Value;
-
-                                        // Security validation
-                                        if (!IsAllowedUrl(url))
                                         {
-                                            results.Add(new MediaImportResult
+                                            var url = importObject.ExternalSource.Value;
+
+                                            // Security validation
+                                            if (!IsAllowedUrl(url))
                                             {
-                                                FileName = url,
-                                                Success = false,
-                                                ErrorMessage = "Access to this URL is not allowed for security reasons"
-                                            });
-                                            continue;
-                                        }
-
-                                        using var httpClient = new HttpClient();
-                                        httpClient.Timeout = TimeSpan.FromSeconds(30);
-
-                                        try
-                                        {
-                                            _logger.LogInformation("Bulk Upload Media: Downloading from URL: {Url}", url);
-                                            var response = await httpClient.GetAsync(url);
-                                            response.EnsureSuccessStatusCode();
-
-                                            var memoryStream = new MemoryStream();
-                                            await response.Content.CopyToAsync(memoryStream);
-                                            memoryStream.Position = 0;
-                                            fileStream = memoryStream;
-
-                                            // Extract filename from URL
-                                            var uri = new Uri(url);
-                                            actualFileName = Path.GetFileName(Uri.UnescapeDataString(uri.LocalPath));
-                                            if (string.IsNullOrWhiteSpace(Path.GetExtension(actualFileName)))
-                                            {
-                                                actualFileName += ".jpg"; // Default extension
+                                                results.Add(new MediaImportResult
+                                                {
+                                                    FileName = url,
+                                                    Success = false,
+                                                    ErrorMessage = "Access to this URL is not allowed for security reasons"
+                                                });
+                                                continue;
                                             }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            results.Add(new MediaImportResult
+
+                                            using var httpClient = new HttpClient();
+                                            httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+                                            try
                                             {
-                                                FileName = url,
-                                                Success = false,
-                                                ErrorMessage = $"Failed to download from URL: {ex.Message}"
-                                            });
-                                            _logger.LogError(ex, "Bulk Upload Media: Failed to download from URL: {Url}", url);
-                                            continue;
+                                                _logger.LogInformation("Bulk Upload Media: Downloading from URL: {Url}", url);
+                                                var response = await httpClient.GetAsync(url);
+                                                response.EnsureSuccessStatusCode();
+
+                                                var memoryStream = new MemoryStream();
+                                                await response.Content.CopyToAsync(memoryStream);
+                                                memoryStream.Position = 0;
+                                                fileStream = memoryStream;
+
+                                                // Extract filename from URL
+                                                var uri = new Uri(url);
+                                                actualFileName = Path.GetFileName(Uri.UnescapeDataString(uri.LocalPath));
+                                                if (string.IsNullOrWhiteSpace(Path.GetExtension(actualFileName)))
+                                                {
+                                                    actualFileName += ".jpg"; // Default extension
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                results.Add(new MediaImportResult
+                                                {
+                                                    FileName = url,
+                                                    Success = false,
+                                                    ErrorMessage = $"Failed to download from URL: {ex.Message}"
+                                                });
+                                                _logger.LogError(ex, "Bulk Upload Media: Failed to download from URL: {Url}", url);
+                                                continue;
+                                            }
+                                            break;
                                         }
-                                        break;
                                 }
                             }
                             else
