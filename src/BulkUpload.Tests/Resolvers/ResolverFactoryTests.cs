@@ -136,6 +136,120 @@ public class ResolverFactoryTests
         // Assert
         Assert.Null(resolver);
     }
+
+    #region Parameterized Alias Tests
+
+    [Fact]
+    public void GetByAlias_ParsesParameterizedAlias()
+    {
+        // Arrange
+        var resolvers = new List<IResolver>
+        {
+            new TestResolver("test")
+        };
+        var factory = new ResolverFactory(resolvers);
+
+        // Act - Request with parameter
+        var resolver = factory.GetByAlias("test:1234");
+
+        // Assert - Should return a resolver (wrapped)
+        Assert.NotNull(resolver);
+        Assert.Equal("test", resolver.Alias()); // Wrapper returns inner resolver's alias
+    }
+
+    [Fact]
+    public void GetByAlias_ReturnsNull_WhenParameterizedAliasNotFound()
+    {
+        // Arrange
+        var resolvers = new List<IResolver>
+        {
+            new TestResolver("test")
+        };
+        var factory = new ResolverFactory(resolvers);
+
+        // Act - Request non-existent resolver with parameter
+        var resolver = factory.GetByAlias("nonexistent:1234");
+
+        // Assert
+        Assert.Null(resolver);
+    }
+
+    [Fact]
+    public void GetByAlias_HandlesMultipleColonsInParameter()
+    {
+        // Arrange
+        var resolvers = new List<IResolver>
+        {
+            new TestResolver("test")
+        };
+        var factory = new ResolverFactory(resolvers);
+
+        // Act - Parameter contains colon (like a URL or path)
+        var resolver = factory.GetByAlias("test:/Blog/Images:/Subfolder/");
+
+        // Assert - Should parse only first colon as separator
+        Assert.NotNull(resolver);
+        Assert.Equal("test", resolver.Alias());
+    }
+
+    [Fact]
+    public void GetByAlias_ReturnsUnwrappedResolver_WhenNoParameter()
+    {
+        // Arrange
+        var testResolver = new TestResolver("test");
+        var resolvers = new List<IResolver> { testResolver };
+        var factory = new ResolverFactory(resolvers);
+
+        // Act - No parameter
+        var resolver = factory.GetByAlias("test");
+
+        // Assert - Should return original resolver, not wrapped
+        Assert.NotNull(resolver);
+        Assert.Same(testResolver, resolver); // Same instance
+    }
+
+    [Fact]
+    public void GetByAlias_ParameterizedAliasIsCaseInsensitive()
+    {
+        // Arrange
+        var resolvers = new List<IResolver>
+        {
+            new TestResolver("test")
+        };
+        var factory = new ResolverFactory(resolvers);
+
+        // Act - Different cases
+        var resolver1 = factory.GetByAlias("test:1234");
+        var resolver2 = factory.GetByAlias("TEST:1234");
+        var resolver3 = factory.GetByAlias("Test:1234");
+
+        // Assert - All should resolve
+        Assert.NotNull(resolver1);
+        Assert.NotNull(resolver2);
+        Assert.NotNull(resolver3);
+    }
+
+    [Theory]
+    [InlineData("test:")]
+    [InlineData("test: ")]
+    [InlineData("test:   ")]
+    public void GetByAlias_HandlesEmptyOrWhitespaceParameter(string aliasWithParam)
+    {
+        // Arrange
+        var resolvers = new List<IResolver>
+        {
+            new TestResolver("test")
+        };
+        var factory = new ResolverFactory(resolvers);
+
+        // Act
+        var resolver = factory.GetByAlias(aliasWithParam);
+
+        // Assert - Should still resolve (parameter is empty/whitespace)
+        Assert.NotNull(resolver);
+    }
+
+    #endregion
 }
 
 internal class TestResolver : IResolver
