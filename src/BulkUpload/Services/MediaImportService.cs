@@ -52,13 +52,13 @@ public class MediaImportService : IMediaImportService
         var propertiesToCreate = new Dictionary<string, object>();
 
         var fileName = "";
-        if (dynamicProperties.TryGetValue("fileName", out object fileNameValue))
+        if (dynamicProperties.TryGetValue("fileName", out object? fileNameValue))
         {
             fileName = fileNameValue?.ToString() ?? "";
         }
 
         string? name = null;
-        if (dynamicProperties.TryGetValue("name", out object nameValue))
+        if (dynamicProperties.TryGetValue("name", out object? nameValue))
         {
             var nameStr = nameValue?.ToString();
             if (!string.IsNullOrWhiteSpace(nameStr))
@@ -68,13 +68,13 @@ public class MediaImportService : IMediaImportService
         }
 
         int parentId = 0;
-        if (dynamicProperties.TryGetValue("parentId", out object parentIdValue))
+        if (dynamicProperties.TryGetValue("parentId", out object? parentIdValue))
         {
             int.TryParse(parentIdValue?.ToString() ?? "", out parentId);
         }
 
         string? mediaTypeAlias = null;
-        if (dynamicProperties.TryGetValue("mediaTypeAlias", out object mediaTypeAliasValue))
+        if (dynamicProperties.TryGetValue("mediaTypeAlias", out object? mediaTypeAliasValue))
         {
             var aliasStr = mediaTypeAliasValue?.ToString();
             if (!string.IsNullOrWhiteSpace(aliasStr))
