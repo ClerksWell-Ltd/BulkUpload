@@ -54,7 +54,7 @@ public class MediaImportService : IMediaImportService
         var fileName = "";
         if (dynamicProperties.TryGetValue("fileName", out object fileNameValue))
         {
-            fileName = fileNameValue.ToString() ?? "";
+            fileName = fileNameValue?.ToString() ?? "";
         }
 
         string? name = null;
@@ -70,7 +70,7 @@ public class MediaImportService : IMediaImportService
         int parentId = 0;
         if (dynamicProperties.TryGetValue("parentId", out object parentIdValue))
         {
-            int.TryParse(parentIdValue.ToString(), out parentId);
+            int.TryParse(parentIdValue?.ToString() ?? "", out parentId);
         }
 
         string? mediaTypeAlias = null;
@@ -108,7 +108,10 @@ public class MediaImportService : IMediaImportService
 
             var resolver = _resolverFactory.GetByAlias(resolverAlias);
             object? propertyValue = null;
-            propertyValue = resolver.Resolve(property.Value);
+            if (resolver != null)
+            {
+                propertyValue = resolver.Resolve(property.Value);
+            }
 
             propertiesToCreate.Add(columnName, propertyValue);
         }

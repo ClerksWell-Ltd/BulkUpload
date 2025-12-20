@@ -36,19 +36,19 @@ public class ImportUtilityService : IImportUtilityService
         var name = "";
         if (dynamicProperties.TryGetValue("name", out object nameValue))
         {
-            name = nameValue.ToString();
+            name = nameValue?.ToString() ?? "";
         }
 
         int parentId = 0;
         if (dynamicProperties.TryGetValue("parentId", out object parentIdValue))
         {
-            parentId = int.Parse(parentIdValue.ToString());
+            int.TryParse(parentIdValue?.ToString() ?? "", out parentId);
         }
 
         var docTypeAlias = "";
         if (dynamicProperties.TryGetValue("docTypeAlias", out object docTypeAliasValue))
         {
-            docTypeAlias = docTypeAliasValue.ToString();
+            docTypeAlias = docTypeAliasValue?.ToString() ?? "";
         }
 
         ImportObject importObject = new ImportObject() { ContentTypeAlais = docTypeAlias, Name = name, ParentId = parentId };
@@ -69,7 +69,10 @@ public class ImportUtilityService : IImportUtilityService
 
             var resolver = _resolverFactory.GetByAlias(resolverAlias);
             object? propertyValue = null;
-            propertyValue = resolver.Resolve(property.Value);
+            if (resolver != null)
+            {
+                propertyValue = resolver.Resolve(property.Value);
+            }
 
             propertiesToCreate.Add(columnName, propertyValue);
         }

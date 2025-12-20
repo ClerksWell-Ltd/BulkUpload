@@ -9,7 +9,7 @@ public class ResolverFactory : IResolverFactory
         _resolvers = resolvers.ToDictionary(r => r.Alias(), r => r, StringComparer.OrdinalIgnoreCase);
     }
 
-    public IResolver GetByAlias(string alias)
+    public IResolver? GetByAlias(string alias)
     {
         return _resolvers.TryGetValue(alias, out var resolver) ? resolver : null;
     }
