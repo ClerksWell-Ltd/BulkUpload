@@ -26,6 +26,9 @@ jobs:
     - name: Build solution
       run: dotnet build src/BulkUpload.sln --configuration Release --no-restore
 
+    - name: Run tests
+      run: dotnet test src/BulkUpload.sln --configuration Release --no-build --verbosity normal
+
     - name: Display build status
       if: success()
-      run: echo "Build completed successfully!"
+      run: echo "Build and tests completed successfully!"
