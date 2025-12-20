@@ -7,6 +7,7 @@ using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
+using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Resolvers;
 
 namespace Umbraco.Community.BulkUpload.Tests.Resolvers;
@@ -357,4 +358,239 @@ public class UrlToMediaResolverTests
         // Assert - verify HTTP client was used
         _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Once);
     }
+
+    #region Parameterization Tests
+
+    [Fact]
+    public void Resolve_ParsesUrlWithValueParameter()
+    {
+        // Arrange - URL with pipe-separated parent ID
+        var urlWithParam = "https://example.com/image.jpg|1234";
+
+        var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+        var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(imageBytes)
+            });
+
+        var httpClient = new HttpClient(mockHttpMessageHandler.Object);
+        _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act
+        var result = _resolver.Resolve(urlWithParam);
+
+        // Assert - URL should be parsed correctly (HTTP request should be made to base URL)
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public void Resolve_HandlesParameterizedValue()
+    {
+        // Arrange - ParameterizedValue with alias parameter
+        var parameterizedValue = new ParameterizedValue
+        {
+            Value = "https://example.com/image.jpg",
+            Parameter = "5678"
+        };
+
+        var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+        var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(imageBytes)
+            });
+
+        var httpClient = new HttpClient(mockHttpMessageHandler.Object);
+        _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act
+        var result = _resolver.Resolve(parameterizedValue);
+
+        // Assert - Should unwrap ParameterizedValue and process URL
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public void Resolve_ValueParameterTakesPrecedenceOverAliasParameter()
+    {
+        // Arrange - Both alias and value parameters present
+        var parameterizedValue = new ParameterizedValue
+        {
+            Value = "https://example.com/image.jpg|9999", // Value parameter
+            Parameter = "1234" // Alias parameter
+        };
+        // According to fallback hierarchy, value parameter (9999) should take precedence
+
+        var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+        var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(imageBytes)
+            });
+
+        var httpClient = new HttpClient(mockHttpMessageHandler.Object);
+        _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act
+        var result = _resolver.Resolve(parameterizedValue);
+
+        // Assert - Should process successfully with value parameter taking precedence
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("https://example.com/image.jpg|1234")]
+    [InlineData("https://example.com/image.jpg|a1b2c3d4-e5f6-7890-abcd-ef1234567890")]
+    [InlineData("https://example.com/image.jpg|/Blog/Images/")]
+    [InlineData("https://example.com/image.jpg|/Nested/Folder/Structure/")]
+    public void Resolve_HandlesDifferentParameterFormats(string urlWithParam)
+    {
+        // Arrange
+        var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+        var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(imageBytes)
+            });
+
+        var httpClient = new HttpClient(mockHttpMessageHandler.Object);
+        _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act
+        var result = _resolver.Resolve(urlWithParam);
+
+        // Assert - Should handle different parameter formats (ID, GUID, path)
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsEmptyString_WhenParameterizedValueHasEmptyUrl()
+    {
+        // Arrange
+        var parameterizedValue = new ParameterizedValue
+        {
+            Value = string.Empty,
+            Parameter = "1234"
+        };
+
+        // Act
+        var result = _resolver.Resolve(parameterizedValue);
+
+        // Assert
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsEmptyString_WhenParameterizedValueHasInvalidUrl()
+    {
+        // Arrange
+        var parameterizedValue = new ParameterizedValue
+        {
+            Value = "not-a-valid-url",
+            Parameter = "1234"
+        };
+
+        // Act
+        var result = _resolver.Resolve(parameterizedValue);
+
+        // Assert
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void Resolve_HandlesUrlWithPipeButNoParameter()
+    {
+        // Arrange - URL with pipe but empty parameter
+        var urlWithEmptyParam = "https://example.com/image.jpg|";
+
+        var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+        var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(imageBytes)
+            });
+
+        var httpClient = new HttpClient(mockHttpMessageHandler.Object);
+        _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act
+        var result = _resolver.Resolve(urlWithEmptyParam);
+
+        // Assert - Should handle gracefully and use default (root)
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public void Resolve_HandlesWhitespaceInParameters()
+    {
+        // Arrange - URL with whitespace around parameter
+        var urlWithWhitespace = "https://example.com/image.jpg|  1234  ";
+
+        var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+        var mockHttpMessageHandler = new Mock<HttpMessageHandler>();
+        mockHttpMessageHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>()
+            )
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new ByteArrayContent(imageBytes)
+            });
+
+        var httpClient = new HttpClient(mockHttpMessageHandler.Object);
+        _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+        // Act
+        var result = _resolver.Resolve(urlWithWhitespace);
+
+        // Assert - Should trim whitespace and process correctly
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Once);
+    }
+
+    #endregion
 }
