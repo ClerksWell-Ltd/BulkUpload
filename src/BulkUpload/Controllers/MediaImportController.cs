@@ -90,6 +90,7 @@ public class MediaImportController : UmbracoAuthorizedApiController
                 {
                     foreach (var item in records)
                     {
+                        Stream? fileStream = null;
                         try
                         {
                             MediaImportObject importObject = _mediaImportService.CreateMediaImportObject(item);
@@ -105,25 +106,123 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                 continue;
                             }
 
-                            // Find the media file in extracted contents
-                            var mediaFiles = Directory.GetFiles(tempDirectory, importObject.FileName, SearchOption.AllDirectories);
+                            string actualFileName = importObject.FileName;
 
-                            if (mediaFiles.Length == 0)
+                            // Handle external media sources
+                            if (importObject.ExternalSource != null)
                             {
-                                results.Add(new MediaImportResult
+                                switch (importObject.ExternalSource.Type)
                                 {
-                                    FileName = importObject.FileName,
-                                    Success = false,
-                                    ErrorMessage = $"File not found in ZIP archive: {importObject.FileName}"
-                                });
-                                _logger.LogWarning("Bulk Upload Media: File not found: {FileName}", importObject.FileName);
-                                continue;
+                                    case Models.MediaSourceType.FilePath:
+                                        var filePath = importObject.ExternalSource.Value;
+
+                                        // Security validation
+                                        if (!IsAllowedFilePath(filePath))
+                                        {
+                                            results.Add(new MediaImportResult
+                                            {
+                                                FileName = filePath,
+                                                Success = false,
+                                                ErrorMessage = "Access to this file path is not allowed for security reasons"
+                                            });
+                                            continue;
+                                        }
+
+                                        if (!System.IO.File.Exists(filePath))
+                                        {
+                                            results.Add(new MediaImportResult
+                                            {
+                                                FileName = filePath,
+                                                Success = false,
+                                                ErrorMessage = $"File not found at path: {filePath}"
+                                            });
+                                            _logger.LogWarning("Bulk Upload Media: File not found at path: {FilePath}", filePath);
+                                            continue;
+                                        }
+                                        fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                                        actualFileName = Path.GetFileName(filePath);
+                                        _logger.LogInformation("Bulk Upload Media: Reading from file path: {FilePath}", filePath);
+                                        break;
+
+                                    case Models.MediaSourceType.Url:
+                                        var url = importObject.ExternalSource.Value;
+
+                                        // Security validation
+                                        if (!IsAllowedUrl(url))
+                                        {
+                                            results.Add(new MediaImportResult
+                                            {
+                                                FileName = url,
+                                                Success = false,
+                                                ErrorMessage = "Access to this URL is not allowed for security reasons"
+                                            });
+                                            continue;
+                                        }
+
+                                        using var httpClient = new HttpClient();
+                                        httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+                                        try
+                                        {
+                                            _logger.LogInformation("Bulk Upload Media: Downloading from URL: {Url}", url);
+                                            var response = await httpClient.GetAsync(url);
+                                            response.EnsureSuccessStatusCode();
+
+                                            var memoryStream = new MemoryStream();
+                                            await response.Content.CopyToAsync(memoryStream);
+                                            memoryStream.Position = 0;
+                                            fileStream = memoryStream;
+
+                                            // Extract filename from URL
+                                            var uri = new Uri(url);
+                                            actualFileName = Path.GetFileName(Uri.UnescapeDataString(uri.LocalPath));
+                                            if (string.IsNullOrWhiteSpace(Path.GetExtension(actualFileName)))
+                                            {
+                                                actualFileName += ".jpg"; // Default extension
+                                            }
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            results.Add(new MediaImportResult
+                                            {
+                                                FileName = url,
+                                                Success = false,
+                                                ErrorMessage = $"Failed to download from URL: {ex.Message}"
+                                            });
+                                            _logger.LogError(ex, "Bulk Upload Media: Failed to download from URL: {Url}", url);
+                                            continue;
+                                        }
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                // Find the media file in extracted ZIP contents (existing behavior)
+                                var mediaFiles = Directory.GetFiles(tempDirectory, importObject.FileName, SearchOption.AllDirectories);
+
+                                if (mediaFiles.Length == 0)
+                                {
+                                    results.Add(new MediaImportResult
+                                    {
+                                        FileName = importObject.FileName,
+                                        Success = false,
+                                        ErrorMessage = $"File not found in ZIP archive: {importObject.FileName}"
+                                    });
+                                    _logger.LogWarning("Bulk Upload Media: File not found in ZIP: {FileName}", importObject.FileName);
+                                    continue;
+                                }
+
+                                var mediaFilePath = mediaFiles[0];
+                                fileStream = new FileStream(mediaFilePath, FileMode.Open, FileAccess.Read);
                             }
 
-                            var mediaFilePath = mediaFiles[0];
+                            // Update fileName if it came from external source
+                            if (!string.IsNullOrWhiteSpace(actualFileName))
+                            {
+                                importObject.FileName = actualFileName;
+                            }
 
                             // Import the media item
-                            using var fileStream = new FileStream(mediaFilePath, FileMode.Open, FileAccess.Read);
                             var result = _mediaImportService.ImportSingleMediaItem(importObject, fileStream);
                             results.Add(result);
                         }
@@ -136,6 +235,11 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                 Success = false,
                                 ErrorMessage = ex.Message
                             });
+                        }
+                        finally
+                        {
+                            // Clean up stream
+                            fileStream?.Dispose();
                         }
                     }
                 }
@@ -202,6 +306,93 @@ public class MediaImportController : UmbracoAuthorizedApiController
         {
             _logger.LogError(ex, "Bulk Upload Media: Error exporting results");
             return BadRequest("Error exporting results.");
+        }
+    }
+
+    /// <summary>
+    /// Validates that a URL is safe to download from (basic SSRF prevention).
+    /// </summary>
+    private bool IsAllowedUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        {
+            _logger.LogWarning("Bulk Upload Media: Invalid URL format: {Url}", url);
+            return false;
+        }
+
+        var host = uri.Host.ToLowerInvariant();
+
+        // Block localhost and private IP ranges to prevent SSRF attacks
+        if (host == "localhost" ||
+            host == "127.0.0.1" ||
+            host == "::1" ||
+            host.StartsWith("192.168.") ||
+            host.StartsWith("10.") ||
+            host.StartsWith("172.16.") ||
+            host.StartsWith("172.17.") ||
+            host.StartsWith("172.18.") ||
+            host.StartsWith("172.19.") ||
+            host.StartsWith("172.20.") ||
+            host.StartsWith("172.21.") ||
+            host.StartsWith("172.22.") ||
+            host.StartsWith("172.23.") ||
+            host.StartsWith("172.24.") ||
+            host.StartsWith("172.25.") ||
+            host.StartsWith("172.26.") ||
+            host.StartsWith("172.27.") ||
+            host.StartsWith("172.28.") ||
+            host.StartsWith("172.29.") ||
+            host.StartsWith("172.30.") ||
+            host.StartsWith("172.31."))
+        {
+            _logger.LogWarning("Bulk Upload Media: Blocked URL to private/local address: {Url}", url);
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Validates that a file path is safe to read from (basic path traversal prevention).
+    /// </summary>
+    private bool IsAllowedFilePath(string path)
+    {
+        try
+        {
+            // Get the full path to resolve relative paths and normalize
+            var fullPath = Path.GetFullPath(path);
+
+            // Basic validation: ensure the path doesn't try to escape to system directories
+            // This is a basic check - you may want to configure allowed base paths
+            var normalizedPath = fullPath.Replace("\\", "/").ToLowerInvariant();
+
+            // Block access to common system directories
+            var blockedPaths = new[]
+            {
+                "/windows/system32",
+                "/windows/syswow64",
+                "/etc/",
+                "/var/",
+                "/usr/",
+                "/sys/",
+                "/proc/"
+            };
+
+            foreach (var blocked in blockedPaths)
+            {
+                if (normalizedPath.Contains(blocked))
+                {
+                    _logger.LogWarning("Bulk Upload Media: Blocked access to system directory: {Path}", path);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Bulk Upload Media: Invalid file path: {Path}", path);
+            return false;
         }
     }
 }

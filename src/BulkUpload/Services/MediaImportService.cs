@@ -91,6 +91,8 @@ public class MediaImportService : IMediaImportService
             MediaTypeAlias = mediaTypeAlias
         };
 
+        MediaSource? externalSource = null;
+
         foreach (var property in dynamicProperties)
         {
             var columnDetails = property.Key.Split('|');
@@ -106,17 +108,36 @@ public class MediaImportService : IMediaImportService
 
             var resolverAlias = aliasValue ?? "text";
 
-            var resolver = _resolverFactory.GetByAlias(resolverAlias);
-            object? propertyValue = null;
-            if (resolver != null)
+            // Check for external source resolvers (pathToStream, urlToStream)
+            // These resolvers return MediaSource objects instead of property values
+            if (resolverAlias.Contains("pathToStream") || resolverAlias.Contains("urlToStream"))
             {
-                propertyValue = resolver.Resolve(property.Value);
+                var resolver = _resolverFactory.GetByAlias(resolverAlias);
+                if (resolver != null)
+                {
+                    var resolvedValue = resolver.Resolve(property.Value);
+                    if (resolvedValue is MediaSource mediaSource)
+                    {
+                        externalSource = mediaSource;
+                        _logger.LogInformation("Detected external media source: {Type} - {Value}",
+                            mediaSource.Type, mediaSource.Value);
+                    }
+                }
+                continue; // Don't add to properties
+            }
+
+            var normalResolver = _resolverFactory.GetByAlias(resolverAlias);
+            object? propertyValue = null;
+            if (normalResolver != null)
+            {
+                propertyValue = normalResolver.Resolve(property.Value);
             }
 
             propertiesToCreate.Add(columnName, propertyValue);
         }
 
         importObject.Properties = propertiesToCreate;
+        importObject.ExternalSource = externalSource;
         return importObject;
     }
 
