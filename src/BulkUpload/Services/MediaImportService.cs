@@ -170,41 +170,14 @@ public class MediaImportService : IMediaImportService
             {
                 fileStream.Position = 0;
 
-                // Save file to temporary location first
-                var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString(), importObject.FileName);
-                var tempDir = Path.GetDirectoryName(tempPath);
-                if (tempDir != null && !Directory.Exists(tempDir))
-                {
-                    Directory.CreateDirectory(tempDir);
-                }
+                // Use MediaFileManager to save the file and get the file path
+                var filePath = _mediaFileManager.GetMediaPath(importObject.FileName, out var _);
 
-                using (var tempFileStream = System.IO.File.Create(tempPath))
-                {
-                    fileStream.CopyTo(tempFileStream);
-                }
+                // Save the stream using MediaFileManager
+                _mediaFileManager.FileSystem.AddFile(filePath, fileStream, true);
 
-                // Set the file on the media item
-                using (var savedFileStream = System.IO.File.OpenRead(tempPath))
-                {
-                    mediaItem.SetValue(_mediaFileManager, _shortStringHelper, _contentTypeBaseServiceProvider, "umbracoFile", importObject.FileName, savedFileStream);
-                }
-
-                // Clean up temp file
-                try
-                {
-                    if (System.IO.File.Exists(tempPath))
-                    {
-                        System.IO.File.Delete(tempPath);
-                    }
-                    if (tempDir != null && Directory.Exists(tempDir))
-                    {
-                        Directory.Delete(tempDir, true);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to delete temporary file: {TempPath}", tempPath);
-                }
+                // Set the file path on the media item
+                mediaItem.SetValue(_contentTypeBaseServiceProvider, _shortStringHelper, "umbracoFile", filePath);
             }
             else
             {
