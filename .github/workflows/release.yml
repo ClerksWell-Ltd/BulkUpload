@@ -40,7 +40,7 @@ jobs:
       id: dotnet-version
       run: |
         # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
-        DOTNET_VERSION=$(grep -oP '<TargetFramework>net\K[0-9]+' src/BulkUpload/BulkUpload.csproj)
+        DOTNET_VERSION=$(sed -n 's/.*<TargetFramework>net\([0-9]\+\).*/\1/p' src/BulkUpload/BulkUpload.csproj)
         echo "version=$DOTNET_VERSION" >> $GITHUB_OUTPUT
         echo "Detected .NET version: $DOTNET_VERSION"
 
