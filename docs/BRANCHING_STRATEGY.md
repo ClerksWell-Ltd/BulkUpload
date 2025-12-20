@@ -563,60 +563,26 @@ git push
 
 ## Release Process
 
-### Preparation
+**For detailed release instructions, see [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)**
 
-1. **Ensure all tests pass**
-   ```bash
-   dotnet test
-   ```
+The release process is largely automated through GitHub Actions:
 
-2. **Update version in .csproj**
-   ```xml
-   <Version>1.2.0</Version>
-   ```
+### Quick Overview
 
-3. **Update CHANGELOG.md** (create if doesn't exist)
-   ```markdown
-   ## [1.2.0] - 2025-12-20
-   ### Added
-   - New CSV validation feature
+1. **Prepare:** Update version in .csproj and CHANGELOG.md
+2. **Release:** Create a GitHub Release from a `release/*` branch
+3. **Automated:** Workflows build, test, and publish to NuGet
+4. **Post-Release:** Automated PR updates CHANGELOG and bumps version
+5. **Manual:** Cherry-pick changes to other branches if needed
 
-   ### Fixed
-   - CSV parsing bug with special characters
-   ```
+### Automated Workflows
 
-4. **Commit version bump**
-   ```bash
-   git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
-   git commit -m "chore: bump version to 1.2.0"
-   ```
+Two workflows handle the release process:
 
-### Creating the Release
+- **`release.yml`**: Builds, tests, and publishes to NuGet when you create a GitHub Release
+- **`post-release.yml`**: Updates CHANGELOG and bumps version after release
 
-1. **Build the package**
-   ```bash
-   cd src/BulkUpload
-   dotnet build -c Release
-   ```
-
-2. **Create and push tag**
-   ```bash
-   git tag v1.2.0
-   git push origin release/v13.x --tags
-   ```
-
-3. **Publish to NuGet**
-   ```bash
-   dotnet pack -c Release
-   dotnet nuget push bin/Release/Umbraco.Community.BulkUpload.1.2.0.nupkg -s https://api.nuget.org/v3/index.json -k YOUR_API_KEY
-   ```
-
-4. **Create GitHub Release**
-   - Go to GitHub → Releases → New Release
-   - Select the tag (v1.2.0)
-   - Title: "v1.2.0 - Umbraco 13"
-   - Description: Copy from CHANGELOG
-   - Attach .nupkg file
+See [RELEASE_PROCESS.md](./RELEASE_PROCESS.md) for the complete checklist and troubleshooting guide.
 
 ## Code Sharing Strategies
 
@@ -692,44 +658,43 @@ public class Umbraco17ContentService : IUmbracoContentService { }
 3. **Minor bugs**: Fix in main, consider backporting based on severity
 4. **Enhancements**: Develop in main, selectively backport
 
-## Automation Recommendations
+## Automation
 
-### GitHub Actions Workflows
+### Implemented GitHub Actions Workflows
 
-Create separate workflows for each version:
+The project includes automated workflows for releases:
 
-```yaml
-# .github/workflows/build-v13.yml
-name: Build and Test - Umbraco 13
-on:
-  push:
-    branches: [ release/v13.x ]
-  pull_request:
-    branches: [ release/v13.x ]
+#### 1. Release to NuGet (`.github/workflows/release.yml`)
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 8.0.x
-      - name: Restore dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --no-restore -c Release
-      - name: Test
-        run: dotnet test --no-build --verbosity normal
-```
+**Triggers:** When you publish a GitHub Release
 
-### Release Automation
+**Features:**
+- ✅ Validates release is from a `release/*` branch only
+- ✅ Builds and tests the project
+- ✅ Publishes to NuGet.org automatically
+- ✅ Uploads package artifacts
 
-Consider using tools like:
-- **Semantic Release**: Automate version bumping and changelog generation
-- **GitHub Actions**: Automate NuGet publishing on tag creation
+**Requirements:**
+- `NUGET_API_KEY` secret configured in repository settings
+- Release must be created from `release/v13.x`, `release/v17.x`, etc.
+
+#### 2. Post-Release Automation (`.github/workflows/post-release.yml`)
+
+**Triggers:** Automatically after a release is published
+
+**Features:**
+- ✅ Updates CHANGELOG.md with release date
+- ✅ Bumps version to next patch version
+- ✅ Creates a PR with these changes
+
+**Output:** A pull request for review and merge
+
+### Additional Automation Recommendations
+
+Consider adding:
 - **Dependabot**: Automate dependency updates per branch
+- **Build workflows**: Separate CI workflows for each release branch
+- **Security scanning**: Automated vulnerability scanning
 
 ## Migration Path
 

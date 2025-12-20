@@ -76,36 +76,34 @@ git push origin release/v17.x
 
 ### Release New Version
 
+**📖 Full instructions:** See [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)
+
+**Quick summary:**
+
 ```bash
-# 1. Checkout release branch
+# 1. Prepare release branch
 git checkout release/v13.x
 git pull origin release/v13.x
 
-# 2. Update version in .csproj
-# Edit src/BulkUpload/BulkUpload.csproj
-# Change <Version>1.1.0</Version> to <Version>1.2.0</Version>
+# 2. Update version in .csproj and CHANGELOG.md
+# Edit src/BulkUpload/BulkUpload.csproj: <Version>1.2.0</Version>
+# Edit CHANGELOG.md: Add changes under version heading
 
-# 3. Update CHANGELOG.md
-# Add release notes
-
-# 4. Commit version bump
+# 3. Commit and push
 git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
-git commit -m "chore: bump version to 1.2.0"
+git commit -m "chore: prepare release v1.2.0"
 git push origin release/v13.x
 
-# 5. Create and push tag
-git tag v1.2.0
-git push origin v1.2.0
+# 4. Create GitHub Release (GitHub UI)
+# - Tag: v1.2.0 (create new)
+# - Target: release/v13.x
+# - Title: v1.2.0 - Umbraco 13
+# - Publish release
 
-# 6. Build and publish
-cd src/BulkUpload
-dotnet pack -c Release
-dotnet nuget push bin/Release/Umbraco.Community.BulkUpload.1.2.0.nupkg \
-  -s https://api.nuget.org/v3/index.json \
-  -k YOUR_API_KEY
-
-# 7. Create GitHub Release
-# Go to GitHub → Releases → New Release
+# 5. Automated workflows handle:
+# ✅ Building and testing
+# ✅ Publishing to NuGet
+# ✅ Creating post-release PR (merge it when ready)
 ```
 
 ### Add Support for New Umbraco Version
@@ -390,7 +388,17 @@ Use these labels on PRs and issues:
 
 ## Resources
 
-- [Full Strategy Document](./BRANCHING_STRATEGY.md)
+### Documentation
+- [Release Process Guide](./RELEASE_PROCESS.md) - Detailed release instructions
+- [Release Quick Reference](./QUICK_REFERENCE_RELEASE.md) - Command cheat sheet
+- [Branching Strategy](./BRANCHING_STRATEGY.md) - Full strategy document
+- [Workflow Diagrams](./WORKFLOW_DIAGRAM.md) - Visual workflow guides
+
+### External Resources
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Semantic Versioning](https://semver.org/)
 - [Keep a Changelog](https://keepachangelog.com/)
+
+### Automated Workflows
+- **Release to NuGet:** `.github/workflows/release.yml`
+- **Post-Release:** `.github/workflows/post-release.yml`
