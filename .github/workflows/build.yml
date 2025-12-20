@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
@@ -17,7 +17,6 @@ jobs:
 
     - name: Extract .NET version from csproj
       id: dotnet-version
-      shell: bash
       run: |
         # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
         DOTNET_VERSION=$(sed -n 's/.*<TargetFramework>net\([0-9]\+\).*/\1/p' src/BulkUpload/BulkUpload.csproj)
