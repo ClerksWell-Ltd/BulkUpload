@@ -51,7 +51,13 @@ public class ImportUtilityService : IImportUtilityService
             docTypeAlias = docTypeAliasValue.ToString();
         }
 
-        ImportObject importObject = new ImportObject() { ContentTypeAlais = docTypeAlias, Name = name, ParentId = parentId };
+        ImportObject importObject = new()
+        {
+            ContentTypeAlais = docTypeAlias,
+            Name = name,
+            ParentId = parentId,
+            PublishOnImport = GetBool(dynamicProperties, "publishOnImport")
+        };
 
         foreach (var property in dynamicProperties)
         {
@@ -63,7 +69,7 @@ public class ImportUtilityService : IImportUtilityService
                 aliasValue = columnDetails.Last();
             }
 
-            if (new string[] { "name", "parentId", "docTypeAlias" }.Contains(property.Key.Split('|')[0]))
+            if (new string[] { "name", "parentId", "docTypeAlias", "publishOnImport" }.Contains(property.Key.Split('|')[0]))
                 continue;
             var resolverAlias = aliasValue ?? "text";
 
@@ -110,4 +116,19 @@ public class ImportUtilityService : IImportUtilityService
             _contentService.Save(contentItem);
         }
     }
+
+    #region Helper Methods
+    bool GetBool(IDictionary<string, object>? dict, string key)
+    {
+        if (dict?.TryGetValue(key, out var value) != true)
+            return false;
+
+        return value switch
+        {
+            bool b => b,
+            string s when bool.TryParse(s, out var result) => result,
+            _ => false
+        };
+    }
+    #endregion
 }
