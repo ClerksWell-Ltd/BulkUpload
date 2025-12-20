@@ -1,21 +1,71 @@
 <div ng-controller="bulkUploadController">
     <uui-box headline="Bulk Upload">
-        <div style="padding:1em; border: 1px solid #f0ad4e; background-color: #fcf8e3; color:#8a6d3b;border-radius:4px">
-            <strong>⚠ Note: </strong>The "parentId", "docTypeAlias" and "name" columns are required.
-        </div>
         <umb-box-content>
-            <p>Please upload the CSV file</p>
-            <umb-pane>
-                <input type="file" ngf-select ng-model="bulkUploadImportFile" ng-multiple="false" ngf-change="onFileSelected(bulkUploadImportFile,$event)" ng-disabled="loading" />
-                <umb-button type="button"
-                            button-style="action"
-                            label="Import"
-                            ng-click="onUploadClicked()">
-                </umb-button>
-            </umb-pane>
-            <umb-box-content style="position: relative;">
-                <uui-loader-bar style="color: #006eff" ng-if="loading"></uui-loader-bar>
-            </umb-box-content>
+            <!-- Tabs -->
+            <uui-tab-group style="margin-bottom: 20px;">
+                <uui-tab label="Content Import" ng-click="activeTab = 'content'" active="{{activeTab === 'content'}}">Content Import</uui-tab>
+                <uui-tab label="Media Import" ng-click="activeTab = 'media'" active="{{activeTab === 'media'}}">Media Import</uui-tab>
+            </uui-tab-group>
+
+            <!-- Content Import Tab -->
+            <div ng-if="activeTab === 'content'">
+                <div style="padding:1em; border: 1px solid #f0ad4e; background-color: #fcf8e3; color:#8a6d3b;border-radius:4px; margin-bottom: 1em;">
+                    <strong>⚠ Note: </strong>The "parentId", "docTypeAlias" and "name" columns are required.
+                </div>
+                <umb-box-content>
+                    <p>Please upload the CSV file containing content data</p>
+                    <umb-pane>
+                        <input type="file" ngf-select ng-model="bulkUploadImportFile" ng-multiple="false" ngf-change="onFileSelected(bulkUploadImportFile,$event)" ng-disabled="loading" accept=".csv" />
+                        <umb-button type="button"
+                                    button-style="action"
+                                    label="Import Content"
+                                    ng-click="onUploadClicked()">
+                        </umb-button>
+                    </umb-pane>
+                    <umb-box-content style="position: relative;">
+                        <uui-loader-bar style="color: #006eff" ng-if="loading"></uui-loader-bar>
+                    </umb-box-content>
+                </umb-box-content>
+            </div>
+
+            <!-- Media Import Tab -->
+            <div ng-if="activeTab === 'media'">
+                <div style="padding:1em; border: 1px solid #0078d4; background-color: #e3f2fd; color:#01579b;border-radius:4px; margin-bottom: 1em;">
+                    <strong>ℹ️ Instructions: </strong>Upload a ZIP file containing:
+                    <ul style="margin: 0.5em 0;">
+                        <li>A CSV file with columns: <code>fileName</code>, <code>parentId</code>, and optional <code>name</code>, <code>mediaTypeAlias</code>, plus any media properties</li>
+                        <li>Media files (images, documents, etc.) referenced in the CSV</li>
+                    </ul>
+                </div>
+                <umb-box-content>
+                    <p>Please upload a ZIP file containing CSV and media files</p>
+                    <umb-pane>
+                        <input type="file" ngf-select ng-model="mediaUploadFile" ng-multiple="false" ngf-change="onMediaFileSelected(mediaUploadFile,$event)" ng-disabled="loadingMedia" accept=".zip" />
+                        <umb-button type="button"
+                                    button-style="action"
+                                    label="Import Media"
+                                    ng-click="onMediaUploadClicked()">
+                        </umb-button>
+                    </umb-pane>
+                    <umb-box-content style="position: relative;">
+                        <uui-loader-bar style="color: #006eff" ng-if="loadingMedia"></uui-loader-bar>
+                        <div ng-if="mediaResults" style="margin-top: 1em; padding: 1em; background-color: #f5f5f5; border-radius: 4px;">
+                            <h4>Import Results</h4>
+                            <p>
+                                <strong>Total:</strong> {{mediaResults.totalCount}} |
+                                <strong style="color: green;">Success:</strong> {{mediaResults.successCount}} |
+                                <strong style="color: red;">Failed:</strong> {{mediaResults.failureCount}}
+                            </p>
+                            <umb-button type="button"
+                                        button-style="success"
+                                        label="Download Results CSV"
+                                        ng-click="onExportResultsClicked()"
+                                        ng-if="mediaResults.results && mediaResults.results.length > 0">
+                            </umb-button>
+                        </div>
+                    </umb-box-content>
+                </umb-box-content>
+            </div>
         </umb-box-content>
     </uui-box>
 </div>
