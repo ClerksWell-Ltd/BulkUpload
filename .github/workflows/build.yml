@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore src/BulkUpload.sln
+
+    - name: Build solution
+      run: dotnet build src/BulkUpload.sln --configuration Release --no-restore
+
+    - name: Display build status
+      if: success()
+      run: echo "Build completed successfully!"
