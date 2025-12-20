@@ -1,10 +1,9 @@
 name: Release to NuGet
 
-# Only allow deploys from release/* branches
+# Only allow deploys when creating a release from release/* branches
 on:
-  push:
-    branches:
-      - 'release/**'
+  release:
+    types: [published]
 
 jobs:
   release:
@@ -13,6 +12,16 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Verify release branch
+      run: |
+        BRANCH="${GITHUB_REF#refs/heads/}"
+        if [[ ! "$BRANCH" =~ ^release/ ]]; then
+          echo "Error: Releases can only be created from release/* branches"
+          echo "Current branch: $BRANCH"
+          exit 1
+        fi
+        echo "✓ Release is from valid branch: $BRANCH"
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
