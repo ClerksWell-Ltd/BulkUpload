@@ -9,16 +9,33 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Extract .NET version from csproj
+      id: dotnet-version
+      run: |
+        # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
+        DOTNET_VERSION=$(sed -n 's/.*<TargetFramework>net\([0-9]\+\).*/\1/p' src/BulkUpload/BulkUpload.csproj)
+        echo "version=$DOTNET_VERSION" >> $GITHUB_OUTPUT
+        echo "Detected .NET version: $DOTNET_VERSION"
+
+        # Set flag for npm usage (>= 10 requires npm)
+        if [ "$DOTNET_VERSION" -ge 10 ]; then
+          echo "use_npm=true" >> $GITHUB_OUTPUT
+          echo "Will use npm for .NET $DOTNET_VERSION"
+        else
+          echo "use_npm=false" >> $GITHUB_OUTPUT
+          echo "Will NOT use npm for .NET $DOTNET_VERSION"
+        fi
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: ${{ steps.dotnet-version.outputs.version }}.0.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -33,6 +50,22 @@ jobs:
 
     - name: Build solution
       run: dotnet build src/BulkUpload.sln --configuration Release --no-restore -p:SkipPreBuild=true
+
+    # NPM commands for .NET 10+ (Umbraco 17+)
+    # Uncomment when ready to use
+    # - name: Setup Node.js
+    #   if: steps.dotnet-version.outputs.use_npm == 'true'
+    #   uses: actions/setup-node@v4
+    #   with:
+    #     node-version: '20.x'
+    #
+    # - name: Install npm dependencies
+    #   if: steps.dotnet-version.outputs.use_npm == 'true'
+    #   run: npm ci
+    #
+    # - name: Build npm package
+    #   if: steps.dotnet-version.outputs.use_npm == 'true'
+    #   run: npm run build
 
     - name: Run tests
       run: dotnet test src/BulkUpload.sln --configuration Release --no-build --verbosity normal

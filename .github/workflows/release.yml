@@ -36,6 +36,23 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
+    - name: Extract .NET version from csproj
+      id: dotnet-version
+      run: |
+        # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
+        DOTNET_VERSION=$(sed -n 's/.*<TargetFramework>net\([0-9]\+\).*/\1/p' src/BulkUpload/BulkUpload.csproj)
+        echo "version=$DOTNET_VERSION" >> $GITHUB_OUTPUT
+        echo "Detected .NET version: $DOTNET_VERSION"
+
+        # Set flag for npm usage (>= 10 requires npm)
+        if [ "$DOTNET_VERSION" -ge 10 ]; then
+          echo "use_npm=true" >> $GITHUB_OUTPUT
+          echo "Will use npm for .NET $DOTNET_VERSION"
+        else
+          echo "use_npm=false" >> $GITHUB_OUTPUT
+          echo "Will NOT use npm for .NET $DOTNET_VERSION"
+        fi
+
     - name: Restore dependencies
       run: dotnet restore src/BulkUpload/BulkUpload.csproj --disable-parallel
 
@@ -47,6 +64,22 @@ jobs:
 
     - name: Pack NuGet package
       run: dotnet pack src/BulkUpload/BulkUpload.csproj --configuration Release --no-build --output ./artifacts
+
+    # NPM commands for .NET 10+ (Umbraco 17+)
+    # Uncomment when ready to use
+    # - name: Setup Node.js
+    #   if: steps.dotnet-version.outputs.use_npm == 'true'
+    #   uses: actions/setup-node@v4
+    #   with:
+    #     node-version: '20.x'
+    #
+    # - name: Install npm dependencies
+    #   if: steps.dotnet-version.outputs.use_npm == 'true'
+    #   run: npm ci
+    #
+    # - name: Build npm package
+    #   if: steps.dotnet-version.outputs.use_npm == 'true'
+    #   run: npm run build
 
     - name: Publish to NuGet
       run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
