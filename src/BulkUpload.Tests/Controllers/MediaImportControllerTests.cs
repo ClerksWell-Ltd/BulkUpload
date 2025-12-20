@@ -97,7 +97,7 @@ public class MediaImportControllerTests
         var importObject = new MediaImportObject
         {
             FileName = "test.jpg",
-            ParentId = 123
+            Parent = "123"
         };
 
         var importResult = new MediaImportResult
@@ -190,7 +190,7 @@ public class MediaImportControllerTests
             .Returns(new MediaImportObject
             {
                 FileName = "test.jpg",
-                ParentId = 123
+                Parent = "123"
             });
 
         // Act

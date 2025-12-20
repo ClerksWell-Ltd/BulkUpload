@@ -58,7 +58,7 @@ public class MediaImportServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal("test.jpg", result.FileName);
-        Assert.Equal(123, result.ParentId);
+        Assert.Equal("123", result.Parent);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class MediaImportServiceTests
     }
 
     [Fact]
-    public void CreateMediaImportObject_ParsesParentIdAsZero_WhenInvalid()
+    public void CreateMediaImportObject_ParsesParentAsNull_WhenInvalid()
     {
         // Arrange
         var record = new Dictionary<string, object>
@@ -128,7 +128,7 @@ public class MediaImportServiceTests
         var result = _service.CreateMediaImportObject(record);
 
         // Assert
-        Assert.Equal(0, result.ParentId);
+        Assert.Null(result.Parent);
     }
 
     [Fact]

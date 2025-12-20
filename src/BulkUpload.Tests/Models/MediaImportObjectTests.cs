@@ -11,7 +11,7 @@ public class MediaImportObjectTests
         var importObject = new MediaImportObject
         {
             FileName = null!,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -28,7 +28,7 @@ public class MediaImportObjectTests
         var importObject = new MediaImportObject
         {
             FileName = string.Empty,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -45,7 +45,7 @@ public class MediaImportObjectTests
         var importObject = new MediaImportObject
         {
             FileName = "   ",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -56,13 +56,13 @@ public class MediaImportObjectTests
     }
 
     [Fact]
-    public void CanImport_ReturnsFalse_WhenParentIdIsZero()
+    public void CanImport_ReturnsFalse_WhenParentIsNull()
     {
         // Arrange
         var importObject = new MediaImportObject
         {
             FileName = "test.jpg",
-            ParentId = 0
+            Parent = null
         };
 
         // Act
@@ -73,13 +73,13 @@ public class MediaImportObjectTests
     }
 
     [Fact]
-    public void CanImport_ReturnsFalse_WhenParentIdIsNegative()
+    public void CanImport_ReturnsFalse_WhenParentIsEmpty()
     {
         // Arrange
         var importObject = new MediaImportObject
         {
             FileName = "test.jpg",
-            ParentId = -1
+            Parent = string.Empty
         };
 
         // Act
@@ -90,13 +90,13 @@ public class MediaImportObjectTests
     }
 
     [Fact]
-    public void CanImport_ReturnsTrue_WhenFileNameAndParentIdAreValid()
+    public void CanImport_ReturnsTrue_WhenFileNameAndParentAreValid()
     {
         // Arrange
         var importObject = new MediaImportObject
         {
             FileName = "test.jpg",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -114,7 +114,7 @@ public class MediaImportObjectTests
         {
             FileName = "test.jpg",
             Name = null,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -132,7 +132,7 @@ public class MediaImportObjectTests
         {
             FileName = "test.jpg",
             MediaTypeAlias = null,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -150,7 +150,7 @@ public class MediaImportObjectTests
         {
             FileName = "test.jpg",
             Name = "My Image",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -168,7 +168,7 @@ public class MediaImportObjectTests
         {
             FileName = "test.jpg",
             Name = null,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -186,7 +186,7 @@ public class MediaImportObjectTests
         {
             FileName = "test.jpg",
             Name = string.Empty,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -204,7 +204,7 @@ public class MediaImportObjectTests
         {
             FileName = "test.jpg",
             Name = "   ",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -221,7 +221,7 @@ public class MediaImportObjectTests
         var importObject = new MediaImportObject
         {
             FileName = "test.jpg",
-            ParentId = 1,
+            Parent = "1",
             Properties = null
         };
 
@@ -236,7 +236,7 @@ public class MediaImportObjectTests
         var importObject = new MediaImportObject
         {
             FileName = "test.jpg",
-            ParentId = 1,
+            Parent = "1",
             Properties = new Dictionary<string, object>()
         };
 
@@ -252,7 +252,7 @@ public class MediaImportObjectTests
         var importObject = new MediaImportObject
         {
             FileName = "test.jpg",
-            ParentId = 1,
+            Parent = "1",
             Properties = new Dictionary<string, object>
             {
                 { "altText", "Test Image" },
