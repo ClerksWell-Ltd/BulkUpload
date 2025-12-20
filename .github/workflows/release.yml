@@ -23,10 +23,20 @@ jobs:
         fi
         echo "✓ Release is from valid branch: $BRANCH"
 
+    - name: Extract .NET version from csproj
+      id: dotnet-version
+      run: |
+        # Extract TargetFramework from csproj (e.g., net8.0)
+        TARGET_FRAMEWORK=$(grep -oPm1 '(?<=<TargetFramework>)[^<]+' src/BulkUpload/BulkUpload.csproj)
+        # Convert to dotnet-version format (e.g., net8.0 -> 8.0.x)
+        DOTNET_VERSION=$(echo $TARGET_FRAMEWORK | sed 's/net\([0-9]\+\)\.\([0-9]\+\)/\1.\2.x/')
+        echo "version=$DOTNET_VERSION" >> $GITHUB_OUTPUT
+        echo "Using .NET version: $DOTNET_VERSION"
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: ${{ steps.dotnet-version.outputs.version }}
 
     - name: Cache NuGet packages
       uses: actions/cache@v4

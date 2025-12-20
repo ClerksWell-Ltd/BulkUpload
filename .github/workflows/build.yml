@@ -15,10 +15,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Extract .NET version from csproj
+      id: dotnet-version
+      shell: pwsh
+      run: |
+        # Extract TargetFramework from csproj (e.g., net8.0)
+        $content = Get-Content src/BulkUpload/BulkUpload.csproj -Raw
+        $targetFramework = [regex]::Match($content, '<TargetFramework>([^<]+)</TargetFramework>').Groups[1].Value
+        # Convert to dotnet-version format (e.g., net8.0 -> 8.0.x)
+        $dotnetVersion = $targetFramework -replace 'net(\d+)\.(\d+)', '$1.$2.x'
+        "version=$dotnetVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        Write-Host "Using .NET version: $dotnetVersion"
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: ${{ steps.dotnet-version.outputs.version }}
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
