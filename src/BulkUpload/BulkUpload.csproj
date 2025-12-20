@@ -46,9 +46,5 @@
     <Content Include="App_Plugins\BulkUpload\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
     <None Include="buildTransitive\**" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
-  
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="dotnet format --severity warn --verbosity diagnostic" />
-  </Target>
 
 </Project>
