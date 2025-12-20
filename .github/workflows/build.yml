@@ -20,11 +20,19 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
     - name: Restore dependencies
-      run: dotnet restore src/BulkUpload.sln
+      run: dotnet restore src/BulkUpload.sln --disable-parallel
 
     - name: Build solution
-      run: dotnet build src/BulkUpload.sln --configuration Release --no-restore
+      run: dotnet build src/BulkUpload.sln --configuration Release --no-restore -p:SkipPreBuild=true
 
     - name: Run tests
       run: dotnet test src/BulkUpload.sln --configuration Release --no-build --verbosity normal
