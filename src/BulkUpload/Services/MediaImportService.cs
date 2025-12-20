@@ -1,7 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Core;
+using Umbraco.Cms.Core.IO;
 using Umbraco.Cms.Core.Models;
+using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.Services;
+using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Resolvers;
 
@@ -10,18 +13,27 @@ namespace Umbraco.Community.BulkUpload.Services;
 public class MediaImportService : IMediaImportService
 {
     private readonly IMediaService _mediaService;
-    private readonly IContentTypeService _contentTypeService;
+    private readonly IMediaTypeService _mediaTypeService;
+    private readonly MediaFileManager _mediaFileManager;
+    private readonly IShortStringHelper _shortStringHelper;
+    private readonly IContentTypeBaseServiceProvider _contentTypeBaseServiceProvider;
     private readonly IResolverFactory _resolverFactory;
     private readonly ILogger<MediaImportService> _logger;
 
     public MediaImportService(
         IMediaService mediaService,
-        IContentTypeService contentTypeService,
+        IMediaTypeService mediaTypeService,
+        MediaFileManager mediaFileManager,
+        IShortStringHelper shortStringHelper,
+        IContentTypeBaseServiceProvider contentTypeBaseServiceProvider,
         IResolverFactory resolverFactory,
         ILogger<MediaImportService> logger)
     {
         _mediaService = mediaService;
-        _contentTypeService = contentTypeService;
+        _mediaTypeService = mediaTypeService;
+        _mediaFileManager = mediaFileManager;
+        _shortStringHelper = shortStringHelper;
+        _contentTypeBaseServiceProvider = contentTypeBaseServiceProvider;
         _resolverFactory = resolverFactory;
         _logger = logger;
     }
@@ -128,7 +140,7 @@ public class MediaImportService : IMediaImportService
             }
 
             // Verify media type exists
-            var mediaType = _contentTypeService.GetMediaType(mediaTypeAlias);
+            var mediaType = _mediaTypeService.Get(mediaTypeAlias);
             if (mediaType == null)
             {
                 result.ErrorMessage = $"Media type '{mediaTypeAlias}' not found";
@@ -156,7 +168,9 @@ public class MediaImportService : IMediaImportService
             if (fileStream != null && fileStream.Length > 0)
             {
                 fileStream.Position = 0;
-                mediaItem.SetValue(_mediaService, "umbracoFile", importObject.FileName, fileStream);
+
+                // Set the file using the extension method
+                mediaItem.SetValue(_contentTypeBaseServiceProvider, _mediaFileManager, _shortStringHelper, _logger, "umbracoFile", importObject.FileName, fileStream);
             }
             else
             {
