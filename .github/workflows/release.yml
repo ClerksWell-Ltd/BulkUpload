@@ -40,7 +40,7 @@ jobs:
       run: dotnet restore src/BulkUpload/BulkUpload.csproj --disable-parallel
 
     - name: Build project
-      run: dotnet build src/BulkUpload/BulkUpload.csproj --configuration Release --no-restore
+      run: dotnet build src/BulkUpload/BulkUpload.csproj --configuration Release --no-restore -p:SkipPreBuild=true
 
     - name: Run tests
       run: dotnet test src/BulkUpload.Tests/BulkUpload.Tests.csproj --configuration Release --no-build --verbosity normal
