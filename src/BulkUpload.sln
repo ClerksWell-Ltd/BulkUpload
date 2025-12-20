@@ -14,6 +14,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkUpload", "BulkUpload\Bu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkUpload.TestSite", "BulkUpload.TestSite\BulkUpload.TestSite.csproj", "{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkUpload.Tests", "BulkUpload.Tests\BulkUpload.Tests.csproj", "{C5F7B3A1-8E4D-4C2B-9A1E-3F8D6C7E9B2A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,6 +30,10 @@ Global
 		{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84B549BD-2ED5-4BD3-8A7D-5BFBEF6E24A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5F7B3A1-8E4D-4C2B-9A1E-3F8D6C7E9B2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5F7B3A1-8E4D-4C2B-9A1E-3F8D6C7E9B2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5F7B3A1-8E4D-4C2B-9A1E-3F8D6C7E9B2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5F7B3A1-8E4D-4C2B-9A1E-3F8D6C7E9B2A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
