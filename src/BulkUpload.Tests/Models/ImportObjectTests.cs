@@ -12,7 +12,7 @@ public class ImportObjectTests
         {
             Name = null!,
             ContentTypeAlais = "testType",
-            Parent = "1"
+            ParentId = 1
         };
 
         // Act
@@ -30,7 +30,7 @@ public class ImportObjectTests
         {
             Name = string.Empty,
             ContentTypeAlais = "testType",
-            Parent = "1"
+            ParentId = 1
         };
 
         // Act
@@ -48,7 +48,7 @@ public class ImportObjectTests
         {
             Name = "   ",
             ContentTypeAlais = "testType",
-            Parent = "1"
+            ParentId = 1
         };
 
         // Act
@@ -66,7 +66,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = null!,
-            Parent = "1"
+            ParentId = 1
         };
 
         // Act
@@ -84,7 +84,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = string.Empty,
-            Parent = "1"
+            ParentId = 1
         };
 
         // Act
@@ -102,7 +102,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "   ",
-            Parent = "1"
+            ParentId = 1
         };
 
         // Act
@@ -156,7 +156,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            Parent = "1"
+            ParentId = 1
         };
 
         // Act
