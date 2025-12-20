@@ -8,6 +8,18 @@
 | `release/v13.x` | 13.x | 1.x.x | Umbraco 13 releases |
 | `release/v17.x` | 17.x | 2.x.x | Umbraco 17 releases |
 
+## ⚠️ Critical Rules
+
+**NEVER commit directly to these branches:**
+- ❌ `main`
+- ❌ `release/v13.x`
+- ❌ `release/v17.x`
+
+**ALWAYS:**
+- ✅ Create a feature/bugfix branch
+- ✅ Make changes in your branch
+- ✅ Create a Pull Request to merge
+
 ## Common Commands
 
 ### Feature Development (Cross-Version)
@@ -158,6 +170,28 @@ docs(readme): add troubleshooting section
 
 ## Cherry-Picking Guide
 
+### Step-by-Step Cherry-Pick
+
+```bash
+# 1. Find the commit hash
+git log main --oneline -10
+# Copy the commit hash (e.g., abc1234)
+
+# 2. Switch to target branch
+git checkout release/v13.x
+git pull origin release/v13.x
+
+# 3. Cherry-pick the commit
+git cherry-pick abc1234
+
+# 4. Test the changes
+dotnet build
+dotnet test
+
+# 5. Push the cherry-picked commit
+git push origin release/v13.x
+```
+
 ### Find commits to cherry-pick
 
 ```bash
@@ -168,29 +202,124 @@ git log release/v13.x..main --oneline
 git log release/v13.x..release/v17.x --oneline
 ```
 
-### Cherry-pick single commit
-
-```bash
-git checkout release/v13.x
-git cherry-pick <commit-hash>
-```
-
 ### Cherry-pick multiple commits
 
 ```bash
-git checkout release/v13.x
-git cherry-pick <commit-1> <commit-2> <commit-3>
+# One by one
+git cherry-pick abc1234
+git cherry-pick def5678
+git cherry-pick ghi9012
+
+# Or all at once
+git cherry-pick abc1234 def5678 ghi9012
+
+# Or a range
+git cherry-pick abc1234..ghi9012
 ```
 
 ### Cherry-pick with conflicts
 
 ```bash
 git cherry-pick <commit-hash>
+
 # If conflicts occur:
-# 1. Resolve conflicts in files
-# 2. git add <resolved-files>
-# 3. git cherry-pick --continue
-# Or to abort: git cherry-pick --abort
+# 1. Open conflicted files (look for <<<<<<< markers)
+# 2. Resolve conflicts manually
+# 3. Stage resolved files
+git add <resolved-files>
+
+# 4. Continue cherry-pick
+git cherry-pick --continue
+
+# OR abort if needed
+git cherry-pick --abort
+```
+
+### Complete Example
+
+```bash
+# Scenario: Fix in v13 needs to go to main and v17
+
+# 1. PR merged to release/v13.x (commit abc1234)
+
+# 2. Cherry-pick to main
+git checkout main
+git pull origin main
+git cherry-pick abc1234
+dotnet test
+git push origin main
+
+# 3. Cherry-pick to release/v17.x
+git checkout release/v17.x
+git pull origin release/v17.x
+git cherry-pick abc1234
+dotnet test
+git push origin release/v17.x
+```
+
+## Writing Good Commits for Cherry-Picking
+
+### ✅ DO: Keep commits atomic
+
+```bash
+# Good - single purpose
+git commit -m "fix: handle empty CSV columns"
+
+# Bad - multiple purposes
+git commit -m "fix CSV, update docs, refactor code"
+```
+
+### ✅ DO: Make self-contained commits
+
+Each commit should:
+- Build successfully
+- Pass all tests
+- Work independently
+
+```bash
+# Good - complete change
+git add IResolverService.cs Resolvers/*.cs
+git commit -m "feat: add async support to resolvers"
+
+# Bad - broken in between
+git add IResolverService.cs
+git commit -m "add async to interface"  # Breaks build!
+git add Resolvers/*.cs
+git commit -m "implement async"  # Now it works
+```
+
+### ✅ DO: Use clear commit messages
+
+Follow Conventional Commits:
+
+```bash
+git commit -m "feat: add new feature"
+git commit -m "fix: resolve bug"
+git commit -m "docs: update README"
+git commit -m "refactor: simplify logic"
+git commit -m "test: add unit tests"
+```
+
+### ❌ DON'T: Mix multiple changes
+
+```bash
+# Bad - hard to cherry-pick selectively
+git commit -m "fix bug, add feature, update docs"
+
+# Good - separate commits
+git commit -m "fix: resolve CSV parsing issue"
+git commit -m "feat: add validation"
+git commit -m "docs: update README"
+```
+
+### ❌ DON'T: Use version-specific code
+
+```bash
+# Bad - breaks when cherry-picked
+if (umbracoVersion == "13.0.0") { }
+
+# Good - version-agnostic
+if (config.EnableFeature) { }
 ```
 
 ## Testing Checklist
