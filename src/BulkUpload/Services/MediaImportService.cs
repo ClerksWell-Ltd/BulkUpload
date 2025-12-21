@@ -67,10 +67,24 @@ public class MediaImportService : IMediaImportService
             }
         }
 
-        int parentId = 0;
-        if (dynamicProperties.TryGetValue("parentId", out object? parentIdValue))
+        // Support both "parent" (new) and "parentId" (legacy) columns
+        string? parent = null;
+        if (dynamicProperties.TryGetValue("parent", out object? parentValue))
         {
-            int.TryParse(parentIdValue?.ToString() ?? "", out parentId);
+            var parentStr = parentValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(parentStr))
+            {
+                parent = ValidateParentValue(parentStr);
+            }
+        }
+        // Fallback to legacy "parentId" column for backward compatibility
+        else if (dynamicProperties.TryGetValue("parentId", out object? parentIdValue))
+        {
+            var parentIdStr = parentIdValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(parentIdStr))
+            {
+                parent = ValidateParentValue(parentIdStr);
+            }
         }
 
         string? mediaTypeAlias = null;
@@ -87,9 +101,11 @@ public class MediaImportService : IMediaImportService
         {
             FileName = fileName,
             Name = name,
-            ParentId = parentId,
+            Parent = parent,
             MediaTypeAlias = mediaTypeAlias
         };
+
+        MediaSource? externalSource = null;
 
         foreach (var property in dynamicProperties)
         {
@@ -101,22 +117,41 @@ public class MediaImportService : IMediaImportService
                 aliasValue = columnDetails.Last();
             }
 
-            if (new string[] { "fileName", "name", "parentId", "mediaTypeAlias" }.Contains(property.Key.Split('|')[0]))
+            if (new string[] { "fileName", "name", "parent", "parentId", "mediaTypeAlias" }.Contains(property.Key.Split('|')[0]))
                 continue;
 
             var resolverAlias = aliasValue ?? "text";
 
-            var resolver = _resolverFactory.GetByAlias(resolverAlias);
-            object? propertyValue = null;
-            if (resolver != null)
+            // Check for external source resolvers (pathToStream, urlToStream)
+            // These resolvers return MediaSource objects instead of property values
+            if (resolverAlias.Contains("pathToStream") || resolverAlias.Contains("urlToStream"))
             {
-                propertyValue = resolver.Resolve(property.Value);
+                var resolver = _resolverFactory.GetByAlias(resolverAlias);
+                if (resolver != null)
+                {
+                    var resolvedValue = resolver.Resolve(property.Value);
+                    if (resolvedValue is MediaSource mediaSource)
+                    {
+                        externalSource = mediaSource;
+                        _logger.LogInformation("Detected external media source: {Type} - {Value}",
+                            mediaSource.Type, mediaSource.Value);
+                    }
+                }
+                continue; // Don't add to properties
+            }
+
+            var normalResolver = _resolverFactory.GetByAlias(resolverAlias);
+            object? propertyValue = null;
+            if (normalResolver != null)
+            {
+                propertyValue = normalResolver.Resolve(property.Value);
             }
 
             propertiesToCreate.Add(columnName, propertyValue);
         }
 
         importObject.Properties = propertiesToCreate;
+        importObject.ExternalSource = externalSource;
         return importObject;
     }
 
@@ -132,9 +167,13 @@ public class MediaImportService : IMediaImportService
         {
             if (!importObject.CanImport)
             {
-                result.ErrorMessage = "Invalid import object: Missing required fields (fileName or parentId)";
+                result.ErrorMessage = "Invalid import object: Missing required fields (fileName or parent)";
                 return result;
             }
+
+            // Resolve parent specification to media ID
+            var parentId = ResolveParentId(importObject.Parent);
+            _logger.LogDebug("Resolved parent '{Parent}' to ID {ParentId}", importObject.Parent, parentId);
 
             // Determine media type alias if not provided
             var mediaTypeAlias = importObject.MediaTypeAlias;
@@ -153,7 +192,7 @@ public class MediaImportService : IMediaImportService
 
             // Check if media already exists with same name under parent
             var existingMedia = _mediaService
-                .GetPagedChildren(importObject.ParentId, 0, int.MaxValue, out _)
+                .GetPagedChildren(parentId, 0, int.MaxValue, out _)
                 .FirstOrDefault(x => string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
 
             IMedia mediaItem;
@@ -164,7 +203,7 @@ public class MediaImportService : IMediaImportService
             }
             else
             {
-                mediaItem = _mediaService.CreateMedia(importObject.DisplayName, importObject.ParentId, mediaTypeAlias);
+                mediaItem = _mediaService.CreateMedia(importObject.DisplayName, parentId, mediaTypeAlias);
                 _logger.LogInformation("Creating new media: {Name}", importObject.DisplayName);
             }
 
@@ -235,6 +274,137 @@ public class MediaImportService : IMediaImportService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Validates that the parent value is in a supported format.
+    /// Returns the value if it's a valid integer, GUID, or path; otherwise returns null.
+    /// </summary>
+    private string? ValidateParentValue(string parent)
+    {
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            return null;
+        }
+
+        // Check if it's a valid integer
+        if (int.TryParse(parent, out _))
+        {
+            return parent;
+        }
+
+        // Check if it's a valid GUID
+        if (Guid.TryParse(parent, out _))
+        {
+            return parent;
+        }
+
+        // Check if it's a path (starts with /)
+        if (parent.TrimStart().StartsWith("/"))
+        {
+            return parent;
+        }
+
+        // Invalid format
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves the parent folder specification to a media ID.
+    /// Supports integer ID, GUID, or path (with auto-creation).
+    /// </summary>
+    public int ResolveParentId(string? parent)
+    {
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            return Constants.System.Root;
+        }
+
+        // Try to parse as integer ID
+        if (int.TryParse(parent, out var parentId))
+        {
+            return parentId;
+        }
+
+        // Try to parse as GUID and resolve to media ID
+        if (Guid.TryParse(parent, out var guid))
+        {
+            var media = _mediaService.GetById(guid);
+            if (media != null)
+            {
+                _logger.LogDebug("Resolved parent GUID {Guid} to media ID {Id}", guid, media.Id);
+                return media.Id;
+            }
+            _logger.LogWarning("Parent GUID {Guid} not found, using root folder", guid);
+            return Constants.System.Root;
+        }
+
+        // Treat as path - resolve or create folder structure
+        var folderId = ResolveOrCreateFolderPath(parent);
+        return folderId ?? Constants.System.Root;
+    }
+
+    /// <summary>
+    /// Resolves a folder path like "/Blog/Header Images/" to a media folder ID.
+    /// Creates folders if they don't exist.
+    /// </summary>
+    private int? ResolveOrCreateFolderPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return null;
+        }
+
+        // Normalize path - remove leading/trailing slashes and split
+        path = path.Trim('/');
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return Constants.System.Root;
+        }
+
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var currentParentId = Constants.System.Root;
+
+        foreach (var segment in segments)
+        {
+            var folderName = segment.Trim();
+            if (string.IsNullOrWhiteSpace(folderName))
+            {
+                continue;
+            }
+
+            // Look for existing folder with this name under current parent
+            var existingFolder = _mediaService
+                .GetPagedChildren(currentParentId, 0, int.MaxValue, out _)
+                .FirstOrDefault(x =>
+                    x.ContentType.Alias == "Folder" &&
+                    string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
+
+            if (existingFolder != null)
+            {
+                currentParentId = existingFolder.Id;
+                _logger.LogDebug("Found existing folder '{FolderName}' with ID {Id}", folderName, existingFolder.Id);
+            }
+            else
+            {
+                // Create new folder
+                var newFolder = _mediaService.CreateMedia(folderName, currentParentId, "Folder");
+                var saveResult = _mediaService.Save(newFolder);
+
+                if (saveResult.Success)
+                {
+                    currentParentId = newFolder.Id;
+                    _logger.LogInformation("Created new folder '{FolderName}' with ID {Id}", folderName, newFolder.Id);
+                }
+                else
+                {
+                    _logger.LogError("Failed to create folder '{FolderName}'", folderName);
+                    return null;
+                }
+            }
+        }
+
+        return currentParentId;
     }
 
     private string DetermineMediaTypeFromExtension(string fileName)

@@ -1,0 +1,6 @@
+fileName,mediaSource|pathToStream,mediaSource|urlToStream,parent,name,altText|text
+logo.png,,,1150,Company Logo,Our company logo
+,C:/Assets/Images/banner.jpg,,/Gallery/Banners/,Homepage Banner,Featured banner image
+,,https://images.unsplash.com/photo-1234567890.jpg,/Stock/Landscapes/,Stock Photo,Beautiful landscape
+product.jpg,,,/Products/Images/,Product Image,Main product photo
+,/mnt/share/media/team-photo.jpg,,/About/Team/,Team Photo,Our amazing team

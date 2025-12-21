@@ -81,27 +81,62 @@ In the umbraco backoffice, go to the users section and add the Bulk Upload secti
 
 ### Media Import
 
-The package now supports bulk importing media files (images, documents, videos, etc.) using a ZIP file approach.
+The package supports bulk importing media files (images, documents, videos, etc.) from multiple sources:
+- **ZIP file** (traditional approach) - Files packaged in the upload
+- **File paths** (new) - Local or network file system paths
+- **URLs** (new) - Download directly from HTTP/HTTPS URLs
 
 - You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-sample.csv?raw=true" download>download this sample media CSV file</a>
 
 **How it works:**
 
 1. **Prepare your media files** - Collect all images, PDFs, videos, or other files you want to import
-2. **Create a CSV file** with the following required columns:
-   - `fileName` - The exact filename of the media file in the ZIP
-   - `parentId` - The ID of the parent media folder in Umbraco
+2. **Create a CSV file** with the following columns:
+   - `fileName` - The exact filename of the media file in the ZIP (optional if using external sources)
+   - `mediaSource|pathToStream` - Import from local/network file path (optional)
+   - `mediaSource|urlToStream` - Download from URL (optional)
+   - `parent` - Parent folder specification supporting:
+     - Integer ID: `1150`
+     - GUID: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`
+     - Path: `/Products/Images/` (auto-creates folders)
+     - Legacy `parentId` column still supported
    - Optional columns: `name`, `mediaTypeAlias`, plus any custom media properties (e.g., `altText`, `caption`)
-3. **Create a ZIP file** containing both the CSV and all media files
+3. **Create a ZIP file** containing the CSV and any media files referenced by `fileName`
 4. **Upload the ZIP** via the **Media Import** tab in the Bulk Upload dashboard
 5. **Download results** - After import, you can download a CSV with IDs of all created media items
 
-**CSV Example:**
+**CSV Examples:**
+
+**Traditional ZIP approach with auto-created folders:**
 ```csv
-fileName,parentId,name,altText,caption
-product-hero.jpg,1150,Product Hero Image,Red widget product,Main product photo
-user-manual.pdf,1151,User Manual V2,,Product documentation
+fileName,parent,name,altText,caption
+product-hero.jpg,/Products/Images/,Product Hero Image,Red widget product,Main product photo
+user-manual.pdf,/Docs/Manuals/,User Manual V2,,Product documentation
 ```
+
+**Import from file paths with folder paths:**
+```csv
+mediaSource|pathToStream,parent,name,altText
+C:/Assets/Images/product-hero.jpg,/Products/Images/,Product Hero Image,Red widget product
+\\nas\share\media\user-manual.pdf,/Docs/Manuals/,User Manual V2,User guide
+```
+
+**Import from URLs with integer ID:**
+```csv
+mediaSource|urlToStream,parent,name,altText
+https://cdn.example.com/images/hero.jpg,1150,Product Hero Image,Red widget product
+https://example.com/docs/manual.pdf,1150,User Manual V2,User guide
+```
+
+**Mixed sources with flexible parent formats:**
+```csv
+fileName,mediaSource|pathToStream,mediaSource|urlToStream,parent,name
+logo.png,,,/Brand/Logos/,Company Logo
+,C:/Assets/banner.jpg,,1150,Homepage Banner
+,,https://cdn.example.com/hero.jpg,/Marketing/Headers/,Hero Image
+```
+
+For more examples and detailed instructions, see the [samples directory](../samples/).
 
 **Using imported media in content:**
 
