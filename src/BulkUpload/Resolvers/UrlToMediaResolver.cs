@@ -185,8 +185,8 @@ public class UrlToMediaResolver : IResolver
             var udi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key);
             var udiString = udi.ToString();
 
-            _logger.LogInformation("Successfully created media from URL: {Url}, Parent: {ParentId}, UDI: {Udi}",
-                urlString, parentId, udiString);
+            _logger.LogInformation("Successfully created media from URL: {Url}, Parent: {Parent}, UDI: {Udi}",
+                urlString, parent, udiString);
             return udiString;
         }
         catch (Exception ex)

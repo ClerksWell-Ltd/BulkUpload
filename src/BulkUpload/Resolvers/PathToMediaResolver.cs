@@ -198,8 +198,8 @@ public class PathToMediaResolver : IResolver
             var udi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key);
             var udiString = udi.ToString();
 
-            _logger.LogInformation("Successfully created media from file: {FilePath}, Parent: {ParentId}, UDI: {Udi}",
-                filePath, parentId, udiString);
+            _logger.LogInformation("Successfully created media from file: {FilePath}, Parent: {Parent}, UDI: {Udi}",
+                filePath, parent, udiString);
             return udiString;
         }
         catch (Exception ex)
