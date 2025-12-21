@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using Umbraco.Cms.Core;
+using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
 
 namespace Umbraco.Community.BulkUpload.Services;
@@ -8,6 +9,7 @@ namespace Umbraco.Community.BulkUpload.Services;
 /// <summary>
 /// Provides in-memory caching for parent lookups to optimize bulk operations.
 /// Uses ConcurrentDictionary for thread-safe access.
+/// Stores GUIDs for compatibility with modern Umbraco versions.
 /// </summary>
 public class ParentLookupCache : IParentLookupCache
 {
@@ -15,13 +17,9 @@ public class ParentLookupCache : IParentLookupCache
     private readonly IContentService _contentService;
     private readonly ILogger<ParentLookupCache> _logger;
 
-    // Cache for GUID to ID mappings
-    private readonly ConcurrentDictionary<Guid, int> _mediaGuidCache = new();
-    private readonly ConcurrentDictionary<Guid, int> _contentGuidCache = new();
-
-    // Cache for path to ID mappings
-    private readonly ConcurrentDictionary<string, int> _mediaPathCache = new();
-    private readonly ConcurrentDictionary<string, int> _contentPathCache = new();
+    // Cache for path to GUID mappings
+    private readonly ConcurrentDictionary<string, Guid> _mediaPathCache = new();
+    private readonly ConcurrentDictionary<string, Guid> _contentPathCache = new();
 
     public ParentLookupCache(
         IMediaService mediaService,
@@ -33,51 +31,7 @@ public class ParentLookupCache : IParentLookupCache
         _logger = logger;
     }
 
-    public int? GetMediaIdByGuid(Guid guid)
-    {
-        // Check cache first
-        if (_mediaGuidCache.TryGetValue(guid, out var cachedId))
-        {
-            _logger.LogDebug("Cache hit: Media GUID {Guid} -> ID {Id}", guid, cachedId);
-            return cachedId;
-        }
-
-        // Not in cache, look up from service
-        var media = _mediaService.GetById(guid);
-        if (media != null)
-        {
-            _mediaGuidCache.TryAdd(guid, media.Id);
-            _logger.LogDebug("Cache miss: Media GUID {Guid} -> ID {Id} (cached)", guid, media.Id);
-            return media.Id;
-        }
-
-        _logger.LogWarning("Media GUID {Guid} not found", guid);
-        return null;
-    }
-
-    public int? GetContentIdByGuid(Guid guid)
-    {
-        // Check cache first
-        if (_contentGuidCache.TryGetValue(guid, out var cachedId))
-        {
-            _logger.LogDebug("Cache hit: Content GUID {Guid} -> ID {Id}", guid, cachedId);
-            return cachedId;
-        }
-
-        // Not in cache, look up from service
-        var content = _contentService.GetById(guid);
-        if (content != null)
-        {
-            _contentGuidCache.TryAdd(guid, content.Id);
-            _logger.LogDebug("Cache miss: Content GUID {Guid} -> ID {Id} (cached)", guid, content.Id);
-            return content.Id;
-        }
-
-        _logger.LogWarning("Content GUID {Guid} not found", guid);
-        return null;
-    }
-
-    public int? GetOrCreateMediaFolderByPath(string path)
+    public Guid? GetOrCreateMediaFolderByPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -88,24 +42,24 @@ public class ParentLookupCache : IParentLookupCache
         var normalizedPath = NormalizePath(path);
 
         // Check cache first
-        if (_mediaPathCache.TryGetValue(normalizedPath, out var cachedId))
+        if (_mediaPathCache.TryGetValue(normalizedPath, out var cachedGuid))
         {
-            _logger.LogDebug("Cache hit: Media path '{Path}' -> ID {Id}", normalizedPath, cachedId);
-            return cachedId;
+            _logger.LogDebug("Cache hit: Media path '{Path}' -> GUID {Guid}", normalizedPath, cachedGuid);
+            return cachedGuid;
         }
 
         // Not in cache, resolve or create folder structure
-        var folderId = ResolveOrCreateMediaFolderPath(normalizedPath);
-        if (folderId.HasValue)
+        var folderGuid = ResolveOrCreateMediaFolderPath(normalizedPath);
+        if (folderGuid.HasValue)
         {
-            _mediaPathCache.TryAdd(normalizedPath, folderId.Value);
-            _logger.LogDebug("Cache miss: Media path '{Path}' -> ID {Id} (cached)", normalizedPath, folderId.Value);
+            _mediaPathCache.TryAdd(normalizedPath, folderGuid.Value);
+            _logger.LogDebug("Cache miss: Media path '{Path}' -> GUID {Guid} (cached)", normalizedPath, folderGuid.Value);
         }
 
-        return folderId;
+        return folderGuid;
     }
 
-    public int? GetOrCreateContentFolderByPath(string path)
+    public Guid? GetOrCreateContentFolderByPath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -116,27 +70,25 @@ public class ParentLookupCache : IParentLookupCache
         var normalizedPath = NormalizePath(path);
 
         // Check cache first
-        if (_contentPathCache.TryGetValue(normalizedPath, out var cachedId))
+        if (_contentPathCache.TryGetValue(normalizedPath, out var cachedGuid))
         {
-            _logger.LogDebug("Cache hit: Content path '{Path}' -> ID {Id}", normalizedPath, cachedId);
-            return cachedId;
+            _logger.LogDebug("Cache hit: Content path '{Path}' -> GUID {Guid}", normalizedPath, cachedGuid);
+            return cachedGuid;
         }
 
-        // Not in cache, resolve or create folder structure
-        var folderId = ResolveOrCreateContentFolderPath(normalizedPath);
-        if (folderId.HasValue)
+        // Not in cache, resolve folder structure
+        var folderGuid = ResolveOrCreateContentFolderPath(normalizedPath);
+        if (folderGuid.HasValue)
         {
-            _contentPathCache.TryAdd(normalizedPath, folderId.Value);
-            _logger.LogDebug("Cache miss: Content path '{Path}' -> ID {Id} (cached)", normalizedPath, folderId.Value);
+            _contentPathCache.TryAdd(normalizedPath, folderGuid.Value);
+            _logger.LogDebug("Cache miss: Content path '{Path}' -> GUID {Guid} (cached)", normalizedPath, folderGuid.Value);
         }
 
-        return folderId;
+        return folderGuid;
     }
 
     public void Clear()
     {
-        _mediaGuidCache.Clear();
-        _contentGuidCache.Clear();
         _mediaPathCache.Clear();
         _contentPathCache.Clear();
         _logger.LogInformation("Parent lookup cache cleared");
@@ -151,18 +103,18 @@ public class ParentLookupCache : IParentLookupCache
     }
 
     /// <summary>
-    /// Resolves a media folder path like "/Blog/Header Images/" to a media folder ID.
+    /// Resolves a media folder path like "/Blog/Header Images/" to a media folder GUID.
     /// Creates folders if they don't exist.
     /// </summary>
-    private int? ResolveOrCreateMediaFolderPath(string normalizedPath)
+    private Guid? ResolveOrCreateMediaFolderPath(string normalizedPath)
     {
         if (string.IsNullOrWhiteSpace(normalizedPath))
         {
-            return Constants.System.Root;
+            return null;
         }
 
         var segments = normalizedPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var currentParentId = Constants.System.Root;
+        Guid currentParentGuid = Guid.Empty; // Root uses Guid.Empty
         var currentPath = "";
 
         foreach (var segment in segments)
@@ -177,38 +129,63 @@ public class ParentLookupCache : IParentLookupCache
             currentPath = string.IsNullOrEmpty(currentPath) ? folderName : $"{currentPath}/{folderName}";
 
             // Check if we have this sub-path in cache
-            if (_mediaPathCache.TryGetValue(currentPath.ToLowerInvariant(), out var cachedSubPathId))
+            if (_mediaPathCache.TryGetValue(currentPath.ToLowerInvariant(), out var cachedSubPathGuid))
             {
-                currentParentId = cachedSubPathId;
+                currentParentGuid = cachedSubPathGuid;
                 continue;
             }
 
             // Look for existing folder with this name under current parent
-            var existingFolder = _mediaService
-                .GetPagedChildren(currentParentId, 0, int.MaxValue, out _)
-                .FirstOrDefault(x =>
-                    x.ContentType.Alias == "Folder" &&
-                    string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
-
-            if (existingFolder != null)
+            // Convert GUID to ID for querying (GetPagedChildren doesn't support GUID in all versions)
+            int currentParentId;
+            if (currentParentGuid == Guid.Empty)
             {
-                currentParentId = existingFolder.Id;
-                // Cache this sub-path
-                _mediaPathCache.TryAdd(currentPath.ToLowerInvariant(), existingFolder.Id);
-                _logger.LogDebug("Found existing media folder '{FolderName}' with ID {Id}", folderName, existingFolder.Id);
+                currentParentId = Constants.System.Root;
             }
             else
             {
-                // Create new folder
-                var newFolder = _mediaService.CreateMedia(folderName, currentParentId, "Folder");
+                var parentMedia = _mediaService.GetById(currentParentGuid);
+                if (parentMedia == null)
+                {
+                    _logger.LogError("Could not find media with GUID {Guid}", currentParentGuid);
+                    return null;
+                }
+                currentParentId = parentMedia.Id;
+            }
+
+            var children = _mediaService.GetPagedChildren(currentParentId, 0, int.MaxValue, out _);
+            var existingFolder = children.FirstOrDefault(x =>
+                x.ContentType.Alias == "Folder" &&
+                string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
+
+            if (existingFolder != null)
+            {
+                currentParentGuid = existingFolder.Key;
+                // Cache this sub-path
+                _mediaPathCache.TryAdd(currentPath.ToLowerInvariant(), existingFolder.Key);
+                _logger.LogDebug("Found existing media folder '{FolderName}' with GUID {Guid}", folderName, existingFolder.Key);
+            }
+            else
+            {
+                // Create new folder using GUID (for modern Umbraco compatibility)
+                IMedia newFolder;
+                if (currentParentGuid == Guid.Empty)
+                {
+                    newFolder = _mediaService.CreateMedia(folderName, Constants.System.Root, "Folder");
+                }
+                else
+                {
+                    newFolder = _mediaService.CreateMedia(folderName, currentParentGuid, "Folder");
+                }
+
                 var saveResult = _mediaService.Save(newFolder);
 
                 if (saveResult.Success)
                 {
-                    currentParentId = newFolder.Id;
+                    currentParentGuid = newFolder.Key;
                     // Cache this sub-path
-                    _mediaPathCache.TryAdd(currentPath.ToLowerInvariant(), newFolder.Id);
-                    _logger.LogInformation("Created new media folder '{FolderName}' with ID {Id}", folderName, newFolder.Id);
+                    _mediaPathCache.TryAdd(currentPath.ToLowerInvariant(), newFolder.Key);
+                    _logger.LogInformation("Created new media folder '{FolderName}' with GUID {Guid}", folderName, newFolder.Key);
                 }
                 else
                 {
@@ -218,22 +195,22 @@ public class ParentLookupCache : IParentLookupCache
             }
         }
 
-        return currentParentId;
+        return currentParentGuid == Guid.Empty ? null : currentParentGuid;
     }
 
     /// <summary>
-    /// Resolves a content folder path like "/Blog/Articles/" to a content folder ID.
-    /// Creates folders if they don't exist.
+    /// Resolves a content folder path like "/Blog/Articles/" to a content folder GUID.
+    /// Resolves to existing folders (does not create).
     /// </summary>
-    private int? ResolveOrCreateContentFolderPath(string normalizedPath)
+    private Guid? ResolveOrCreateContentFolderPath(string normalizedPath)
     {
         if (string.IsNullOrWhiteSpace(normalizedPath))
         {
-            return Constants.System.Root;
+            return null;
         }
 
         var segments = normalizedPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var currentParentId = Constants.System.Root;
+        Guid currentParentGuid = Guid.Empty; // Root uses Guid.Empty
         var currentPath = "";
 
         foreach (var segment in segments)
@@ -248,26 +225,40 @@ public class ParentLookupCache : IParentLookupCache
             currentPath = string.IsNullOrEmpty(currentPath) ? folderName : $"{currentPath}/{folderName}";
 
             // Check if we have this sub-path in cache
-            if (_contentPathCache.TryGetValue(currentPath.ToLowerInvariant(), out var cachedSubPathId))
+            if (_contentPathCache.TryGetValue(currentPath.ToLowerInvariant(), out var cachedSubPathGuid))
             {
-                currentParentId = cachedSubPathId;
+                currentParentGuid = cachedSubPathGuid;
                 continue;
             }
 
             // Look for existing folder with this name under current parent
-            // Note: For content, we need to check for actual folder content types
-            // This assumes there's a "Folder" content type, adjust if needed
-            var existingFolder = _contentService
-                .GetPagedChildren(currentParentId, 0, int.MaxValue, out _)
-                .FirstOrDefault(x =>
-                    string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
+            // Convert GUID to ID for querying (GetPagedChildren doesn't support GUID in all versions)
+            int currentParentId;
+            if (currentParentGuid == Guid.Empty)
+            {
+                currentParentId = Constants.System.Root;
+            }
+            else
+            {
+                var parentContent = _contentService.GetById(currentParentGuid);
+                if (parentContent == null)
+                {
+                    _logger.LogError("Could not find content with GUID {Guid}", currentParentGuid);
+                    return null;
+                }
+                currentParentId = parentContent.Id;
+            }
+
+            var children = _contentService.GetPagedChildren(currentParentId, 0, int.MaxValue, out _);
+            var existingFolder = children.FirstOrDefault(x =>
+                string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
 
             if (existingFolder != null)
             {
-                currentParentId = existingFolder.Id;
+                currentParentGuid = existingFolder.Key;
                 // Cache this sub-path
-                _contentPathCache.TryAdd(currentPath.ToLowerInvariant(), existingFolder.Id);
-                _logger.LogDebug("Found existing content folder '{FolderName}' with ID {Id}", folderName, existingFolder.Id);
+                _contentPathCache.TryAdd(currentPath.ToLowerInvariant(), existingFolder.Key);
+                _logger.LogDebug("Found existing content folder '{FolderName}' with GUID {Guid}", folderName, existingFolder.Key);
             }
             else
             {
@@ -278,6 +269,6 @@ public class ParentLookupCache : IParentLookupCache
             }
         }
 
-        return currentParentId;
+        return currentParentGuid == Guid.Empty ? null : currentParentGuid;
     }
 }

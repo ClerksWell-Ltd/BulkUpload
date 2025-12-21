@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Core;
+using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Resolvers;
@@ -104,19 +105,67 @@ public class ImportUtilityService : IImportUtilityService
 
     public virtual void ImportSingleItem(ImportObject importObject, bool publish = false)
     {
-        // Resolve parent specification to content ID
-        var parentId = ResolveParentId(importObject.Parent);
-        _logger.LogDebug("Resolved parent '{Parent}' to ID {ParentId}", importObject.Parent, parentId);
+        // Resolve parent specification to content parent (GUID or int)
+        var parent = ResolveParent(importObject.Parent);
+        _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
+            importObject.Parent, parent.GetType().Name, parent);
 
         // Try to find an existing item under the same parent with the same name
+        // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
+        int queryParentId;
+        if (parent is Guid parentGuid)
+        {
+            if (parentGuid == Guid.Empty)
+            {
+                queryParentId = Constants.System.Root;
+            }
+            else
+            {
+                var parentContent = _contentService.GetById(parentGuid);
+                if (parentContent == null)
+                {
+                    throw new InvalidOperationException($"Parent with GUID {parentGuid} not found");
+                }
+                queryParentId = parentContent.Id;
+            }
+        }
+        else if (parent is int parentId)
+        {
+            queryParentId = parentId;
+        }
+        else
+        {
+            throw new InvalidOperationException("Invalid parent type resolved");
+        }
+
         var existingItem = _contentService
-            .GetPagedChildren(parentId, 0, int.MaxValue, out _)
+            .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
             .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
 
         // Create or reuse existing item
-        var contentItem = existingItem
-            ?? _contentService.Create(importObject!.Name, parentId, importObject.ContentTypeAlais);
-
+        IContent contentItem;
+        if (existingItem != null)
+        {
+            contentItem = existingItem;
+        }
+        else
+        {
+            // Use GUID-based or int-based Create depending on parent type
+            if (parent is Guid guid)
+            {
+                contentItem = guid == Guid.Empty
+                    ? _contentService.Create(importObject!.Name, Constants.System.Root, importObject.ContentTypeAlais)
+                    : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
+            }
+            else if (parent is int id)
+            {
+                contentItem = _contentService.Create(importObject!.Name, id, importObject.ContentTypeAlais);
+            }
+            else
+            {
+                throw new InvalidOperationException("Invalid parent type for content creation");
+            }
+        }
 
         // Update properties (same for both new and existing)
         if (importObject.Properties != null && importObject.Properties.Any())
@@ -172,37 +221,53 @@ public class ImportUtilityService : IImportUtilityService
     }
 
     /// <summary>
-    /// Resolves the parent folder specification to a content ID.
-    /// Supports integer ID, GUID, or path (resolves to existing folders).
+    /// Resolves the parent folder specification to a content parent (GUID or integer ID for .NET 8).
+    /// Supports integer ID (.NET 8 only), GUID, or path (resolves to existing folders).
+    /// Uses caching for improved performance.
+    /// Returns either Guid or int depending on input and framework version.
     /// </summary>
-    public int ResolveParentId(string? parent)
+    public object ResolveParent(string? parent)
     {
         if (string.IsNullOrWhiteSpace(parent))
         {
             return Constants.System.Root;
         }
 
-        // Try to parse as integer ID
-        if (int.TryParse(parent, out var parentId))
-        {
-            return parentId;
-        }
-
-        // Try to parse as GUID and resolve to content ID using cache
+        // Try to parse as GUID - use directly without lookup for modern Umbraco compatibility
         if (Guid.TryParse(parent, out var guid))
         {
-            var contentId = _parentLookupCache.GetContentIdByGuid(guid);
-            if (contentId.HasValue)
-            {
-                _logger.LogDebug("Resolved parent GUID {Guid} to content ID {Id}", guid, contentId.Value);
-                return contentId.Value;
-            }
-            _logger.LogWarning("Parent GUID {Guid} not found, using root folder", guid);
-            return Constants.System.Root;
+            _logger.LogDebug("Using parent GUID {Guid} directly", guid);
+            return guid;
         }
 
-        // Treat as path - resolve to existing folder structure using cache
-        var folderId = _parentLookupCache.GetOrCreateContentFolderByPath(parent);
-        return folderId ?? Constants.System.Root;
+        // Try to parse as integer ID - only use for .NET 8 compatibility
+        if (int.TryParse(parent, out var parentId))
+        {
+#if NET8_0
+            _logger.LogDebug("Using parent integer ID {Id} (.NET 8)", parentId);
+            return parentId;
+#else
+            // For non-.NET 8, look up the GUID from the integer ID
+            var content = _contentService.GetById(parentId);
+            if (content != null)
+            {
+                _logger.LogDebug("Resolved parent integer ID {Id} to GUID {Guid}", parentId, content.Key);
+                return content.Key;
+            }
+            _logger.LogWarning("Parent ID {Id} not found, using root folder", parentId);
+            return Constants.System.Root;
+#endif
+        }
+
+        // Treat as path - resolve to existing folder structure using cache (returns GUID)
+        var folderGuid = _parentLookupCache.GetOrCreateContentFolderByPath(parent);
+        if (folderGuid.HasValue)
+        {
+            _logger.LogDebug("Resolved parent path '{Path}' to GUID {Guid}", parent, folderGuid.Value);
+            return folderGuid.Value;
+        }
+
+        _logger.LogWarning("Could not resolve parent path '{Path}', using root folder", parent);
+        return Constants.System.Root;
     }
 }
