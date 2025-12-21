@@ -195,16 +195,28 @@ public class MediaImportService : IMediaImportService
             }
 
             // Check if media already exists with same name under parent
-            IEnumerable<IMedia> children;
+            // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
+            int queryParentId;
             if (parent is Guid parentGuid)
             {
-                children = parentGuid == Guid.Empty
-                    ? _mediaService.GetPagedChildren(Constants.System.Root, 0, int.MaxValue, out _)
-                    : _mediaService.GetPagedChildren(parentGuid, 0, int.MaxValue, out _);
+                if (parentGuid == Guid.Empty)
+                {
+                    queryParentId = Constants.System.Root;
+                }
+                else
+                {
+                    var parentMedia = _mediaService.GetById(parentGuid);
+                    if (parentMedia == null)
+                    {
+                        result.ErrorMessage = $"Parent with GUID {parentGuid} not found";
+                        return result;
+                    }
+                    queryParentId = parentMedia.Id;
+                }
             }
             else if (parent is int parentId)
             {
-                children = _mediaService.GetPagedChildren(parentId, 0, int.MaxValue, out _);
+                queryParentId = parentId;
             }
             else
             {
@@ -212,8 +224,9 @@ public class MediaImportService : IMediaImportService
                 return result;
             }
 
-            var existingMedia = children.FirstOrDefault(x =>
-                string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
+            var existingMedia = _mediaService
+                .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
+                .FirstOrDefault(x => string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
 
             IMedia mediaItem;
             if (existingMedia != null)

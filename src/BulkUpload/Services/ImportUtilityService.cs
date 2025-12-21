@@ -110,24 +110,36 @@ public class ImportUtilityService : IImportUtilityService
             importObject.Parent, parent.GetType().Name, parent);
 
         // Try to find an existing item under the same parent with the same name
-        IEnumerable<IContent> children;
+        // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
+        int queryParentId;
         if (parent is Guid parentGuid)
         {
-            children = parentGuid == Guid.Empty
-                ? _contentService.GetPagedChildren(Constants.System.Root, 0, int.MaxValue, out _)
-                : _contentService.GetPagedChildren(parentGuid, 0, int.MaxValue, out _);
+            if (parentGuid == Guid.Empty)
+            {
+                queryParentId = Constants.System.Root;
+            }
+            else
+            {
+                var parentContent = _contentService.GetById(parentGuid);
+                if (parentContent == null)
+                {
+                    throw new InvalidOperationException($"Parent with GUID {parentGuid} not found");
+                }
+                queryParentId = parentContent.Id;
+            }
         }
         else if (parent is int parentId)
         {
-            children = _contentService.GetPagedChildren(parentId, 0, int.MaxValue, out _);
+            queryParentId = parentId;
         }
         else
         {
             throw new InvalidOperationException("Invalid parent type resolved");
         }
 
-        var existingItem = children.FirstOrDefault(x =>
-            string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
+        var existingItem = _contentService
+            .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
+            .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
 
         // Create or reuse existing item
         IContent contentItem;

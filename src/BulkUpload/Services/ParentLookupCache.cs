@@ -135,10 +135,24 @@ public class ParentLookupCache : IParentLookupCache
             }
 
             // Look for existing folder with this name under current parent
-            var children = currentParentGuid == Guid.Empty
-                ? _mediaService.GetPagedChildren(Constants.System.Root, 0, int.MaxValue, out _)
-                : _mediaService.GetPagedChildren(currentParentGuid, 0, int.MaxValue, out _);
+            // Convert GUID to ID for querying (GetPagedChildren doesn't support GUID in all versions)
+            int currentParentId;
+            if (currentParentGuid == Guid.Empty)
+            {
+                currentParentId = Constants.System.Root;
+            }
+            else
+            {
+                var parentMedia = _mediaService.GetById(currentParentGuid);
+                if (parentMedia == null)
+                {
+                    _logger.LogError("Could not find media with GUID {Guid}", currentParentGuid);
+                    return null;
+                }
+                currentParentId = parentMedia.Id;
+            }
 
+            var children = _mediaService.GetPagedChildren(currentParentId, 0, int.MaxValue, out _);
             var existingFolder = children.FirstOrDefault(x =>
                 x.ContentType.Alias == "Folder" &&
                 string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
@@ -152,10 +166,16 @@ public class ParentLookupCache : IParentLookupCache
             }
             else
             {
-                // Create new folder using GUID
-                var newFolder = currentParentGuid == Guid.Empty
-                    ? _mediaService.CreateMedia(folderName, Constants.System.Root, "Folder")
-                    : _mediaService.CreateMedia(folderName, currentParentGuid, "Folder");
+                // Create new folder using GUID (for modern Umbraco compatibility)
+                IMedia newFolder;
+                if (currentParentGuid == Guid.Empty)
+                {
+                    newFolder = _mediaService.CreateMedia(folderName, Constants.System.Root, "Folder");
+                }
+                else
+                {
+                    newFolder = _mediaService.CreateMedia(folderName, currentParentGuid, "Folder");
+                }
 
                 var saveResult = _mediaService.Save(newFolder);
 
@@ -211,10 +231,24 @@ public class ParentLookupCache : IParentLookupCache
             }
 
             // Look for existing folder with this name under current parent
-            var children = currentParentGuid == Guid.Empty
-                ? _contentService.GetPagedChildren(Constants.System.Root, 0, int.MaxValue, out _)
-                : _contentService.GetPagedChildren(currentParentGuid, 0, int.MaxValue, out _);
+            // Convert GUID to ID for querying (GetPagedChildren doesn't support GUID in all versions)
+            int currentParentId;
+            if (currentParentGuid == Guid.Empty)
+            {
+                currentParentId = Constants.System.Root;
+            }
+            else
+            {
+                var parentContent = _contentService.GetById(currentParentGuid);
+                if (parentContent == null)
+                {
+                    _logger.LogError("Could not find content with GUID {Guid}", currentParentGuid);
+                    return null;
+                }
+                currentParentId = parentContent.Id;
+            }
 
+            var children = _contentService.GetPagedChildren(currentParentId, 0, int.MaxValue, out _);
             var existingFolder = children.FirstOrDefault(x =>
                 string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
 
