@@ -12,7 +12,7 @@ public class ImportObjectTests
         {
             Name = null!,
             ContentTypeAlais = "testType",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -30,7 +30,7 @@ public class ImportObjectTests
         {
             Name = string.Empty,
             ContentTypeAlais = "testType",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -48,7 +48,7 @@ public class ImportObjectTests
         {
             Name = "   ",
             ContentTypeAlais = "testType",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -66,7 +66,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = null!,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -84,7 +84,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = string.Empty,
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -102,7 +102,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "   ",
-            ParentId = 1
+            Parent = "1"
         };
 
         // Act
@@ -113,14 +113,14 @@ public class ImportObjectTests
     }
 
     [Fact]
-    public void CanImport_ReturnsFalse_WhenParentIdIsZero()
+    public void CanImport_ReturnsFalse_WhenParentIsNull()
     {
         // Arrange
         var importObject = new ImportObject
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            ParentId = 0
+            Parent = null
         };
 
         // Act
@@ -131,14 +131,14 @@ public class ImportObjectTests
     }
 
     [Fact]
-    public void CanImport_ReturnsFalse_WhenParentIdIsNegative()
+    public void CanImport_ReturnsFalse_WhenParentIsEmpty()
     {
         // Arrange
         var importObject = new ImportObject
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            ParentId = -1
+            Parent = string.Empty
         };
 
         // Act
@@ -149,14 +149,68 @@ public class ImportObjectTests
     }
 
     [Fact]
-    public void CanImport_ReturnsTrue_WhenAllRequiredFieldsAreValid()
+    public void CanImport_ReturnsFalse_WhenParentIsWhitespace()
     {
         // Arrange
         var importObject = new ImportObject
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            ParentId = 1
+            Parent = "   "
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void CanImport_ReturnsTrue_WhenAllRequiredFieldsAreValid_WithIntegerParent()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = "Test Name",
+            ContentTypeAlais = "testType",
+            Parent = "1"
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CanImport_ReturnsTrue_WhenAllRequiredFieldsAreValid_WithGuidParent()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = "Test Name",
+            ContentTypeAlais = "testType",
+            Parent = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CanImport_ReturnsTrue_WhenAllRequiredFieldsAreValid_WithPathParent()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = "Test Name",
+            ContentTypeAlais = "testType",
+            Parent = "/Blog/Articles"
         };
 
         // Act
@@ -174,7 +228,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            ParentId = 1,
+            Parent = "1",
             Properties = null
         };
 
@@ -193,7 +247,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            ParentId = 1,
+            Parent = "1",
             Properties = new Dictionary<string, object>()
         };
 
@@ -212,7 +266,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            ParentId = 1,
+            Parent = "1",
             Properties = new Dictionary<string, object>
             {
                 { "Title", "Test Title" },

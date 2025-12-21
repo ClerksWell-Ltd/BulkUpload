@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-
+using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Resolvers;
@@ -12,12 +12,18 @@ public class ImportUtilityService : IImportUtilityService
     protected readonly IContentService _contentService;
 #pragma warning restore IDE1006 // Naming Styles
     private readonly IResolverFactory _resolverFactory;
+    private readonly IParentLookupCache _parentLookupCache;
     private readonly ILogger<ImportUtilityService> _logger;
 
-    public ImportUtilityService(IContentService contentService, IResolverFactory resolverFactory, ILogger<ImportUtilityService> logger)
+    public ImportUtilityService(
+        IContentService contentService,
+        IResolverFactory resolverFactory,
+        IParentLookupCache parentLookupCache,
+        ILogger<ImportUtilityService> logger)
     {
         _contentService = contentService;
         _resolverFactory = resolverFactory;
+        _parentLookupCache = parentLookupCache;
         _logger = logger;
     }
 
@@ -39,10 +45,24 @@ public class ImportUtilityService : IImportUtilityService
             name = nameValue?.ToString() ?? "";
         }
 
-        int parentId = 0;
-        if (dynamicProperties.TryGetValue("parentId", out object? parentIdValue))
+        // Support both "parent" (new) and "parentId" (legacy) columns
+        string? parent = null;
+        if (dynamicProperties.TryGetValue("parent", out object? parentValue))
         {
-            int.TryParse(parentIdValue?.ToString() ?? "", out parentId);
+            var parentStr = parentValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(parentStr))
+            {
+                parent = ValidateParentValue(parentStr);
+            }
+        }
+        // Fallback to legacy "parentId" column for backward compatibility
+        else if (dynamicProperties.TryGetValue("parentId", out object? parentIdValue))
+        {
+            var parentIdStr = parentIdValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(parentIdStr))
+            {
+                parent = ValidateParentValue(parentIdStr);
+            }
         }
 
         var docTypeAlias = "";
@@ -51,7 +71,7 @@ public class ImportUtilityService : IImportUtilityService
             docTypeAlias = docTypeAliasValue?.ToString() ?? "";
         }
 
-        ImportObject importObject = new ImportObject() { ContentTypeAlais = docTypeAlias, Name = name, ParentId = parentId };
+        ImportObject importObject = new ImportObject() { ContentTypeAlais = docTypeAlias, Name = name, Parent = parent };
 
         foreach (var property in dynamicProperties)
         {
@@ -63,7 +83,7 @@ public class ImportUtilityService : IImportUtilityService
                 aliasValue = columnDetails.Last();
             }
 
-            if (new string[] { "name", "parentId", "docTypeAlias" }.Contains(property.Key.Split('|')[0]))
+            if (new string[] { "name", "parent", "parentId", "docTypeAlias" }.Contains(property.Key.Split('|')[0]))
                 continue;
             var resolverAlias = aliasValue ?? "text";
 
@@ -84,14 +104,18 @@ public class ImportUtilityService : IImportUtilityService
 
     public virtual void ImportSingleItem(ImportObject importObject, bool publish = false)
     {
+        // Resolve parent specification to content ID
+        var parentId = ResolveParentId(importObject.Parent);
+        _logger.LogDebug("Resolved parent '{Parent}' to ID {ParentId}", importObject.Parent, parentId);
+
         // Try to find an existing item under the same parent with the same name
         var existingItem = _contentService
-            .GetPagedChildren(importObject.ParentId, 0, int.MaxValue, out _)
+            .GetPagedChildren(parentId, 0, int.MaxValue, out _)
             .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
 
         // Create or reuse existing item
         var contentItem = existingItem
-            ?? _contentService.Create(importObject!.Name, importObject.ParentId, importObject.ContentTypeAlais);
+            ?? _contentService.Create(importObject!.Name, parentId, importObject.ContentTypeAlais);
 
 
         // Update properties (same for both new and existing)
@@ -112,5 +136,73 @@ public class ImportUtilityService : IImportUtilityService
         {
             _contentService.Save(contentItem);
         }
+    }
+
+    /// <summary>
+    /// Validates that the parent value is in a supported format.
+    /// Returns the value if it's a valid integer, GUID, or path; otherwise returns null.
+    /// </summary>
+    private string? ValidateParentValue(string parent)
+    {
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            return null;
+        }
+
+        // Check if it's a valid integer
+        if (int.TryParse(parent, out _))
+        {
+            return parent;
+        }
+
+        // Check if it's a valid GUID
+        if (Guid.TryParse(parent, out _))
+        {
+            return parent;
+        }
+
+        // Check if it's a path (starts with /)
+        if (parent.TrimStart().StartsWith("/"))
+        {
+            return parent;
+        }
+
+        // Invalid format
+        return null;
+    }
+
+    /// <summary>
+    /// Resolves the parent folder specification to a content ID.
+    /// Supports integer ID, GUID, or path (resolves to existing folders).
+    /// </summary>
+    public int ResolveParentId(string? parent)
+    {
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            return Constants.System.Root;
+        }
+
+        // Try to parse as integer ID
+        if (int.TryParse(parent, out var parentId))
+        {
+            return parentId;
+        }
+
+        // Try to parse as GUID and resolve to content ID using cache
+        if (Guid.TryParse(parent, out var guid))
+        {
+            var contentId = _parentLookupCache.GetContentIdByGuid(guid);
+            if (contentId.HasValue)
+            {
+                _logger.LogDebug("Resolved parent GUID {Guid} to content ID {Id}", guid, contentId.Value);
+                return contentId.Value;
+            }
+            _logger.LogWarning("Parent GUID {Guid} not found, using root folder", guid);
+            return Constants.System.Root;
+        }
+
+        // Treat as path - resolve to existing folder structure using cache
+        var folderId = _parentLookupCache.GetOrCreateContentFolderByPath(parent);
+        return folderId ?? Constants.System.Root;
     }
 }

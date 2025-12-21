@@ -9,12 +9,14 @@ namespace Umbraco.Community.BulkUpload.Tests.Services;
 public class MediaImportServiceTests
 {
     private readonly Mock<IResolverFactory> _mockResolverFactory;
+    private readonly Mock<IParentLookupCache> _mockParentLookupCache;
     private readonly Mock<ILogger<MediaImportService>> _mockLogger;
     private readonly MediaImportService _service;
 
     public MediaImportServiceTests()
     {
         _mockResolverFactory = new Mock<IResolverFactory>();
+        _mockParentLookupCache = new Mock<IParentLookupCache>();
         _mockLogger = new Mock<ILogger<MediaImportService>>();
 
         // Note: We can only test CreateMediaImportObject as it doesn't require sealed classes
@@ -26,6 +28,7 @@ public class MediaImportServiceTests
             null!, // IShortStringHelper - not needed for CreateMediaImportObject tests
             null!, // IContentTypeBaseServiceProvider - not needed for CreateMediaImportObject tests
             _mockResolverFactory.Object,
+            _mockParentLookupCache.Object,
             _mockLogger.Object
         );
     }
