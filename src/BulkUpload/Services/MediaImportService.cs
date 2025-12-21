@@ -174,9 +174,10 @@ public class MediaImportService : IMediaImportService
                 return result;
             }
 
-            // Resolve parent specification to media ID
-            var parentId = ResolveParentId(importObject.Parent);
-            _logger.LogDebug("Resolved parent '{Parent}' to ID {ParentId}", importObject.Parent, parentId);
+            // Resolve parent specification to media parent (GUID or int)
+            var parent = ResolveParent(importObject.Parent);
+            _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
+                importObject.Parent, parent.GetType().Name, parent);
 
             // Determine media type alias if not provided
             var mediaTypeAlias = importObject.MediaTypeAlias;
@@ -194,9 +195,25 @@ public class MediaImportService : IMediaImportService
             }
 
             // Check if media already exists with same name under parent
-            var existingMedia = _mediaService
-                .GetPagedChildren(parentId, 0, int.MaxValue, out _)
-                .FirstOrDefault(x => string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
+            IEnumerable<IMedia> children;
+            if (parent is Guid parentGuid)
+            {
+                children = parentGuid == Guid.Empty
+                    ? _mediaService.GetPagedChildren(Constants.System.Root, 0, int.MaxValue, out _)
+                    : _mediaService.GetPagedChildren(parentGuid, 0, int.MaxValue, out _);
+            }
+            else if (parent is int parentId)
+            {
+                children = _mediaService.GetPagedChildren(parentId, 0, int.MaxValue, out _);
+            }
+            else
+            {
+                result.ErrorMessage = "Invalid parent type resolved";
+                return result;
+            }
+
+            var existingMedia = children.FirstOrDefault(x =>
+                string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
 
             IMedia mediaItem;
             if (existingMedia != null)
@@ -206,7 +223,22 @@ public class MediaImportService : IMediaImportService
             }
             else
             {
-                mediaItem = _mediaService.CreateMedia(importObject.DisplayName, parentId, mediaTypeAlias);
+                // Use GUID-based or int-based Create depending on parent type
+                if (parent is Guid guid)
+                {
+                    mediaItem = guid == Guid.Empty
+                        ? _mediaService.CreateMedia(importObject.DisplayName, Constants.System.Root, mediaTypeAlias)
+                        : _mediaService.CreateMedia(importObject.DisplayName, guid, mediaTypeAlias);
+                }
+                else if (parent is int id)
+                {
+                    mediaItem = _mediaService.CreateMedia(importObject.DisplayName, id, mediaTypeAlias);
+                }
+                else
+                {
+                    result.ErrorMessage = "Invalid parent type for media creation";
+                    return result;
+                }
                 _logger.LogInformation("Creating new media: {Name}", importObject.DisplayName);
             }
 
@@ -313,39 +345,54 @@ public class MediaImportService : IMediaImportService
     }
 
     /// <summary>
-    /// Resolves the parent folder specification to a media ID.
-    /// Supports integer ID, GUID, or path (with auto-creation).
+    /// Resolves the parent folder specification to a media parent (GUID or integer ID for .NET 8).
+    /// Supports integer ID (.NET 8 only), GUID, or path (with auto-creation).
     /// Uses caching for improved performance.
+    /// Returns either Guid or int depending on input and framework version.
     /// </summary>
-    public int ResolveParentId(string? parent)
+    public object ResolveParent(string? parent)
     {
         if (string.IsNullOrWhiteSpace(parent))
         {
             return Constants.System.Root;
         }
 
-        // Try to parse as integer ID
-        if (int.TryParse(parent, out var parentId))
-        {
-            return parentId;
-        }
-
-        // Try to parse as GUID and resolve to media ID using cache
+        // Try to parse as GUID - use directly without lookup for modern Umbraco compatibility
         if (Guid.TryParse(parent, out var guid))
         {
-            var mediaId = _parentLookupCache.GetMediaIdByGuid(guid);
-            if (mediaId.HasValue)
-            {
-                _logger.LogDebug("Resolved parent GUID {Guid} to media ID {Id}", guid, mediaId.Value);
-                return mediaId.Value;
-            }
-            _logger.LogWarning("Parent GUID {Guid} not found, using root folder", guid);
-            return Constants.System.Root;
+            _logger.LogDebug("Using parent GUID {Guid} directly", guid);
+            return guid;
         }
 
-        // Treat as path - resolve or create folder structure using cache
-        var folderId = _parentLookupCache.GetOrCreateMediaFolderByPath(parent);
-        return folderId ?? Constants.System.Root;
+        // Try to parse as integer ID - only use for .NET 8 compatibility
+        if (int.TryParse(parent, out var parentId))
+        {
+#if NET8_0
+            _logger.LogDebug("Using parent integer ID {Id} (.NET 8)", parentId);
+            return parentId;
+#else
+            // For non-.NET 8, look up the GUID from the integer ID
+            var media = _mediaService.GetById(parentId);
+            if (media != null)
+            {
+                _logger.LogDebug("Resolved parent integer ID {Id} to GUID {Guid}", parentId, media.Key);
+                return media.Key;
+            }
+            _logger.LogWarning("Parent ID {Id} not found, using root folder", parentId);
+            return Constants.System.Root;
+#endif
+        }
+
+        // Treat as path - resolve or create folder structure using cache (returns GUID)
+        var folderGuid = _parentLookupCache.GetOrCreateMediaFolderByPath(parent);
+        if (folderGuid.HasValue)
+        {
+            _logger.LogDebug("Resolved parent path '{Path}' to GUID {Guid}", parent, folderGuid.Value);
+            return folderGuid.Value;
+        }
+
+        _logger.LogWarning("Could not resolve parent path '{Path}', using root folder", parent);
+        return Constants.System.Root;
     }
 
     private string DetermineMediaTypeFromExtension(string fileName)

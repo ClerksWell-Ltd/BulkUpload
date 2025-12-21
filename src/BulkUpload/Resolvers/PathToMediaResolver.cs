@@ -98,11 +98,11 @@ public class PathToMediaResolver : IResolver
                 return string.Empty;
             }
 
-            // Determine parent folder ID using fallback hierarchy:
+            // Determine parent folder using fallback hierarchy:
             // 1. Value parameter (highest priority)
             // 2. Alias parameter
             // 3. Root folder (default)
-            var parentId = ResolveParentId(valueParameter, aliasParameter);
+            var parent = ResolveParent(valueParameter, aliasParameter);
 
             // Read the file from disk
             byte[] fileBytes;
@@ -147,8 +147,23 @@ public class PathToMediaResolver : IResolver
                 return string.Empty;
             }
 
-            // Create media item in the determined parent folder
-            var mediaItem = _mediaService.CreateMedia(fileName, parentId, mediaTypeAlias);
+            // Create media item in the determined parent folder using GUID or int
+            IMedia mediaItem;
+            if (parent is Guid guid)
+            {
+                mediaItem = guid == Guid.Empty
+                    ? _mediaService.CreateMedia(fileName, Constants.System.Root, mediaTypeAlias)
+                    : _mediaService.CreateMedia(fileName, guid, mediaTypeAlias);
+            }
+            else if (parent is int id)
+            {
+                mediaItem = _mediaService.CreateMedia(fileName, id, mediaTypeAlias);
+            }
+            else
+            {
+                _logger.LogWarning("Invalid parent type resolved for file: {FilePath}", filePath);
+                return string.Empty;
+            }
 
             // Upload the file
             using (var fileStream = new MemoryStream(fileBytes))
@@ -195,13 +210,14 @@ public class PathToMediaResolver : IResolver
     }
 
     /// <summary>
-    /// Resolves the parent folder ID using the fallback hierarchy:
+    /// Resolves the parent folder using the fallback hierarchy:
     /// 1. Value parameter (from filePath|parameter syntax)
     /// 2. Alias parameter (from resolver:parameter syntax)
     /// 3. Root folder (default)
     /// Uses caching for improved performance.
+    /// Returns either Guid or int depending on parameter format and framework version.
     /// </summary>
-    private int ResolveParentId(string? valueParameter, string? aliasParameter)
+    private object ResolveParent(string? valueParameter, string? aliasParameter)
     {
         // Try value parameter first (highest priority)
         var parameter = valueParameter ?? aliasParameter;
@@ -211,28 +227,42 @@ public class PathToMediaResolver : IResolver
             return Constants.System.Root;
         }
 
-        // Try to parse as integer ID
-        if (int.TryParse(parameter, out var parentId))
-        {
-            return parentId;
-        }
-
-        // Try to parse as GUID and resolve to media ID using cache
+        // Try to parse as GUID - use directly without lookup for modern Umbraco compatibility
         if (Guid.TryParse(parameter, out var guid))
         {
-            var mediaId = _parentLookupCache.GetMediaIdByGuid(guid);
-            if (mediaId.HasValue)
-            {
-                _logger.LogDebug("Resolved parent GUID {Guid} to media ID {Id}", guid, mediaId.Value);
-                return mediaId.Value;
-            }
-            _logger.LogWarning("Parent GUID {Guid} not found, using root folder", guid);
-            return Constants.System.Root;
+            _logger.LogDebug("Using parent GUID {Guid} directly", guid);
+            return guid;
         }
 
-        // Treat as path - resolve or create folder structure using cache
-        var folderId = _parentLookupCache.GetOrCreateMediaFolderByPath(parameter);
-        return folderId ?? Constants.System.Root;
+        // Try to parse as integer ID - only use for .NET 8 compatibility
+        if (int.TryParse(parameter, out var parentId))
+        {
+#if NET8_0
+            _logger.LogDebug("Using parent integer ID {Id} (.NET 8)", parentId);
+            return parentId;
+#else
+            // For non-.NET 8, look up the GUID from the integer ID
+            var media = _mediaService.GetById(parentId);
+            if (media != null)
+            {
+                _logger.LogDebug("Resolved parent integer ID {Id} to GUID {Guid}", parentId, media.Key);
+                return media.Key;
+            }
+            _logger.LogWarning("Parent ID {Id} not found, using root folder", parentId);
+            return Constants.System.Root;
+#endif
+        }
+
+        // Treat as path - resolve or create folder structure using cache (returns GUID)
+        var folderGuid = _parentLookupCache.GetOrCreateMediaFolderByPath(parameter);
+        if (folderGuid.HasValue)
+        {
+            _logger.LogDebug("Resolved parent path '{Path}' to GUID {Guid}", parameter, folderGuid.Value);
+            return folderGuid.Value;
+        }
+
+        _logger.LogWarning("Could not resolve parent path '{Path}', using root folder", parameter);
+        return Constants.System.Root;
     }
 
     private string DetermineMediaTypeFromExtension(string extension)
