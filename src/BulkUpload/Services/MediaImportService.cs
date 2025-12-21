@@ -74,7 +74,7 @@ public class MediaImportService : IMediaImportService
             var parentStr = parentValue?.ToString();
             if (!string.IsNullOrWhiteSpace(parentStr))
             {
-                parent = parentStr;
+                parent = ValidateParentValue(parentStr);
             }
         }
         // Fallback to legacy "parentId" column for backward compatibility
@@ -83,7 +83,7 @@ public class MediaImportService : IMediaImportService
             var parentIdStr = parentIdValue?.ToString();
             if (!string.IsNullOrWhiteSpace(parentIdStr))
             {
-                parent = parentIdStr;
+                parent = ValidateParentValue(parentIdStr);
             }
         }
 
@@ -274,6 +274,39 @@ public class MediaImportService : IMediaImportService
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Validates that the parent value is in a supported format.
+    /// Returns the value if it's a valid integer, GUID, or path; otherwise returns null.
+    /// </summary>
+    private string? ValidateParentValue(string parent)
+    {
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            return null;
+        }
+
+        // Check if it's a valid integer
+        if (int.TryParse(parent, out _))
+        {
+            return parent;
+        }
+
+        // Check if it's a valid GUID
+        if (Guid.TryParse(parent, out _))
+        {
+            return parent;
+        }
+
+        // Check if it's a path (starts with /)
+        if (parent.TrimStart().StartsWith("/"))
+        {
+            return parent;
+        }
+
+        // Invalid format
+        return null;
     }
 
     /// <summary>
