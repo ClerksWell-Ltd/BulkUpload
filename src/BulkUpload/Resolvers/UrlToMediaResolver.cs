@@ -6,6 +6,7 @@ using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
+using Umbraco.Community.BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload.Resolvers;
 
@@ -31,6 +32,7 @@ public class UrlToMediaResolver : IResolver
     private readonly IMediaTypeService _mediaTypeService;
     private readonly IShortStringHelper _shortStringHelper;
     private readonly IContentTypeBaseServiceProvider _contentTypeBaseServiceProvider;
+    private readonly IParentLookupCache _parentLookupCache;
     private readonly ILogger<UrlToMediaResolver> _logger;
 
     public UrlToMediaResolver(
@@ -40,6 +42,7 @@ public class UrlToMediaResolver : IResolver
         IMediaTypeService mediaTypeService,
         IShortStringHelper shortStringHelper,
         IContentTypeBaseServiceProvider contentTypeBaseServiceProvider,
+        IParentLookupCache parentLookupCache,
         ILogger<UrlToMediaResolver> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -48,6 +51,7 @@ public class UrlToMediaResolver : IResolver
         _mediaTypeService = mediaTypeService;
         _shortStringHelper = shortStringHelper;
         _contentTypeBaseServiceProvider = contentTypeBaseServiceProvider;
+        _parentLookupCache = parentLookupCache;
         _logger = logger;
     }
 
@@ -182,6 +186,7 @@ public class UrlToMediaResolver : IResolver
     /// 1. Value parameter (from URL|parameter syntax)
     /// 2. Alias parameter (from resolver:parameter syntax)
     /// 3. Root folder (default)
+    /// Uses caching for improved performance.
     /// </summary>
     private int ResolveParentId(string? valueParameter, string? aliasParameter)
     {
@@ -199,86 +204,22 @@ public class UrlToMediaResolver : IResolver
             return parentId;
         }
 
-        // Try to parse as GUID and resolve to media ID
+        // Try to parse as GUID and resolve to media ID using cache
         if (Guid.TryParse(parameter, out var guid))
         {
-            var media = _mediaService.GetById(guid);
-            if (media != null)
+            var mediaId = _parentLookupCache.GetMediaIdByGuid(guid);
+            if (mediaId.HasValue)
             {
-                _logger.LogDebug("Resolved parent GUID {Guid} to media ID {Id}", guid, media.Id);
-                return media.Id;
+                _logger.LogDebug("Resolved parent GUID {Guid} to media ID {Id}", guid, mediaId.Value);
+                return mediaId.Value;
             }
             _logger.LogWarning("Parent GUID {Guid} not found, using root folder", guid);
             return Constants.System.Root;
         }
 
-        // Treat as path - resolve or create folder structure
-        var folderId = ResolveOrCreateFolderPath(parameter);
+        // Treat as path - resolve or create folder structure using cache
+        var folderId = _parentLookupCache.GetOrCreateMediaFolderByPath(parameter);
         return folderId ?? Constants.System.Root;
-    }
-
-    /// <summary>
-    /// Resolves a folder path like "/Blog/Header Images/" to a media folder ID.
-    /// Creates folders if they don't exist.
-    /// </summary>
-    private int? ResolveOrCreateFolderPath(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        // Normalize path - remove leading/trailing slashes and split
-        path = path.Trim('/');
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return Constants.System.Root;
-        }
-
-        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        var currentParentId = Constants.System.Root;
-
-        foreach (var segment in segments)
-        {
-            var folderName = segment.Trim();
-            if (string.IsNullOrWhiteSpace(folderName))
-            {
-                continue;
-            }
-
-            // Look for existing folder with this name under current parent
-            var existingFolder = _mediaService
-                .GetPagedChildren(currentParentId, 0, int.MaxValue, out _)
-                .FirstOrDefault(x =>
-                    x.ContentType.Alias == "Folder" &&
-                    string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
-
-            if (existingFolder != null)
-            {
-                currentParentId = existingFolder.Id;
-                _logger.LogDebug("Found existing folder '{FolderName}' with ID {Id}", folderName, existingFolder.Id);
-            }
-            else
-            {
-                // Create new folder
-                var newFolder = _mediaService.CreateMedia(folderName, currentParentId, "Folder");
-                var saveResult = _mediaService.Save(newFolder);
-
-                if (saveResult.Success)
-                {
-                    currentParentId = newFolder.Id;
-                    _logger.LogInformation("Created new folder '{FolderName}' with ID {Id}", folderName, newFolder.Id);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to create folder '{FolderName}', using parent ID {ParentId}",
-                        folderName, currentParentId);
-                    return currentParentId;
-                }
-            }
-        }
-
-        return currentParentId;
     }
 
     private string GetFileNameFromUrl(Uri uri)

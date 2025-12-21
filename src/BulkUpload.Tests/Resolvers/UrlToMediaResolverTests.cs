@@ -9,6 +9,7 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Resolvers;
+using Umbraco.Community.BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload.Tests.Resolvers;
 
@@ -19,6 +20,7 @@ public class UrlToMediaResolverTests
     private readonly Mock<IMediaTypeService> _mockMediaTypeService;
     private readonly Mock<IShortStringHelper> _mockShortStringHelper;
     private readonly Mock<IContentTypeBaseServiceProvider> _mockContentTypeBaseServiceProvider;
+    private readonly Mock<IParentLookupCache> _mockParentLookupCache;
     private readonly Mock<ILogger<UrlToMediaResolver>> _mockLogger;
     private readonly UrlToMediaResolver _resolver;
 
@@ -29,6 +31,7 @@ public class UrlToMediaResolverTests
         _mockMediaTypeService = new Mock<IMediaTypeService>();
         _mockShortStringHelper = new Mock<IShortStringHelper>();
         _mockContentTypeBaseServiceProvider = new Mock<IContentTypeBaseServiceProvider>();
+        _mockParentLookupCache = new Mock<IParentLookupCache>();
         _mockLogger = new Mock<ILogger<UrlToMediaResolver>>();
 
         // Note: MediaFileManager is sealed and cannot be mocked
@@ -40,6 +43,7 @@ public class UrlToMediaResolverTests
             _mockMediaTypeService.Object,
             _mockShortStringHelper.Object,
             _mockContentTypeBaseServiceProvider.Object,
+            _mockParentLookupCache.Object,
             _mockLogger.Object
         );
     }
