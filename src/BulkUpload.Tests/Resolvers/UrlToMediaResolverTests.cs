@@ -324,11 +324,11 @@ public class UrlToMediaResolverTests
     }
 
     [Theory]
-    [InlineData("https://example.com/path/to/image.jpg", "image.jpg")]
-    [InlineData("https://example.com/test.png?width=100&height=200", "test.png")]
-    [InlineData("https://example.com/files/photo%20name.jpeg", "photo name.jpeg")]
-    [InlineData("https://example.com/noextension", "noextension")]
-    public void Resolve_ExtractsCorrectFileNameFromUrl(string url, string expectedFileName)
+    [InlineData("https://example.com/path/to/image.jpg")]
+    [InlineData("https://example.com/test.png?width=100&height=200")]
+    [InlineData("https://example.com/files/photo%20name.jpeg")]
+    [InlineData("https://example.com/noextension")]
+    public void Resolve_ExtractsCorrectFileNameFromUrl(string url)
     {
         // This is tested indirectly through the URL parsing
         // The actual filename extraction is private, but we can verify behavior

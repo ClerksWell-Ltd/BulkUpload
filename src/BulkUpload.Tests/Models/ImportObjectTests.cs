@@ -120,7 +120,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            Parent = null
+            ParentId = 0
         };
 
         // Act
@@ -138,7 +138,7 @@ public class ImportObjectTests
         {
             Name = "Test Name",
             ContentTypeAlais = "testType",
-            Parent = null
+            ParentId = -1
         };
 
         // Act
