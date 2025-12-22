@@ -1,3 +1,4 @@
+using BulkUpload.Services;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Umbraco.Cms.Core.IO;
@@ -18,6 +19,7 @@ public class PathToMediaResolverTests
     private readonly Mock<IShortStringHelper> _mockShortStringHelper;
     private readonly Mock<IContentTypeBaseServiceProvider> _mockContentTypeBaseServiceProvider;
     private readonly Mock<IParentLookupCache> _mockParentLookupCache;
+    private readonly Mock<IMediaItemCache> _mockMediaItemCache;
     private readonly Mock<ILogger<PathToMediaResolver>> _mockLogger;
     private readonly PathToMediaResolver _resolver;
 
@@ -28,6 +30,7 @@ public class PathToMediaResolverTests
         _mockShortStringHelper = new Mock<IShortStringHelper>();
         _mockContentTypeBaseServiceProvider = new Mock<IContentTypeBaseServiceProvider>();
         _mockParentLookupCache = new Mock<IParentLookupCache>();
+        _mockMediaItemCache = new Mock<IMediaItemCache>();
         _mockLogger = new Mock<ILogger<PathToMediaResolver>>();
 
         // Note: MediaFileManager is sealed and cannot be mocked
@@ -39,6 +42,7 @@ public class PathToMediaResolverTests
             _mockShortStringHelper.Object,
             _mockContentTypeBaseServiceProvider.Object,
             _mockParentLookupCache.Object,
+            _mockMediaItemCache.Object,
             _mockLogger.Object
         );
     }
