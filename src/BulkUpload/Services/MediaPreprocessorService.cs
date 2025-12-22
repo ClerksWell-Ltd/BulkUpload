@@ -224,7 +224,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     /// </summary>
     private Guid CreateMediaFromPath(MediaReference mediaRef)
     {
-        if (!File.Exists(mediaRef.OriginalValue))
+        if (!System.IO.File.Exists(mediaRef.OriginalValue))
         {
             _logger.LogWarning("File not found: {Path}", mediaRef.OriginalValue);
             return Guid.Empty;
@@ -232,7 +232,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
 
         try
         {
-            var fileBytes = File.ReadAllBytes(mediaRef.OriginalValue);
+            var fileBytes = System.IO.File.ReadAllBytes(mediaRef.OriginalValue);
             var fileName = Path.GetFileName(mediaRef.OriginalValue);
 
             // Resolve parent
@@ -336,10 +336,18 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     {
         using var stream = new MemoryStream(fileBytes);
 
-        var mediaPath = _mediaFileManager.GetMediaPath(fileName, out var _);
+        // Get the property type for umbracoFile
+        var propertyType = mediaItem.Properties["umbracoFile"]?.PropertyType;
+        if (propertyType == null)
+        {
+            _logger.LogWarning("Media type does not have umbracoFile property");
+            return;
+        }
+
+        var mediaPath = _mediaFileManager.GetMediaPath(fileName, propertyType.Key, mediaItem.Key);
         _mediaFileManager.FileSystem.AddFile(mediaPath, stream, true);
 
-        mediaItem.SetValue(_contentTypeBaseServiceProvider, _shortStringHelper, "umbracoFile", mediaPath);
+        mediaItem.SetValue("umbracoFile", mediaPath);
     }
 
     /// <summary>
