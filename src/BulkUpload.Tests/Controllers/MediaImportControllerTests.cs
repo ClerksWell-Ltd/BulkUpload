@@ -293,7 +293,7 @@ public class MediaImportControllerTests
         // Assert
         var fileResult = Assert.IsType<FileContentResult>(result);
         var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
-        Assert.Contains("fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage", csvContent);
+        Assert.Contains("fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage,bulkUploadLegacyId", csvContent);
     }
 
     [Fact]
@@ -386,6 +386,87 @@ public class MediaImportControllerTests
         var fileResult = Assert.IsType<FileContentResult>(result);
         var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
         Assert.Contains("\"test,with,commas.jpg\"", csvContent);
+    }
+
+    [Fact]
+    public void ExportResults_IncludesBulkUploadLegacyId_InCsvOutput()
+    {
+        // Arrange
+        var results = new List<MediaImportResult>
+        {
+            new MediaImportResult
+            {
+                FileName = "test.jpg",
+                Success = true,
+                MediaId = 123,
+                MediaGuid = Guid.NewGuid(),
+                MediaUdi = "umb://media/123",
+                ErrorMessage = null,
+                BulkUploadLegacyId = "legacy-999"
+            }
+        };
+
+        // Act
+        var result = _controller.ExportResults(results);
+
+        // Assert
+        var fileResult = Assert.IsType<FileContentResult>(result);
+        var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
+        Assert.Contains("legacy-999", csvContent);
+    }
+
+    [Fact]
+    public void ExportResults_HandlesNullBulkUploadLegacyId()
+    {
+        // Arrange
+        var results = new List<MediaImportResult>
+        {
+            new MediaImportResult
+            {
+                FileName = "test.jpg",
+                Success = true,
+                MediaId = 123,
+                MediaGuid = Guid.NewGuid(),
+                MediaUdi = "umb://media/123",
+                ErrorMessage = null,
+                BulkUploadLegacyId = null
+            }
+        };
+
+        // Act
+        var result = _controller.ExportResults(results);
+
+        // Assert - Should not throw and should have empty value in CSV
+        var fileResult = Assert.IsType<FileContentResult>(result);
+        Assert.NotNull(fileResult);
+    }
+
+    [Fact]
+    public void ExportResults_EscapesQuotesInBulkUploadLegacyId()
+    {
+        // Arrange
+        var results = new List<MediaImportResult>
+        {
+            new MediaImportResult
+            {
+                FileName = "test.jpg",
+                Success = true,
+                MediaId = 123,
+                MediaGuid = Guid.NewGuid(),
+                MediaUdi = "umb://media/123",
+                ErrorMessage = null,
+                BulkUploadLegacyId = "legacy\"with\"quotes"
+            }
+        };
+
+        // Act
+        var result = _controller.ExportResults(results);
+
+        // Assert
+        var fileResult = Assert.IsType<FileContentResult>(result);
+        var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
+        // CSV escaping doubles the quotes
+        Assert.Contains("legacy\"\"with\"\"quotes", csvContent);
     }
 
     #endregion
