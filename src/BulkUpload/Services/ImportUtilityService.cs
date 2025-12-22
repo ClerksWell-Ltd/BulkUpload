@@ -4,6 +4,7 @@ using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Resolvers;
+using BulkUpload.Constants;
 
 namespace Umbraco.Community.BulkUpload.Services;
 
@@ -14,17 +15,20 @@ public class ImportUtilityService : IImportUtilityService
 #pragma warning restore IDE1006 // Naming Styles
     private readonly IResolverFactory _resolverFactory;
     private readonly IParentLookupCache _parentLookupCache;
+    private readonly ILegacyIdCache _legacyIdCache;
     private readonly ILogger<ImportUtilityService> _logger;
 
     public ImportUtilityService(
         IContentService contentService,
         IResolverFactory resolverFactory,
         IParentLookupCache parentLookupCache,
+        ILegacyIdCache legacyIdCache,
         ILogger<ImportUtilityService> logger)
     {
         _contentService = contentService;
         _resolverFactory = resolverFactory;
         _parentLookupCache = parentLookupCache;
+        _legacyIdCache = legacyIdCache;
         _logger = logger;
     }
 
@@ -72,7 +76,27 @@ public class ImportUtilityService : IImportUtilityService
             docTypeAlias = docTypeAliasValue?.ToString() ?? "";
         }
 
-        ImportObject importObject = new ImportObject() { ContentTypeAlais = docTypeAlias, Name = name, Parent = parent };
+        // Extract reserved columns for legacy hierarchy mapping
+        string? legacyId = null;
+        if (dynamicProperties.TryGetValue(ReservedColumns.BulkUploadLegacyId, out object? legacyIdValue))
+        {
+            legacyId = legacyIdValue?.ToString();
+        }
+
+        string? legacyParentId = null;
+        if (dynamicProperties.TryGetValue(ReservedColumns.BulkUploadLegacyParentId, out object? legacyParentIdValue))
+        {
+            legacyParentId = legacyParentIdValue?.ToString();
+        }
+
+        ImportObject importObject = new ImportObject()
+        {
+            ContentTypeAlais = docTypeAlias,
+            Name = name,
+            Parent = parent,
+            LegacyId = legacyId,
+            LegacyParentId = legacyParentId
+        };
 
         foreach (var property in dynamicProperties)
         {
@@ -84,8 +108,11 @@ public class ImportUtilityService : IImportUtilityService
                 aliasValue = columnDetails.Last();
             }
 
-            if (new string[] { "name", "parent", "parentId", "docTypeAlias" }.Contains(property.Key.Split('|')[0]))
+            // Skip standard columns and reserved columns
+            var standardColumns = new string[] { "name", "parent", "parentId", "docTypeAlias" };
+            if (standardColumns.Contains(property.Key.Split('|')[0]) || ReservedColumns.IsReserved(property.Key.Split('|')[0]))
                 continue;
+
             var resolverAlias = aliasValue ?? "text";
 
             var resolver = _resolverFactory.GetByAlias(resolverAlias);
@@ -106,9 +133,32 @@ public class ImportUtilityService : IImportUtilityService
     public virtual void ImportSingleItem(ImportObject importObject, bool publish = false)
     {
         // Resolve parent specification to content parent (GUID or int)
-        var parent = ResolveParent(importObject.Parent);
-        _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
-            importObject.Parent, parent.GetType().Name, parent);
+        object parent;
+
+        // Check if using legacy hierarchy mapping
+        if (!string.IsNullOrWhiteSpace(importObject.LegacyParentId))
+        {
+            // Resolve parent from legacy ID cache
+            if (_legacyIdCache.TryGetGuid(importObject.LegacyParentId, out var legacyParentGuid))
+            {
+                parent = legacyParentGuid;
+                _logger.LogDebug("Resolved legacy parent ID '{LegacyParentId}' to GUID {Guid}",
+                    importObject.LegacyParentId, legacyParentGuid);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache for item '{importObject.Name}' " +
+                    $"(legacy ID: '{importObject.LegacyId}'). The parent must be created before this item.");
+            }
+        }
+        else
+        {
+            // Use standard parent resolution
+            parent = ResolveParent(importObject.Parent);
+            _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
+                importObject.Parent, parent.GetType().Name, parent);
+        }
 
         // Try to find an existing item under the same parent with the same name
         // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
@@ -184,6 +234,22 @@ public class ImportUtilityService : IImportUtilityService
         else
         {
             _contentService.Save(contentItem);
+        }
+
+        // Cache the created content GUID for legacy hierarchy resolution
+        if (!string.IsNullOrWhiteSpace(importObject.LegacyId))
+        {
+            var contentGuid = contentItem.Key;
+            if (_legacyIdCache.TryAdd(importObject.LegacyId, contentGuid))
+            {
+                _logger.LogDebug("Cached legacy ID '{LegacyId}' → Umbraco GUID {Guid}",
+                    importObject.LegacyId, contentGuid);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to cache legacy ID '{LegacyId}' - may already exist in cache",
+                    importObject.LegacyId);
+            }
         }
     }
 

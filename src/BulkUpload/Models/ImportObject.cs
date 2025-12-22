@@ -15,6 +15,21 @@ public class ImportObject
 
     public Dictionary<string, object>? Properties { get; set; }
 
+    /// <summary>
+    /// Optional: Legacy CMS identifier for this item.
+    /// Used to preserve identifiers from legacy systems and enable hierarchy mapping.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public string? LegacyId { get; set; }
+
+    /// <summary>
+    /// Optional: Legacy CMS parent identifier.
+    /// Used to resolve parent relationships when importing from legacy systems.
+    /// Overrides the Parent property if present and valid.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public string? LegacyParentId { get; set; }
+
     public bool CanImport => !string.IsNullOrWhiteSpace(Name)
         && !string.IsNullOrWhiteSpace(ContentTypeAlais)
         && !string.IsNullOrWhiteSpace(Parent);
