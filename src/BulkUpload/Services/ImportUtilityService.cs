@@ -130,126 +130,173 @@ public class ImportUtilityService : IImportUtilityService
         return importObject;
     }
 
-    public virtual void ImportSingleItem(ImportObject importObject, bool publish = false)
+    public virtual ContentImportResult ImportSingleItem(ImportObject importObject, bool publish = false)
     {
-        // Resolve parent specification to content parent (GUID or int)
-        object parent;
+        try
+        {
+            // Resolve parent specification to content parent (GUID or int)
+            object parent;
 
-        // Check if using legacy hierarchy mapping
-        if (!string.IsNullOrWhiteSpace(importObject.LegacyParentId))
-        {
-            // Resolve parent from legacy ID cache
-            if (_legacyIdCache.TryGetGuid(importObject.LegacyParentId, out var legacyParentGuid))
+            // Check if using legacy hierarchy mapping
+            if (!string.IsNullOrWhiteSpace(importObject.LegacyParentId))
             {
-                parent = legacyParentGuid;
-                _logger.LogDebug("Resolved legacy parent ID '{LegacyParentId}' to GUID {Guid}",
-                    importObject.LegacyParentId, legacyParentGuid);
-            }
-            else
-            {
-                throw new InvalidOperationException(
-                    $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache for item '{importObject.Name}' " +
-                    $"(legacy ID: '{importObject.LegacyId}'). The parent must be created before this item.");
-            }
-        }
-        else
-        {
-            // Use standard parent resolution
-            parent = ResolveParent(importObject.Parent);
-            _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
-                importObject.Parent, parent.GetType().Name, parent);
-        }
-
-        // Try to find an existing item under the same parent with the same name
-        // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
-        int queryParentId;
-        if (parent is Guid parentGuid)
-        {
-            if (parentGuid == Guid.Empty)
-            {
-                queryParentId = Constants.System.Root;
-            }
-            else
-            {
-                var parentContent = _contentService.GetById(parentGuid);
-                if (parentContent == null)
+                // Resolve parent from legacy ID cache
+                if (_legacyIdCache.TryGetGuid(importObject.LegacyParentId, out var legacyParentGuid))
                 {
-                    throw new InvalidOperationException($"Parent with GUID {parentGuid} not found");
+                    parent = legacyParentGuid;
+                    _logger.LogDebug("Resolved legacy parent ID '{LegacyParentId}' to GUID {Guid}",
+                        importObject.LegacyParentId, legacyParentGuid);
                 }
-                queryParentId = parentContent.Id;
-            }
-        }
-        else if (parent is int parentId)
-        {
-            queryParentId = parentId;
-        }
-        else
-        {
-            throw new InvalidOperationException("Invalid parent type resolved");
-        }
-
-        var existingItem = _contentService
-            .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
-            .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
-
-        // Create or reuse existing item
-        IContent contentItem;
-        if (existingItem != null)
-        {
-            contentItem = existingItem;
-        }
-        else
-        {
-            // Use GUID-based or int-based Create depending on parent type
-            if (parent is Guid guid)
-            {
-                contentItem = guid == Guid.Empty
-                    ? _contentService.Create(importObject!.Name, Constants.System.Root, importObject.ContentTypeAlais)
-                    : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
-            }
-            else if (parent is int id)
-            {
-                contentItem = _contentService.Create(importObject!.Name, id, importObject.ContentTypeAlais);
+                else
+                {
+                    return new ContentImportResult
+                    {
+                        ContentName = importObject.Name,
+                        Success = false,
+                        ErrorMessage = $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache. The parent must be created before this item.",
+                        BulkUploadLegacyId = importObject.LegacyId
+                    };
+                }
             }
             else
             {
-                throw new InvalidOperationException("Invalid parent type for content creation");
+                // Use standard parent resolution
+                parent = ResolveParent(importObject.Parent);
+                _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
+                    importObject.Parent, parent.GetType().Name, parent);
             }
-        }
 
-        // Update properties (same for both new and existing)
-        if (importObject.Properties != null && importObject.Properties.Any())
-        {
-            foreach (var property in importObject.Properties)
+            // Try to find an existing item under the same parent with the same name
+            // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
+            int queryParentId;
+            if (parent is Guid parentGuid)
             {
-                contentItem.SetValue(property.Key, property.Value);
+                if (parentGuid == Guid.Empty)
+                {
+                    queryParentId = Constants.System.Root;
+                }
+                else
+                {
+                    var parentContent = _contentService.GetById(parentGuid);
+                    if (parentContent == null)
+                    {
+                        return new ContentImportResult
+                        {
+                            ContentName = importObject.Name,
+                            Success = false,
+                            ErrorMessage = $"Parent with GUID {parentGuid} not found",
+                            BulkUploadLegacyId = importObject.LegacyId
+                        };
+                    }
+                    queryParentId = parentContent.Id;
+                }
             }
-        }
-
-        // Save or publish
-        if (publish)
-        {
-            _contentService.SaveAndPublish(contentItem);
-        }
-        else
-        {
-            _contentService.Save(contentItem);
-        }
-
-        // Cache the created content GUID for legacy hierarchy resolution
-        if (!string.IsNullOrWhiteSpace(importObject.LegacyId))
-        {
-            var contentGuid = contentItem.Key;
-            if (_legacyIdCache.TryAdd(importObject.LegacyId, contentGuid))
+            else if (parent is int parentId)
             {
-                _logger.LogDebug("Cached legacy ID '{LegacyId}' → Umbraco GUID {Guid}",
-                    importObject.LegacyId, contentGuid);
+                queryParentId = parentId;
             }
             else
             {
-                _logger.LogWarning("Failed to cache legacy ID '{LegacyId}' - may already exist in cache",
-                    importObject.LegacyId);
+                return new ContentImportResult
+                {
+                    ContentName = importObject.Name,
+                    Success = false,
+                    ErrorMessage = "Invalid parent type resolved",
+                    BulkUploadLegacyId = importObject.LegacyId
+                };
             }
+
+            var existingItem = _contentService
+                .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
+                .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
+
+            // Create or reuse existing item
+            IContent contentItem;
+            if (existingItem != null)
+            {
+                contentItem = existingItem;
+            }
+            else
+            {
+                // Use GUID-based or int-based Create depending on parent type
+                if (parent is Guid guid)
+                {
+                    contentItem = guid == Guid.Empty
+                        ? _contentService.Create(importObject!.Name, Constants.System.Root, importObject.ContentTypeAlais)
+                        : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
+                }
+                else if (parent is int id)
+                {
+                    contentItem = _contentService.Create(importObject!.Name, id, importObject.ContentTypeAlais);
+                }
+                else
+                {
+                    return new ContentImportResult
+                    {
+                        ContentName = importObject.Name,
+                        Success = false,
+                        ErrorMessage = "Invalid parent type for content creation",
+                        BulkUploadLegacyId = importObject.LegacyId
+                    };
+                }
+            }
+
+            // Update properties (same for both new and existing)
+            if (importObject.Properties != null && importObject.Properties.Any())
+            {
+                foreach (var property in importObject.Properties)
+                {
+                    contentItem.SetValue(property.Key, property.Value);
+                }
+            }
+
+            // Save or publish
+            if (publish)
+            {
+                _contentService.SaveAndPublish(contentItem);
+            }
+            else
+            {
+                _contentService.Save(contentItem);
+            }
+
+            // Cache the created content GUID for legacy hierarchy resolution
+            if (!string.IsNullOrWhiteSpace(importObject.LegacyId))
+            {
+                var contentGuid = contentItem.Key;
+                if (_legacyIdCache.TryAdd(importObject.LegacyId, contentGuid))
+                {
+                    _logger.LogDebug("Cached legacy ID '{LegacyId}' → Umbraco GUID {Guid}",
+                        importObject.LegacyId, contentGuid);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to cache legacy ID '{LegacyId}' - may already exist in cache",
+                        importObject.LegacyId);
+                }
+            }
+
+            // Return success result
+            return new ContentImportResult
+            {
+                ContentName = importObject.Name,
+                Success = true,
+                ContentId = contentItem.Id,
+                ContentGuid = contentItem.Key,
+                ContentUdi = Udi.Create(Constants.UdiEntityType.Document, contentItem.Key).ToString(),
+                BulkUploadLegacyId = importObject.LegacyId
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing content item '{Name}'", importObject.Name);
+            return new ContentImportResult
+            {
+                ContentName = importObject.Name,
+                Success = false,
+                ErrorMessage = ex.Message,
+                BulkUploadLegacyId = importObject.LegacyId
+            };
         }
     }
 

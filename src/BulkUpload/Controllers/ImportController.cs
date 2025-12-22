@@ -1,5 +1,6 @@
 
 using System.Globalization;
+using System.Text;
 
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -93,17 +94,31 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                         var sortedImportObjects = _hierarchyResolver.ValidateAndSort(importObjects);
                         _logger.LogDebug("Sorted {Count} import objects for processing", sortedImportObjects.Count);
 
-                        // Step 4: Import in sorted order (parents before children)
+                        // Step 4: Import in sorted order (parents before children) and collect results
+                        var results = new List<ContentImportResult>();
                         foreach (var importObject in sortedImportObjects)
                         {
-                            _importUtilityService.ImportSingleItem(importObject);
+                            var result = _importUtilityService.ImportSingleItem(importObject);
+                            results.Add(result);
                         }
 
+                        var successCount = results.Count(r => r.Success);
+                        var failureCount = results.Count(r => !r.Success);
+
+                        _logger.LogInformation("Bulk Upload: Processed {Total} records - {Success} successful, {Failed} failed",
+                            results.Count, successCount, failureCount);
+
+                        return Ok(new
+                        {
+                            TotalCount = results.Count,
+                            SuccessCount = successCount,
+                            FailureCount = failureCount,
+                            Results = results
+                        });
                     }
 
-                    _logger.LogInformation("Bulk Upload: Successfully imported {Count} records from CSV", records.Count);
-
-                    return Ok(new { Count = records.Count, Sample = records.FirstOrDefault() });
+                    _logger.LogInformation("Bulk Upload: No valid records found in CSV");
+                    return Ok(new { TotalCount = 0, SuccessCount = 0, FailureCount = 0, Results = new List<ContentImportResult>() });
                 }
 
             }
@@ -112,6 +127,36 @@ public class BulkUploadController : UmbracoAuthorizedApiController
         {
             _logger.LogError(ex, "Bulk Upload Case Studies: Error occurred while importing case studies from CSV");
             return BadRequest("\r\n" + "Something went wrong while processing the records. Please try after some time.");
+        }
+    }
+
+    [HttpPost]
+    public IActionResult ExportResults([FromBody] List<ContentImportResult> results)
+    {
+        try
+        {
+            if (results == null || !results.Any())
+            {
+                return BadRequest("No results to export.");
+            }
+
+            var csv = new StringBuilder();
+            csv.AppendLine("contentName,success,contentId,contentGuid,contentUdi,errorMessage,bulkUploadLegacyId");
+
+            foreach (var result in results)
+            {
+                var escapedErrorMessage = result.ErrorMessage?.Replace("\"", "\"\"") ?? "";
+                var escapedLegacyId = result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "";
+                csv.AppendLine($"\"{result.ContentName}\",{result.Success},{result.ContentId ?? 0},\"{result.ContentGuid}\",\"{result.ContentUdi}\",\"{escapedErrorMessage}\",\"{escapedLegacyId}\"");
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            return File(bytes, "text/csv", "content-import-results.csv");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Bulk Upload: Error exporting results");
+            return BadRequest("Error exporting results.");
         }
     }
 }

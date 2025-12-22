@@ -6,5 +6,5 @@ public interface IImportUtilityService
 {
     public ImportObject CreateImportObject(dynamic? record);
 
-    public void ImportSingleItem(ImportObject importObject, bool publish = false);
+    public ContentImportResult ImportSingleItem(ImportObject importObject, bool publish = false);
 }
