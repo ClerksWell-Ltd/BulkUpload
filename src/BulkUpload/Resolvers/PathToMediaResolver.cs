@@ -7,6 +7,7 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Services;
+using BulkUpload.Services;
 using IOFile = System.IO.File;
 
 namespace Umbraco.Community.BulkUpload.Resolvers;
@@ -38,6 +39,7 @@ public class PathToMediaResolver : IResolver
     private readonly IShortStringHelper _shortStringHelper;
     private readonly IContentTypeBaseServiceProvider _contentTypeBaseServiceProvider;
     private readonly IParentLookupCache _parentLookupCache;
+    private readonly IMediaItemCache _mediaItemCache;
     private readonly ILogger<PathToMediaResolver> _logger;
 
     public PathToMediaResolver(
@@ -47,6 +49,7 @@ public class PathToMediaResolver : IResolver
         IShortStringHelper shortStringHelper,
         IContentTypeBaseServiceProvider contentTypeBaseServiceProvider,
         IParentLookupCache parentLookupCache,
+        IMediaItemCache mediaItemCache,
         ILogger<PathToMediaResolver> logger)
     {
         _mediaService = mediaService;
@@ -55,6 +58,7 @@ public class PathToMediaResolver : IResolver
         _shortStringHelper = shortStringHelper;
         _contentTypeBaseServiceProvider = contentTypeBaseServiceProvider;
         _parentLookupCache = parentLookupCache;
+        _mediaItemCache = mediaItemCache;
         _logger = logger;
     }
 
@@ -87,6 +91,14 @@ public class PathToMediaResolver : IResolver
         {
             _logger.LogWarning("PathToMediaResolver received null or empty file path");
             return string.Empty;
+        }
+
+        // Check cache first to avoid creating duplicate media items
+        if (_mediaItemCache.TryGetGuid(filePath, out var cachedMediaGuid))
+        {
+            var cachedUdi = Udi.Create(Constants.UdiEntityType.Media, cachedMediaGuid);
+            _logger.LogDebug("Found cached media for path: {Path}, UDI: {Udi}", filePath, cachedUdi);
+            return cachedUdi.ToString();
         }
 
         try
@@ -193,6 +205,9 @@ public class PathToMediaResolver : IResolver
                 _logger.LogWarning("Failed to save media item for file: {FilePath}", filePath);
                 return string.Empty;
             }
+
+            // Cache the created media item to avoid duplicates in subsequent imports
+            _mediaItemCache.TryAdd(filePath, mediaItem.Key);
 
             // Return the UDI
             var udi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key);

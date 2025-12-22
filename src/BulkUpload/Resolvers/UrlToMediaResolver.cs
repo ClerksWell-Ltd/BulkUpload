@@ -7,6 +7,7 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Services;
+using BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload.Resolvers;
 
@@ -33,6 +34,7 @@ public class UrlToMediaResolver : IResolver
     private readonly IShortStringHelper _shortStringHelper;
     private readonly IContentTypeBaseServiceProvider _contentTypeBaseServiceProvider;
     private readonly IParentLookupCache _parentLookupCache;
+    private readonly IMediaItemCache _mediaItemCache;
     private readonly ILogger<UrlToMediaResolver> _logger;
 
     public UrlToMediaResolver(
@@ -43,6 +45,7 @@ public class UrlToMediaResolver : IResolver
         IShortStringHelper shortStringHelper,
         IContentTypeBaseServiceProvider contentTypeBaseServiceProvider,
         IParentLookupCache parentLookupCache,
+        IMediaItemCache mediaItemCache,
         ILogger<UrlToMediaResolver> logger)
     {
         _httpClientFactory = httpClientFactory;
@@ -52,6 +55,7 @@ public class UrlToMediaResolver : IResolver
         _shortStringHelper = shortStringHelper;
         _contentTypeBaseServiceProvider = contentTypeBaseServiceProvider;
         _parentLookupCache = parentLookupCache;
+        _mediaItemCache = mediaItemCache;
         _logger = logger;
     }
 
@@ -84,6 +88,14 @@ public class UrlToMediaResolver : IResolver
         {
             _logger.LogWarning("UrlToMediaResolver received null or empty URL");
             return string.Empty;
+        }
+
+        // Check cache first to avoid creating duplicate media items
+        if (_mediaItemCache.TryGetGuid(urlString, out var cachedMediaGuid))
+        {
+            var cachedUdi = Udi.Create(Constants.UdiEntityType.Media, cachedMediaGuid);
+            _logger.LogDebug("Found cached media for URL: {Url}, UDI: {Udi}", urlString, cachedUdi);
+            return cachedUdi.ToString();
         }
 
         if (!Uri.TryCreate(urlString, UriKind.Absolute, out var uri))
@@ -180,6 +192,9 @@ public class UrlToMediaResolver : IResolver
                 _logger.LogWarning("Failed to save media item for URL: {Url}", urlString);
                 return string.Empty;
             }
+
+            // Cache the created media item to avoid duplicates in subsequent imports
+            _mediaItemCache.TryAdd(urlString, mediaItem.Key);
 
             // Return the UDI
             var udi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key);

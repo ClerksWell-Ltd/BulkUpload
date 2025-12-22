@@ -6,6 +6,7 @@ using Umbraco.Cms.Core.Sections;
 using Umbraco.Community.BulkUpload.Resolvers;
 using Umbraco.Community.BulkUpload.Sections;
 using Umbraco.Community.BulkUpload.Services;
+using BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload;
 
@@ -42,8 +43,10 @@ internal class BulkUploadComposer : IComposer
         builder.Services.AddSingleton<IResolverFactory, ResolverFactory>();
         builder.Services.AddSingleton<IParentLookupCache, ParentLookupCache>();
         builder.Services.AddSingleton<ILegacyIdCache, LegacyIdCache>();
+        builder.Services.AddSingleton<IMediaItemCache, MediaItemCache>();
         builder.Services.AddSingleton<IHierarchyResolver, HierarchyResolver>();
         builder.Services.AddSingleton<IImportUtilityService, ImportUtilityService>();
         builder.Services.AddSingleton<IMediaImportService, MediaImportService>();
+        builder.Services.AddSingleton<IMediaPreprocessorService, MediaPreprocessorService>();
     }
 }
