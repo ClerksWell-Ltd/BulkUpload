@@ -24,10 +24,23 @@ public class BulkUploadController : UmbracoAuthorizedApiController
 {
     private readonly ILogger<BulkUploadController> _logger;
     private readonly IImportUtilityService _importUtilityService;
-    public BulkUploadController(IContentService contentService, IUmbracoContextAccessor umbracoContextAccessor, IContentTypeService contentTypeService, IJsonSerializer jsonSerializer, ILocalizationService localizationService, ILanguageRepository languageRepository, ICoreScopeProvider coreScopeProvider, ILogger<BulkUploadController> logger, IImportUtilityService importUtilityService)
+    private readonly IHierarchyResolver _hierarchyResolver;
+
+    public BulkUploadController(
+        IContentService contentService,
+        IUmbracoContextAccessor umbracoContextAccessor,
+        IContentTypeService contentTypeService,
+        IJsonSerializer jsonSerializer,
+        ILocalizationService localizationService,
+        ILanguageRepository languageRepository,
+        ICoreScopeProvider coreScopeProvider,
+        ILogger<BulkUploadController> logger,
+        IImportUtilityService importUtilityService,
+        IHierarchyResolver hierarchyResolver)
     {
         _logger = logger;
         _importUtilityService = importUtilityService;
+        _hierarchyResolver = hierarchyResolver;
     }
 
     [HttpPost]
@@ -58,13 +71,25 @@ public class BulkUploadController : UmbracoAuthorizedApiController
 
                     if (records != null && records.Any())
                     {
+                        // Step 1: Create all ImportObjects from CSV records
+                        var importObjects = new List<ImportObject>();
                         foreach (var item in records)
                         {
                             ImportObject importObject = _importUtilityService.CreateImportObject(item);
                             if (importObject.CanImport)
                             {
-                                _importUtilityService.ImportSingleItem(importObject);
+                                importObjects.Add(importObject);
                             }
+                        }
+
+                        // Step 2: Validate and sort based on legacy hierarchy (if present)
+                        var sortedImportObjects = _hierarchyResolver.ValidateAndSort(importObjects);
+                        _logger.LogDebug("Sorted {Count} import objects for processing", sortedImportObjects.Count);
+
+                        // Step 3: Import in sorted order (parents before children)
+                        foreach (var importObject in sortedImportObjects)
+                        {
+                            _importUtilityService.ImportSingleItem(importObject);
                         }
 
                     }
