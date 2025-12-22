@@ -1,3 +1,4 @@
+using BulkUpload.Constants;
 using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.IO;
@@ -100,12 +101,26 @@ public class MediaImportService : IMediaImportService
             }
         }
 
+        // Extract reserved column for legacy tracking
+        string? bulkUploadLegacyId = null;
+        var legacyIdKey = dynamicProperties.Keys.FirstOrDefault(k =>
+            k.Split('|')[0].Equals(ReservedColumns.BulkUploadLegacyId, StringComparison.OrdinalIgnoreCase));
+        if (legacyIdKey != null && dynamicProperties.TryGetValue(legacyIdKey, out object? legacyIdValue))
+        {
+            var legacyIdStr = legacyIdValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(legacyIdStr))
+            {
+                bulkUploadLegacyId = legacyIdStr;
+            }
+        }
+
         MediaImportObject importObject = new MediaImportObject()
         {
             FileName = fileName,
             Name = name,
             Parent = parent,
-            MediaTypeAlias = mediaTypeAlias
+            MediaTypeAlias = mediaTypeAlias,
+            BulkUploadLegacyId = bulkUploadLegacyId
         };
 
         MediaSource? externalSource = null;
@@ -120,7 +135,9 @@ public class MediaImportService : IMediaImportService
                 aliasValue = columnDetails.Last();
             }
 
-            if (new string[] { "fileName", "name", "parent", "parentId", "mediaTypeAlias" }.Contains(property.Key.Split('|')[0]))
+            // Skip standard columns and reserved columns
+            var standardColumns = new string[] { "fileName", "name", "parent", "parentId", "mediaTypeAlias" };
+            if (standardColumns.Contains(property.Key.Split('|')[0]) || ReservedColumns.IsReserved(property.Key.Split('|')[0]))
                 continue;
 
             var resolverAlias = aliasValue ?? "text";
@@ -163,7 +180,8 @@ public class MediaImportService : IMediaImportService
         var result = new MediaImportResult
         {
             FileName = importObject.FileName,
-            Success = false
+            Success = false,
+            BulkUploadLegacyId = importObject.BulkUploadLegacyId
         };
 
         try

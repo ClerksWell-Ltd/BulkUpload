@@ -8,4 +8,5 @@ public class MediaImportResult
     public Guid? MediaGuid { get; set; }
     public string? MediaUdi { get; set; }
     public string? ErrorMessage { get; set; }
+    public string? BulkUploadLegacyId { get; set; }
 }

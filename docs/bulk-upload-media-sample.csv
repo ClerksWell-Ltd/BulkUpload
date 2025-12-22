@@ -1,8 +1,8 @@
-fileName,parentId,name,mediaTypeAlias,altText,caption
-product-hero.jpg,1150,Product Hero Image,Image,Red widget product photo,Main product showcase image
-product-thumbnail.jpg,1150,Product Thumbnail,Image,Red widget thumbnail,Product thumbnail view
-banner-homepage.png,1150,Homepage Banner,Image,Welcome to our site,Hero section banner
-user-manual.pdf,1151,User Manual V2,File,,Product documentation
-brochure.pdf,1151,Marketing Brochure,File,,Sales material
-logo.svg,1150,Company Logo,Image,Company logo,Corporate branding
-team-photo.jpg,1152,Team Photo 2024,Image,Our team,About us page photo
+fileName,parentId,name,mediaTypeAlias,altText,caption,bulkUploadLegacyId
+product-hero.jpg,1150,Product Hero Image,Image,Red widget product photo,Main product showcase image,old-123
+product-thumbnail.jpg,1150,Product Thumbnail,Image,Red widget thumbnail,Product thumbnail view,old-124
+banner-homepage.png,1150,Homepage Banner,Image,Welcome to our site,Hero section banner,
+user-manual.pdf,1151,User Manual V2,File,,Product documentation,old-125
+brochure.pdf,1151,Marketing Brochure,File,,Sales material,
+logo.svg,1150,Company Logo,Image,Company logo,Corporate branding,old-126
+team-photo.jpg,1152,Team Photo 2024,Image,Our team,About us page photo,old-127

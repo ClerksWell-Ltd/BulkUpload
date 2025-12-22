@@ -199,6 +199,67 @@ public class MediaImportServiceTests
         _mockResolverFactory.Verify(f => f.GetByAlias("json"), Times.Once);
     }
 
+    [Fact]
+    public void CreateMediaImportObject_SetsBulkUploadLegacyId_WhenProvided()
+    {
+        // Arrange
+        var record = new Dictionary<string, object>
+        {
+            { "fileName", "test.jpg" },
+            { "parentId", "123" },
+            { "bulkUploadLegacyId", "legacy-789" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.Equal("legacy-789", result.BulkUploadLegacyId);
+    }
+
+    [Fact]
+    public void CreateMediaImportObject_SetsBulkUploadLegacyIdToNull_WhenNotProvided()
+    {
+        // Arrange
+        var record = new Dictionary<string, object>
+        {
+            { "fileName", "test.jpg" },
+            { "parentId", "123" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.Null(result.BulkUploadLegacyId);
+    }
+
+    [Fact]
+    public void CreateMediaImportObject_DoesNotTreatBulkUploadLegacyIdAsProperty()
+    {
+        // Arrange
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve(It.IsAny<object>())).Returns("resolved value");
+        _mockResolverFactory.Setup(f => f.GetByAlias("text")).Returns(mockResolver.Object);
+
+        var record = new Dictionary<string, object>
+        {
+            { "fileName", "test.jpg" },
+            { "parentId", "123" },
+            { "bulkUploadLegacyId", "legacy-abc" },
+            { "altText", "Alt text value" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.NotNull(result.Properties);
+        Assert.Single(result.Properties); // Only altText, not bulkUploadLegacyId
+        Assert.Contains("altText", result.Properties.Keys);
+        Assert.DoesNotContain("bulkUploadLegacyId", result.Properties.Keys);
+    }
+
     #endregion
 
     // Note: ImportSingleMediaItem tests are omitted because they require mocking MediaFileManager,

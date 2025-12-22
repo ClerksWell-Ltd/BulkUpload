@@ -266,4 +266,34 @@ public class MediaImportObjectTests
         Assert.Equal("Test Image", importObject.Properties["altText"]);
         Assert.Equal("A beautiful test image", importObject.Properties["caption"]);
     }
+
+    [Fact]
+    public void BulkUploadLegacyId_CanBeNull()
+    {
+        // Arrange & Act
+        var importObject = new MediaImportObject
+        {
+            FileName = "test.jpg",
+            Parent = "1",
+            BulkUploadLegacyId = null
+        };
+
+        // Assert
+        Assert.Null(importObject.BulkUploadLegacyId);
+    }
+
+    [Fact]
+    public void BulkUploadLegacyId_CanBeSet()
+    {
+        // Arrange & Act
+        var importObject = new MediaImportObject
+        {
+            FileName = "test.jpg",
+            Parent = "1",
+            BulkUploadLegacyId = "legacy-456"
+        };
+
+        // Assert
+        Assert.Equal("legacy-456", importObject.BulkUploadLegacyId);
+    }
 }

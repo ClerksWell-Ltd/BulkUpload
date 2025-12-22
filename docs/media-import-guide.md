@@ -27,6 +27,7 @@ The Bulk Upload package now supports importing media files (images, documents, v
 | `mediaTypeAlias` | Umbraco media type (auto-detected from extension if empty) | `Image`, `File`, `Video` |
 | `altText` | Alt text for images | `Red widget product` |
 | `caption` | Caption for images | `Main product photo` |
+| `bulkUploadLegacyId` | Legacy CMS identifier for tracking/reference (not persisted as a media property) | `old-cms-123` |
 
 ### Additional Property Columns
 
@@ -49,13 +50,13 @@ If you don't specify `mediaTypeAlias`, the system automatically detects the medi
 ## Sample CSV
 
 ```csv
-fileName,parentId,name,mediaTypeAlias,altText,caption
-product-hero.jpg,1150,Product Hero Image,Image,Red widget product photo,Main product showcase image
-product-thumbnail.jpg,1150,Product Thumbnail,Image,Red widget thumbnail,Product thumbnail view
-banner-homepage.png,1150,Homepage Banner,Image,Welcome to our site,Hero section banner
-user-manual.pdf,1151,User Manual V2,File,,Product documentation
-brochure.pdf,1151,Marketing Brochure,File,,Sales material
-logo.svg,1150,Company Logo,Image,Company logo,Corporate branding
+fileName,parentId,name,mediaTypeAlias,altText,caption,bulkUploadLegacyId
+product-hero.jpg,1150,Product Hero Image,Image,Red widget product photo,Main product showcase image,old-123
+product-thumbnail.jpg,1150,Product Thumbnail,Image,Red widget thumbnail,Product thumbnail view,old-124
+banner-homepage.png,1150,Homepage Banner,Image,Welcome to our site,Hero section banner,
+user-manual.pdf,1151,User Manual V2,File,,Product documentation,old-125
+brochure.pdf,1151,Marketing Brochure,File,,Sales material,
+logo.svg,1150,Company Logo,Image,Company logo,Corporate branding,old-126
 ```
 
 See `docs/bulk-upload-media-sample.csv` for a complete example.
@@ -102,10 +103,12 @@ After import completes, you'll see:
 Click "Download Results CSV" to get a detailed report with:
 
 ```csv
-fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage
-product-hero.jpg,true,2001,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,
-product-error.jpg,false,0,,,File not found in ZIP archive: product-error.jpg
+fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage,bulkUploadLegacyId
+product-hero.jpg,true,2001,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123
+product-error.jpg,false,0,,,File not found in ZIP archive: product-error.jpg,old-124
 ```
+
+The `bulkUploadLegacyId` column in the results allows you to correlate the new Umbraco media items with their original identifiers from your legacy CMS or source system.
 
 ## Using Imported Media IDs
 

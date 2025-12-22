@@ -101,7 +101,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                 {
                                     FileName = importObject.FileName,
                                     Success = false,
-                                    ErrorMessage = "Invalid import object: Missing required fields"
+                                    ErrorMessage = "Invalid import object: Missing required fields",
+                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId
                                 });
                                 continue;
                             }
@@ -123,7 +124,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                             {
                                                 FileName = filePath,
                                                 Success = false,
-                                                ErrorMessage = "Access to this file path is not allowed for security reasons"
+                                                ErrorMessage = "Access to this file path is not allowed for security reasons",
+                                                BulkUploadLegacyId = importObject.BulkUploadLegacyId
                                             });
                                             continue;
                                         }
@@ -134,7 +136,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                             {
                                                 FileName = filePath,
                                                 Success = false,
-                                                ErrorMessage = $"File not found at path: {filePath}"
+                                                ErrorMessage = $"File not found at path: {filePath}",
+                                                BulkUploadLegacyId = importObject.BulkUploadLegacyId
                                             });
                                             _logger.LogWarning("Bulk Upload Media: File not found at path: {FilePath}", filePath);
                                             continue;
@@ -155,7 +158,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                                 {
                                                     FileName = url,
                                                     Success = false,
-                                                    ErrorMessage = "Access to this URL is not allowed for security reasons"
+                                                    ErrorMessage = "Access to this URL is not allowed for security reasons",
+                                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId
                                                 });
                                                 continue;
                                             }
@@ -188,7 +192,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                                 {
                                                     FileName = url,
                                                     Success = false,
-                                                    ErrorMessage = $"Failed to download from URL: {ex.Message}"
+                                                    ErrorMessage = $"Failed to download from URL: {ex.Message}",
+                                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId
                                                 });
                                                 _logger.LogError(ex, "Bulk Upload Media: Failed to download from URL: {Url}", url);
                                                 continue;
@@ -208,7 +213,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                     {
                                         FileName = importObject.FileName,
                                         Success = false,
-                                        ErrorMessage = $"File not found in ZIP archive: {importObject.FileName}"
+                                        ErrorMessage = $"File not found in ZIP archive: {importObject.FileName}",
+                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId
                                     });
                                     _logger.LogWarning("Bulk Upload Media: File not found in ZIP: {FileName}", importObject.FileName);
                                     continue;
@@ -231,11 +237,28 @@ public class MediaImportController : UmbracoAuthorizedApiController
                         catch (Exception ex)
                         {
                             _logger.LogError(ex, "Bulk Upload Media: Error importing media item");
+
+                            // Try to extract legacy ID from item if possible
+                            string? legacyId = null;
+                            try
+                            {
+                                var dynamicProperties = (IDictionary<string, object>)item;
+                                if (dynamicProperties.TryGetValue("bulkUploadLegacyId", out object? legacyIdValue))
+                                {
+                                    legacyId = legacyIdValue?.ToString();
+                                }
+                            }
+                            catch
+                            {
+                                // Ignore errors when trying to extract legacy ID
+                            }
+
                             results.Add(new MediaImportResult
                             {
                                 FileName = "Unknown",
                                 Success = false,
-                                ErrorMessage = ex.Message
+                                ErrorMessage = ex.Message,
+                                BulkUploadLegacyId = legacyId
                             });
                         }
                         finally
@@ -294,11 +317,13 @@ public class MediaImportController : UmbracoAuthorizedApiController
             }
 
             var csv = new StringBuilder();
-            csv.AppendLine("fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage");
+            csv.AppendLine("fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage,bulkUploadLegacyId");
 
             foreach (var result in results)
             {
-                csv.AppendLine($"\"{result.FileName}\",{result.Success},{result.MediaId ?? 0},\"{result.MediaGuid}\",\"{result.MediaUdi}\",\"{result.ErrorMessage}\"");
+                var escapedErrorMessage = result.ErrorMessage?.Replace("\"", "\"\"") ?? "";
+                var escapedLegacyId = result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "";
+                csv.AppendLine($"\"{result.FileName}\",{result.Success},{result.MediaId ?? 0},\"{result.MediaGuid}\",\"{result.MediaUdi}\",\"{escapedErrorMessage}\",\"{escapedLegacyId}\"");
             }
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());

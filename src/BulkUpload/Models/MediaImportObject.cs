@@ -19,6 +19,13 @@ public class MediaImportObject
     // Support for external media sources (file paths and URLs)
     public MediaSource? ExternalSource { get; set; }
 
+    /// <summary>
+    /// Optional: Legacy CMS identifier for this media item.
+    /// Used to preserve identifiers from legacy systems for tracking purposes.
+    /// This is NOT persisted as a media property.
+    /// </summary>
+    public string? BulkUploadLegacyId { get; set; }
+
     public bool CanImport =>
         (!string.IsNullOrWhiteSpace(FileName) || ExternalSource != null)
         && !string.IsNullOrWhiteSpace(Parent);

@@ -207,4 +207,32 @@ public class MediaImportResultTests
         Assert.Null(result.MediaUdi);
         Assert.Equal("Media type not found", result.ErrorMessage);
     }
+
+    [Fact]
+    public void BulkUploadLegacyId_CanBeNull()
+    {
+        // Arrange & Act
+        var result = new MediaImportResult
+        {
+            FileName = "test.jpg",
+            BulkUploadLegacyId = null
+        };
+
+        // Assert
+        Assert.Null(result.BulkUploadLegacyId);
+    }
+
+    [Fact]
+    public void BulkUploadLegacyId_CanBeSet()
+    {
+        // Arrange & Act
+        var result = new MediaImportResult
+        {
+            FileName = "test.jpg",
+            BulkUploadLegacyId = "legacy-123"
+        };
+
+        // Assert
+        Assert.Equal("legacy-123", result.BulkUploadLegacyId);
+    }
 }
