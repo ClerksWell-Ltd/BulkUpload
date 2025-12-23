@@ -61,13 +61,15 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     /// Preprocesses media items from CSV records.
     /// Extracts all unique media references, creates them, and caches them.
     /// </summary>
+    /// <param name="csvRecords">CSV records to extract media references from</param>
+    /// <param name="zipExtractDirectory">Optional directory where ZIP was extracted (for zipFileToMedia resolver)</param>
     /// <returns>List of media preprocessing results containing cache keys and values</returns>
-    public List<MediaPreprocessingResult> PreprocessMediaItems(List<dynamic> csvRecords)
+    public List<MediaPreprocessingResult> PreprocessMediaItems(List<dynamic> csvRecords, string? zipExtractDirectory = null)
     {
         _logger.LogInformation("Starting media preprocessing for {Count} CSV records", csvRecords.Count);
 
         // Extract all unique media references
-        var mediaReferences = ExtractMediaReferences(csvRecords);
+        var mediaReferences = ExtractMediaReferences(csvRecords, zipExtractDirectory);
 
         _logger.LogInformation("Found {Count} unique media references to create", mediaReferences.Count);
 
@@ -84,6 +86,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                 {
                     MediaReferenceType.Url => CreateMediaFromUrl(mediaRef),
                     MediaReferenceType.Path => CreateMediaFromPath(mediaRef),
+                    MediaReferenceType.ZipFile => CreateMediaFromZipFile(mediaRef, zipExtractDirectory!),
                     _ => throw new InvalidOperationException($"Unknown media reference type: {mediaRef.Type}")
                 };
 
@@ -138,7 +141,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     /// <summary>
     /// Extracts all unique media references from CSV records.
     /// </summary>
-    private List<MediaReference> ExtractMediaReferences(List<dynamic> csvRecords)
+    private List<MediaReference> ExtractMediaReferences(List<dynamic> csvRecords, string? zipExtractDirectory)
     {
         var mediaReferences = new Dictionary<string, MediaReference>(StringComparer.OrdinalIgnoreCase);
 
@@ -168,7 +171,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                 }
 
                 // Check if this is a media resolver
-                if (resolverAlias != "urlToMedia" && resolverAlias != "pathToMedia")
+                if (resolverAlias != "urlToMedia" && resolverAlias != "pathToMedia" && resolverAlias != "zipFileToMedia")
                     continue;
 
                 // Extract the value
@@ -190,10 +193,18 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                 // Add to unique collection if not already present
                 if (!mediaReferences.ContainsKey(mediaValue))
                 {
+                    var refType = resolverAlias switch
+                    {
+                        "urlToMedia" => MediaReferenceType.Url,
+                        "pathToMedia" => MediaReferenceType.Path,
+                        "zipFileToMedia" => MediaReferenceType.ZipFile,
+                        _ => MediaReferenceType.Path // Default to Path for unknown
+                    };
+
                     mediaReferences[mediaValue] = new MediaReference
                     {
                         OriginalValue = mediaValue,
-                        Type = resolverAlias == "urlToMedia" ? MediaReferenceType.Url : MediaReferenceType.Path,
+                        Type = refType,
                         Parent = parent
                     };
                 }
@@ -293,6 +304,60 @@ public class MediaPreprocessorService : IMediaPreprocessorService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reading media from path: {Path}", mediaRef.OriginalValue);
+            return Guid.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Creates a media item from a file in the extracted ZIP archive.
+    /// </summary>
+    private Guid CreateMediaFromZipFile(MediaReference mediaRef, string zipExtractDirectory)
+    {
+        // Search for the file in the ZIP extract directory
+        var filePaths = Directory.GetFiles(zipExtractDirectory, mediaRef.OriginalValue, SearchOption.AllDirectories);
+
+        if (filePaths.Length == 0)
+        {
+            _logger.LogWarning("File not found in ZIP archive: {FileName}", mediaRef.OriginalValue);
+            return Guid.Empty;
+        }
+
+        var filePath = filePaths[0]; // Use first match
+        if (filePaths.Length > 1)
+        {
+            _logger.LogWarning("Multiple files found with name {FileName}, using first: {Path}",
+                mediaRef.OriginalValue, filePath);
+        }
+
+        try
+        {
+            var fileBytes = System.IO.File.ReadAllBytes(filePath);
+            var fileName = Path.GetFileName(filePath);
+
+            // Resolve parent
+            var parent = ResolveParent(mediaRef.Parent);
+
+            // Determine media type
+            var extension = Path.GetExtension(fileName).TrimStart('.');
+            var mediaTypeAlias = GetMediaTypeAlias(extension);
+
+            // Create media item
+            var mediaItem = CreateMediaItem(fileName, parent, mediaTypeAlias);
+            if (mediaItem == null)
+                return Guid.Empty;
+
+            // Upload file
+            UploadMediaFile(mediaItem, fileName, fileBytes);
+
+            _mediaService.Save(mediaItem);
+
+            _logger.LogDebug("Created media from ZIP file: {FileName} → {MediaKey}", fileName, mediaItem.Key);
+
+            return mediaItem.Key;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating media from ZIP file: {FileName}", mediaRef.OriginalValue);
             return Guid.Empty;
         }
     }
@@ -439,5 +504,6 @@ internal class MediaReference
 internal enum MediaReferenceType
 {
     Url,
-    Path
+    Path,
+    ZipFile
 }

@@ -11,11 +11,12 @@
             <div ng-if="activeTab === 'content'">
                 <div style="padding:1em; border: 1px solid #f0ad4e; background-color: #fcf8e3; color:#8a6d3b;border-radius:4px; margin-bottom: 1em;">
                     <strong>⚠ Note: </strong>The "parentId", "docTypeAlias" and "name" columns are required.
+                    <br><strong>💡 Tip: </strong>Upload a ZIP file if you have media files to include with your content. Use resolvers like <code>zipFileToMedia</code> to reference them.
                 </div>
                 <umb-box-content>
-                    <p>Please upload the CSV file containing content data</p>
+                    <p>Please upload a CSV file (content only) or a ZIP file (content + media files)</p>
                     <umb-pane>
-                        <input type="file" ngf-select ng-model="bulkUploadImportFile" ng-multiple="false" ngf-change="onFileSelected(bulkUploadImportFile,$event)" ng-disabled="loading" accept=".csv" />
+                        <input type="file" ngf-select ng-model="bulkUploadImportFile" ng-multiple="false" ngf-change="onFileSelected(bulkUploadImportFile,$event)" ng-disabled="loading" accept=".csv,.zip" />
                         <umb-button type="button"
                                     button-style="action"
                                     label="Import Content"
