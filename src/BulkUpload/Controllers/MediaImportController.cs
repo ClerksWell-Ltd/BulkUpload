@@ -297,10 +297,10 @@ public class MediaImportController : UmbracoAuthorizedApiController
 
                 return Ok(new
                 {
-                    TotalCount = records.Count,
-                    SuccessCount = successCount,
-                    FailureCount = failureCount,
-                    Results = results
+                    totalCount = records.Count,
+                    successCount = successCount,
+                    failureCount = failureCount,
+                    results = results
                 });
             }
         }
