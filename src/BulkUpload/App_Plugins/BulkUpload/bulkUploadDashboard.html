@@ -45,16 +45,17 @@
             <!-- Media Import Tab -->
             <div ng-if="activeTab === 'media'">
                 <div style="padding:1em; border: 1px solid #0078d4; background-color: #e3f2fd; color:#01579b;border-radius:4px; margin-bottom: 1em;">
-                    <strong>ℹ️ Instructions: </strong>Upload a ZIP file containing:
+                    <strong>ℹ️ Instructions: </strong>Upload either:
                     <ul style="margin: 0.5em 0;">
-                        <li>A CSV file with columns: <code>fileName</code>, <code>parentId</code>, and optional <code>name</code>, <code>mediaTypeAlias</code>, plus any media properties</li>
-                        <li>Media files (images, documents, etc.) referenced in the CSV</li>
+                        <li><strong>ZIP file:</strong> Contains a CSV file and the media files referenced in it</li>
+                        <li><strong>CSV file only:</strong> If all media files are from URLs (use <code>mediaSource|urlToStream</code> column) or file paths</li>
                     </ul>
+                    <strong>Required CSV columns:</strong> <code>fileName</code>, <code>parentId</code>, and optional <code>name</code>, <code>mediaTypeAlias</code>, plus any media properties
                 </div>
                 <umb-box-content>
-                    <p>Please upload a ZIP file containing CSV and media files</p>
+                    <p>Please upload a ZIP file (with CSV and media files) or a CSV file only (for URL-based media)</p>
                     <umb-pane>
-                        <input type="file" ngf-select ng-model="mediaUploadFile" ng-multiple="false" ngf-change="onMediaFileSelected(mediaUploadFile,$event)" ng-disabled="loadingMedia" accept=".zip" />
+                        <input type="file" ngf-select ng-model="mediaUploadFile" ng-multiple="false" ngf-change="onMediaFileSelected(mediaUploadFile,$event)" ng-disabled="loadingMedia" accept=".zip,.csv" />
                         <umb-button type="button"
                                     button-style="action"
                                     label="Import Media"

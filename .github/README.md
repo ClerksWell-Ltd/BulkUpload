@@ -82,17 +82,23 @@ In the umbraco backoffice, go to the users section and add the Bulk Upload secti
 ### Media Import
 
 The package supports bulk importing media files (images, documents, videos, etc.) from multiple sources:
-- **ZIP file** (traditional approach) - Files packaged in the upload
-- **File paths** (new) - Local or network file system paths
-- **URLs** (new) - Download directly from HTTP/HTTPS URLs
+- **ZIP file** (traditional approach) - Upload a ZIP containing both CSV metadata and media files
+- **CSV file only** (new) - Upload just a CSV when all media comes from external sources
+- **File paths** - Import from local or network file system paths
+- **URLs** - Download directly from HTTP/HTTPS URLs
 
-- You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-sample.csv?raw=true" download>download this sample media CSV file</a>
+Sample files:
+- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-sample.csv?raw=true" download>Traditional media CSV (for use in ZIP)</a>
+- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-url-sample.csv?raw=true" download>CSV-only sample (URL-based media)</a>
 
 **How it works:**
 
-1. **Prepare your media files** - Collect all images, PDFs, videos, or other files you want to import
+1. **Choose your upload method:**
+   - **Option A (ZIP):** Bundle CSV + media files together
+   - **Option B (CSV only):** Upload just CSV when using URLs or file paths
+
 2. **Create a CSV file** with the following columns:
-   - `fileName` - The exact filename of the media file in the ZIP (optional if using external sources)
+   - `fileName` - The exact filename of the media file in the ZIP (required for ZIP uploads, optional for URL/path imports)
    - `mediaSource|pathToStream` - Import from local/network file path (optional)
    - `mediaSource|urlToStream` - Download from URL (optional)
    - `parent` - Parent folder specification supporting:
@@ -101,9 +107,12 @@ The package supports bulk importing media files (images, documents, videos, etc.
      - Path: `/Products/Images/` (auto-creates folders)
      - Legacy `parentId` column still supported
    - Optional columns: `name`, `mediaTypeAlias`, plus any custom media properties (e.g., `altText`, `caption`)
-3. **Create a ZIP file** containing the CSV and any media files referenced by `fileName`
-4. **Upload the ZIP** via the **Media Import** tab in the Bulk Upload dashboard
-5. **Download results** - After import, you can download a CSV with IDs of all created media items
+
+3. **Upload:**
+   - **For ZIP uploads:** Create a ZIP file containing the CSV and media files, then upload via the **Media Import** tab
+   - **For CSV-only uploads:** Simply upload the CSV file directly (all media must use `mediaSource|urlToStream` or `mediaSource|pathToStream`)
+
+4. **Download results** - After import, you can download a CSV with IDs of all created media items
 
 **CSV Examples:**
 

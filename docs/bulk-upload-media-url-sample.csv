@@ -1,0 +1,4 @@
+fileName,parentId,name,mediaTypeAlias,altText,caption,bulkUploadLegacyId,mediaSource|urlToStream
+example-image.jpg,1150,Example Image from URL,Image,Example alt text,Example caption,url-001,https://via.placeholder.com/600/92c952
+example-image2.jpg,1150,Another URL Image,Image,Another example,Second example,url-002,https://via.placeholder.com/600/771796
+example-pdf.pdf,1151,Sample PDF from URL,File,,Example document,url-003,https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf
