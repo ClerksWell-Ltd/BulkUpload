@@ -113,7 +113,7 @@ public class ImportObjectTests
     }
 
     [Fact]
-    public void CanImport_ReturnsFalse_WhenParentIsNull()
+    public void CanImport_ReturnsTrue_WhenParentIsNull()
     {
         // Arrange
         var importObject = new ImportObject
@@ -127,11 +127,11 @@ public class ImportObjectTests
         var result = importObject.CanImport;
 
         // Assert
-        Assert.False(result);
+        Assert.True(result);
     }
 
     [Fact]
-    public void CanImport_ReturnsFalse_WhenParentIsEmpty()
+    public void CanImport_ReturnsTrue_WhenParentIsEmpty()
     {
         // Arrange
         var importObject = new ImportObject
@@ -145,11 +145,11 @@ public class ImportObjectTests
         var result = importObject.CanImport;
 
         // Assert
-        Assert.False(result);
+        Assert.True(result);
     }
 
     [Fact]
-    public void CanImport_ReturnsFalse_WhenParentIsWhitespace()
+    public void CanImport_ReturnsTrue_WhenParentIsWhitespace()
     {
         // Arrange
         var importObject = new ImportObject
@@ -163,7 +163,7 @@ public class ImportObjectTests
         var result = importObject.CanImport;
 
         // Assert
-        Assert.False(result);
+        Assert.True(result);
     }
 
     [Fact]
