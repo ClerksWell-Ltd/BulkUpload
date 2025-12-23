@@ -41,6 +41,12 @@ angular
       });
     };
 
+    bulkUploadImportApi.ExportContentResults = function (results) {
+      return $http.post("/Umbraco/backoffice/Api/BulkUpload/ExportResults", results, {
+        responseType: 'text'
+      });
+    };
+
 
     return bulkUploadImportApi;
   });
