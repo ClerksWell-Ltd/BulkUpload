@@ -31,6 +31,5 @@ public class ImportObject
     public string? LegacyParentId { get; set; }
 
     public bool CanImport => !string.IsNullOrWhiteSpace(Name)
-        && !string.IsNullOrWhiteSpace(ContentTypeAlais)
-        && !string.IsNullOrWhiteSpace(Parent);
+        && !string.IsNullOrWhiteSpace(ContentTypeAlais);
 }

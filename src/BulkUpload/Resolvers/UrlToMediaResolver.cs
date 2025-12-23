@@ -1,4 +1,7 @@
+using BulkUpload.Services;
+
 using Microsoft.Extensions.Logging;
+
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.IO;
 using Umbraco.Cms.Core.Models;
@@ -7,7 +10,6 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
 using Umbraco.Community.BulkUpload.Services;
-using BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload.Resolvers;
 

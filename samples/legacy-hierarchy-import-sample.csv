@@ -1,9 +1,9 @@
-name,docTypeAlias,parent,bulkUploadLegacyId,bulkUploadLegacyParentId,title|text,description|text
-Blog Section,contentFolder,/,,blog-1,,Blog content section
-News Section,contentFolder,/,,news-1,,News content section
-Article 1,article,/,legacy-101,blog-1,First Article,This is the first article in the blog
-Article 2,article,/,legacy-102,blog-1,Second Article,This is the second article in the blog
-Sub Article 1,article,/,legacy-201,legacy-101,Child of Article 1,This article is nested under Article 1
-News Item 1,newsItem,/,legacy-301,news-1,Breaking News,Latest news item
-News Item 2,newsItem,/,legacy-302,news-1,Tech Update,Technology news
-Deep Child,article,/,legacy-401,legacy-201,Deeply Nested,This is three levels deep
+name,docTypeAlias,bulkUploadLegacyId,bulkUploadLegacyParentId,title|text,subtitle|text
+New Home,home,home-1,,New Home,What should we put here?
+Blog Section,articleList,newblog-1,home-1,Another Blog,Blog content section
+News Section,articleList,newnews-1,home-1,Another News,News content section
+Article 1,article,newarticle-1,newblog-1,First Article,This is the first article in the blog
+Article 2,article,newarticle-2,newblog-1,Second Article,This is the second article in the blog
+Sub Article 1,article,subarticle-1,newarticle-1,Child of Article 1,This article is nested under Article 1
+News Item 1,article,newsitem-1,newnews-1,Breaking News,Latest news item
+News Item 2,article,newsitem-2,newnews-1,Tech Update,Technology news
