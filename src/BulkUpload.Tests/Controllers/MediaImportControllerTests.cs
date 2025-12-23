@@ -48,7 +48,7 @@ public class MediaImportControllerTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Uploaded ZIP file not valid.", badRequestResult.Value);
+        Assert.Equal("Uploaded file not valid.", badRequestResult.Value);
     }
 
     [Fact]
@@ -64,11 +64,11 @@ public class MediaImportControllerTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Uploaded ZIP file not valid.", badRequestResult.Value);
+        Assert.Equal("Uploaded file not valid.", badRequestResult.Value);
     }
 
     [Fact]
-    public async Task ImportMedia_ReturnsBadRequest_WhenFileIsNotZip()
+    public async Task ImportMedia_ReturnsBadRequest_WhenFileIsNotZipOrCsv()
     {
         // Arrange
         var mockFile = new Mock<IFormFile>();
@@ -80,7 +80,7 @@ public class MediaImportControllerTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Please upload a ZIP file containing CSV and media files.", badRequestResult.Value);
+        Assert.Equal("Please upload either a ZIP file (containing CSV and media files) or a CSV file (for URL-based media).", badRequestResult.Value);
     }
 
     [Fact]
