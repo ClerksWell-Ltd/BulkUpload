@@ -127,16 +127,16 @@ public class BulkUploadController : UmbracoAuthorizedApiController
 
                         return Ok(new
                         {
-                            TotalCount = results.Count,
-                            SuccessCount = successCount,
-                            FailureCount = failureCount,
-                            Results = results,
-                            MediaPreprocessingResults = mediaPreprocessingResults
+                            totalCount = results.Count,
+                            successCount = successCount,
+                            failureCount = failureCount,
+                            results = results,
+                            mediaPreprocessingResults = mediaPreprocessingResults
                         });
                     }
 
                     _logger.LogInformation("Bulk Upload: No valid records found in CSV");
-                    return Ok(new { TotalCount = 0, SuccessCount = 0, FailureCount = 0, Results = new List<ContentImportResult>() });
+                    return Ok(new { totalCount = 0, successCount = 0, failureCount = 0, results = new List<ContentImportResult>() });
                 }
 
             }
