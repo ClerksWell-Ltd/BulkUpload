@@ -52,7 +52,8 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     /// Preprocesses media items from CSV records.
     /// Extracts all unique media references, creates them, and caches them.
     /// </summary>
-    public void PreprocessMediaItems(List<dynamic> csvRecords)
+    /// <returns>List of media preprocessing results containing cache keys and values</returns>
+    public List<MediaPreprocessingResult> PreprocessMediaItems(List<dynamic> csvRecords)
     {
         _logger.LogInformation("Starting media preprocessing for {Count} CSV records", csvRecords.Count);
 
@@ -62,6 +63,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
         _logger.LogInformation("Found {Count} unique media references to create", mediaReferences.Count);
 
         // Create media items and cache them
+        var results = new List<MediaPreprocessingResult>();
         int successCount = 0;
         int failureCount = 0;
 
@@ -81,22 +83,47 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                     _mediaItemCache.TryAdd(mediaRef.OriginalValue, mediaGuid);
                     successCount++;
                     _logger.LogDebug("Created and cached media: {Value} → {Guid}", mediaRef.OriginalValue, mediaGuid);
+
+                    results.Add(new MediaPreprocessingResult
+                    {
+                        Key = mediaRef.OriginalValue,
+                        Value = mediaGuid,
+                        Success = true
+                    });
                 }
                 else
                 {
                     failureCount++;
                     _logger.LogWarning("Failed to create media for: {Value}", mediaRef.OriginalValue);
+
+                    results.Add(new MediaPreprocessingResult
+                    {
+                        Key = mediaRef.OriginalValue,
+                        Value = null,
+                        Success = false,
+                        ErrorMessage = "Failed to create media item"
+                    });
                 }
             }
             catch (Exception ex)
             {
                 failureCount++;
                 _logger.LogError(ex, "Error creating media for: {Value}", mediaRef.OriginalValue);
+
+                results.Add(new MediaPreprocessingResult
+                {
+                    Key = mediaRef.OriginalValue,
+                    Value = null,
+                    Success = false,
+                    ErrorMessage = ex.Message
+                });
             }
         }
 
         _logger.LogInformation("Media preprocessing completed. Success: {Success}, Failures: {Failures}",
             successCount, failureCount);
+
+        return results;
     }
 
     /// <summary>
