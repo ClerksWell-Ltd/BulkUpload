@@ -14,13 +14,24 @@ public class MediaImportControllerTests
 {
     private readonly Mock<ILogger<MediaImportController>> _mockLogger;
     private readonly Mock<IMediaImportService> _mockMediaImportService;
+    private readonly Mock<IParentLookupCache> _mockParentLookupCache;
+    private readonly Mock<IMediaItemCache> _mockMediaItemCache;
+    private readonly Mock<ILegacyIdCache> _mockLegacyIdCache;
     private readonly MediaImportController _controller;
 
     public MediaImportControllerTests()
     {
         _mockLogger = new Mock<ILogger<MediaImportController>>();
         _mockMediaImportService = new Mock<IMediaImportService>();
-        _controller = new MediaImportController(_mockLogger.Object, _mockMediaImportService.Object);
+        _mockParentLookupCache = new Mock<IParentLookupCache>();
+        _mockMediaItemCache = new Mock<IMediaItemCache>();
+        _mockLegacyIdCache = new Mock<ILegacyIdCache>();
+        _controller = new MediaImportController(
+            _mockLogger.Object,
+            _mockMediaImportService.Object,
+            _mockParentLookupCache.Object,
+            _mockMediaItemCache.Object,
+            _mockLegacyIdCache.Object);
     }
 
     #region ImportMedia Tests
