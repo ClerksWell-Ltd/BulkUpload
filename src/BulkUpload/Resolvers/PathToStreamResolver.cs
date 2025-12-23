@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+
 using Umbraco.Community.BulkUpload.Models;
 
 namespace Umbraco.Community.BulkUpload.Resolvers;

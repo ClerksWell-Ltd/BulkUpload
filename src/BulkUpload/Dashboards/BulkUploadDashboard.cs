@@ -2,6 +2,7 @@
 using Umbraco.Cms.Core.Dashboards;
 
 namespace Umbraco.Community.BulkUpload.Dashboards;
+
 [Weight(0)]
 public class BulkUploadDashboard : IDashboard
 {

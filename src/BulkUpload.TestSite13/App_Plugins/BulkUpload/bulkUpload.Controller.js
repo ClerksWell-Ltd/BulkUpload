@@ -1,0 +1,187 @@
+angular
+  .module("umbraco")
+  .controller(
+    "bulkUploadController",
+    function ($scope, bulkUploadImportApiService, notificationsService, angularHelper) {
+      // Initialize tabs
+      $scope.activeTab = 'content';
+
+      // Content import state
+      $scope.loading = false;
+      $scope.file = null;
+      $scope.fileControlElement = null;
+
+      // Media import state
+      $scope.loadingMedia = false;
+      $scope.mediaFile = null;
+      $scope.mediaFileControlElement = null;
+      $scope.mediaResults = null;
+
+      // Content import handlers
+      $scope.onFileSelected = function (bulkUploadImportFile, evt) {
+        if (bulkUploadImportFile) {
+          $scope.file = bulkUploadImportFile;
+          $scope.fileControlElement = evt.target;
+        }
+      };
+
+      $scope.onUploadClicked = function () {
+        if (!$scope.file || $scope.loading) return;
+
+        $scope.loading = true;
+
+        const promise = bulkUploadImportApiService.Import(
+          $scope.file
+        );
+
+        promise
+          .then(function (response) {
+            $scope.loading = false;
+            if (response.status === 200) {
+              if ($scope.fileControlElement) {
+                $scope.file = null;
+                $scope.fileControlElement.value = "";
+              }
+              $scope.successNotification = {
+                type: 'success',
+                headline: 'Success',
+                sticky: true,
+                message: 'CSV file has been imported successfully.'
+              };
+              notificationsService.add($scope.successNotification);
+              setTimeout(function () {
+                notificationsService.remove($scope.successNotification)
+              }, 10000);
+            } else {
+              $scope.errorNotification = {
+                type: 'error',
+                headline: 'Error',
+                sticky: true,
+                message: '' + response.data
+              };
+              notificationsService.add($scope.errorNotification);
+              setTimeout(function () {
+                notificationsService.remove($scope.errorNotification)
+              }, 10000);
+            }
+          })
+          .catch(function (error) {
+            $scope.errorNotification = {
+              type: 'error',
+              headline: 'Error',
+              sticky: true,
+              message: error.data
+            };
+            notificationsService.add($scope.errorNotification);
+            setTimeout(function () {
+              notificationsService.remove($scope.errorNotification)
+            }, 10000);
+          })
+          .finally(function () {
+            $scope.loading = false;
+            angularHelper.getCurrentForm($scope).$setPristine();
+          });
+      };
+
+      // Media import handlers
+      $scope.onMediaFileSelected = function (mediaUploadFile, evt) {
+        if (mediaUploadFile) {
+          $scope.mediaFile = mediaUploadFile;
+          $scope.mediaFileControlElement = evt.target;
+        }
+      };
+
+      $scope.onMediaUploadClicked = function () {
+        if (!$scope.mediaFile || $scope.loadingMedia) return;
+
+        $scope.loadingMedia = true;
+        $scope.mediaResults = null;
+
+        const promise = bulkUploadImportApiService.ImportMedia(
+          $scope.mediaFile
+        );
+
+        promise
+          .then(function (response) {
+            $scope.loadingMedia = false;
+            if (response.status === 200) {
+              if ($scope.mediaFileControlElement) {
+                $scope.mediaFile = null;
+                $scope.mediaFileControlElement.value = "";
+              }
+
+              $scope.mediaResults = response.data;
+
+              var successMsg = response.data.successCount + ' of ' + response.data.totalCount + ' media items imported successfully.';
+              if (response.data.failureCount > 0) {
+                successMsg += ' ' + response.data.failureCount + ' failed.';
+              }
+
+              $scope.successNotification = {
+                type: response.data.failureCount > 0 ? 'warning' : 'success',
+                headline: 'Media Import Complete',
+                sticky: true,
+                message: successMsg
+              };
+              notificationsService.add($scope.successNotification);
+              setTimeout(function () {
+                notificationsService.remove($scope.successNotification)
+              }, 10000);
+            } else {
+              $scope.errorNotification = {
+                type: 'error',
+                headline: 'Error',
+                sticky: true,
+                message: '' + response.data
+              };
+              notificationsService.add($scope.errorNotification);
+              setTimeout(function () {
+                notificationsService.remove($scope.errorNotification)
+              }, 10000);
+            }
+          })
+          .catch(function (error) {
+            $scope.errorNotification = {
+              type: 'error',
+              headline: 'Error',
+              sticky: true,
+              message: error.data || 'An error occurred during media import.'
+            };
+            notificationsService.add($scope.errorNotification);
+            setTimeout(function () {
+              notificationsService.remove($scope.errorNotification)
+            }, 10000);
+          })
+          .finally(function () {
+            $scope.loadingMedia = false;
+            angularHelper.getCurrentForm($scope).$setPristine();
+          });
+      };
+
+      $scope.onExportResultsClicked = function () {
+        if (!$scope.mediaResults || !$scope.mediaResults.results) return;
+
+        bulkUploadImportApiService.ExportResults($scope.mediaResults.results)
+          .then(function (response) {
+            var blob = new Blob([response.data], { type: 'text/csv' });
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'media-import-results.csv';
+            link.click();
+
+            notificationsService.add({
+              type: 'success',
+              headline: 'Success',
+              message: 'Results exported successfully.'
+            });
+          })
+          .catch(function (error) {
+            notificationsService.add({
+              type: 'error',
+              headline: 'Error',
+              message: 'Failed to export results.'
+            });
+          });
+      };
+    }
+  );

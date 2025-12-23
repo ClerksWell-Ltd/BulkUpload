@@ -1,3 +1,5 @@
+using BulkUpload.Services;
+
 using Microsoft.Extensions.DependencyInjection;
 
 using Umbraco.Cms.Core.Composing;
@@ -6,7 +8,6 @@ using Umbraco.Cms.Core.Sections;
 using Umbraco.Community.BulkUpload.Resolvers;
 using Umbraco.Community.BulkUpload.Sections;
 using Umbraco.Community.BulkUpload.Services;
-using BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload;
 
