@@ -1,3 +1,5 @@
+using Umbraco.Community.BulkUpload.Models;
+
 namespace Umbraco.Community.BulkUpload.Services;
 
 /// <summary>
@@ -9,5 +11,6 @@ public interface IMediaPreprocessorService
     /// Preprocesses media items from CSV records.
     /// Extracts all unique media references, creates them, and caches them.
     /// </summary>
-    void PreprocessMediaItems(List<dynamic> csvRecords);
+    /// <returns>List of media preprocessing results containing cache keys and values</returns>
+    List<MediaPreprocessingResult> PreprocessMediaItems(List<dynamic> csvRecords);
 }

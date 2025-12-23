@@ -77,7 +77,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                     {
                         // Step 1: Preprocess media items to avoid duplicates
                         _logger.LogDebug("Preprocessing media items from CSV records");
-                        _mediaPreprocessorService.PreprocessMediaItems(records);
+                        var mediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(records);
 
                         // Step 2: Create all ImportObjects from CSV records
                         var importObjects = new List<ImportObject>();
@@ -113,7 +113,8 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                             TotalCount = results.Count,
                             SuccessCount = successCount,
                             FailureCount = failureCount,
-                            Results = results
+                            Results = results,
+                            MediaPreprocessingResults = mediaPreprocessingResults
                         });
                     }
 
@@ -157,6 +158,35 @@ public class BulkUploadController : UmbracoAuthorizedApiController
         {
             _logger.LogError(ex, "Bulk Upload: Error exporting results");
             return BadRequest("Error exporting results.");
+        }
+    }
+
+    [HttpPost]
+    public IActionResult ExportMediaPreprocessingResults([FromBody] List<MediaPreprocessingResult> results)
+    {
+        try
+        {
+            if (results == null || !results.Any())
+            {
+                return BadRequest("No results to export.");
+            }
+
+            var csv = new StringBuilder();
+            csv.AppendLine("key,value");
+
+            foreach (var result in results)
+            {
+                var escapedKey = result.Key?.Replace("\"", "\"\"") ?? "";
+                csv.AppendLine($"\"{escapedKey}\",\"{result.Value}\"");
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+            return File(bytes, "text/csv", "media-preprocessing-results.csv");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Bulk Upload: Error exporting media preprocessing results");
+            return BadRequest("Error exporting media preprocessing results.");
         }
     }
 }
