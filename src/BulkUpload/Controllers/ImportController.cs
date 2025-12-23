@@ -2,6 +2,8 @@
 using System.Globalization;
 using System.Text;
 
+using BulkUpload.Services;
+
 using CsvHelper;
 using CsvHelper.Configuration;
 
@@ -27,6 +29,9 @@ public class BulkUploadController : UmbracoAuthorizedApiController
     private readonly IImportUtilityService _importUtilityService;
     private readonly IHierarchyResolver _hierarchyResolver;
     private readonly IMediaPreprocessorService _mediaPreprocessorService;
+    private readonly IParentLookupCache _parentLookupCache;
+    private readonly IMediaItemCache _mediaItemCache;
+    private readonly ILegacyIdCache _legacyIdCache;
 
     public BulkUploadController(
         IContentService contentService,
@@ -39,17 +44,29 @@ public class BulkUploadController : UmbracoAuthorizedApiController
         ILogger<BulkUploadController> logger,
         IImportUtilityService importUtilityService,
         IHierarchyResolver hierarchyResolver,
-        IMediaPreprocessorService mediaPreprocessorService)
+        IMediaPreprocessorService mediaPreprocessorService,
+        IParentLookupCache parentLookupCache,
+        IMediaItemCache mediaItemCache,
+        ILegacyIdCache legacyIdCache)
     {
         _logger = logger;
         _importUtilityService = importUtilityService;
         _hierarchyResolver = hierarchyResolver;
         _mediaPreprocessorService = mediaPreprocessorService;
+        _parentLookupCache = parentLookupCache;
+        _mediaItemCache = mediaItemCache;
+        _legacyIdCache = legacyIdCache;
     }
 
     [HttpPost]
     public async Task<IActionResult> ImportAll([FromForm] IFormFile file)
     {
+        // Clear all caches at the start of each import to ensure fresh state
+        _parentLookupCache.Clear();
+        _mediaItemCache.Clear();
+        _legacyIdCache.Clear();
+        _logger.LogInformation("Bulk Upload: Cleared all caches for new import");
+
         try
         {
             if (file == null || file.Length == 0)
