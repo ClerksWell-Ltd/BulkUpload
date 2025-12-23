@@ -54,40 +54,60 @@ public class MediaImportController : UmbracoAuthorizedApiController
         {
             if (file == null || file.Length == 0)
             {
-                _logger.LogError("Bulk Upload Media: Uploaded ZIP file is not valid");
-                return BadRequest("Uploaded ZIP file not valid.");
+                _logger.LogError("Bulk Upload Media: Uploaded file is not valid");
+                return BadRequest("Uploaded file not valid.");
             }
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (extension != ".zip")
+            if (extension != ".zip" && extension != ".csv")
             {
-                _logger.LogError("Bulk Upload Media: File is not a ZIP archive");
-                return BadRequest("Please upload a ZIP file containing CSV and media files.");
+                _logger.LogError("Bulk Upload Media: File is not a ZIP or CSV file");
+                return BadRequest("Please upload either a ZIP file (containing CSV and media files) or a CSV file (for URL-based media).");
             }
 
-            // Create temporary directory for extraction
-            tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempDirectory);
+            string csvFilePath;
+            bool isZipUpload = extension == ".zip";
 
-            // Extract ZIP file
-            using (var fileStream = file.OpenReadStream())
+            if (isZipUpload)
             {
-                using var archive = new ZipArchive(fileStream, ZipArchiveMode.Read);
-                archive.ExtractToDirectory(tempDirectory);
+                // Create temporary directory for extraction
+                tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                Directory.CreateDirectory(tempDirectory);
+
+                // Extract ZIP file
+                using (var fileStream = file.OpenReadStream())
+                {
+                    using var archive = new ZipArchive(fileStream, ZipArchiveMode.Read);
+                    archive.ExtractToDirectory(tempDirectory);
+                }
+
+                // Find CSV file in extracted contents
+                var csvFiles = Directory.GetFiles(tempDirectory, "*.csv", SearchOption.AllDirectories);
+                if (csvFiles.Length == 0)
+                {
+                    _logger.LogError("Bulk Upload Media: No CSV file found in ZIP archive");
+                    return BadRequest("No CSV file found in ZIP archive.");
+                }
+
+                csvFilePath = csvFiles[0]; // Use first CSV found
+                if (csvFiles.Length > 1)
+                {
+                    _logger.LogWarning("Bulk Upload Media: Multiple CSV files found, using first: {CsvFile}", Path.GetFileName(csvFilePath));
+                }
             }
-
-            // Find CSV file in extracted contents
-            var csvFiles = Directory.GetFiles(tempDirectory, "*.csv", SearchOption.AllDirectories);
-            if (csvFiles.Length == 0)
+            else
             {
-                _logger.LogError("Bulk Upload Media: No CSV file found in ZIP archive");
-                return BadRequest("No CSV file found in ZIP archive.");
-            }
+                // CSV file uploaded directly - save to temporary location
+                tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                Directory.CreateDirectory(tempDirectory);
+                csvFilePath = Path.Combine(tempDirectory, file.FileName);
 
-            var csvFilePath = csvFiles[0]; // Use first CSV found
-            if (csvFiles.Length > 1)
-            {
-                _logger.LogWarning("Bulk Upload Media: Multiple CSV files found, using first: {CsvFile}", Path.GetFileName(csvFilePath));
+                using (var stream = new FileStream(csvFilePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                _logger.LogInformation("Bulk Upload Media: Processing CSV file directly (no media files in archive)");
             }
 
             // Parse CSV and import media
@@ -224,8 +244,21 @@ public class MediaImportController : UmbracoAuthorizedApiController
                             }
                             else
                             {
-                                // Find the media file in extracted ZIP contents (existing behavior)
-                                var mediaFiles = Directory.GetFiles(tempDirectory, importObject.FileName, SearchOption.AllDirectories);
+                                // Find the media file in extracted ZIP contents (only for ZIP uploads)
+                                if (!isZipUpload)
+                                {
+                                    results.Add(new MediaImportResult
+                                    {
+                                        FileName = importObject.FileName,
+                                        Success = false,
+                                        ErrorMessage = $"Media file '{importObject.FileName}' requires a source. For CSV-only uploads, use mediaSource|urlToStream (for URLs) or mediaSource|pathToStream (for file paths).",
+                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                    });
+                                    _logger.LogWarning("Bulk Upload Media: CSV-only upload requires external source for file: {FileName}", importObject.FileName);
+                                    continue;
+                                }
+
+                                var mediaFiles = Directory.GetFiles(tempDirectory!, importObject.FileName, SearchOption.AllDirectories);
 
                                 if (mediaFiles.Length == 0)
                                 {
