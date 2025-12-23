@@ -10,6 +10,7 @@ angular
       $scope.loading = false;
       $scope.file = null;
       $scope.fileControlElement = null;
+      $scope.contentResults = null;
 
       // Media import state
       $scope.loadingMedia = false;
@@ -29,6 +30,7 @@ angular
         if (!$scope.file || $scope.loading) return;
 
         $scope.loading = true;
+        $scope.contentResults = null;
 
         const promise = bulkUploadImportApiService.Import(
           $scope.file
@@ -42,11 +44,19 @@ angular
                 $scope.file = null;
                 $scope.fileControlElement.value = "";
               }
+
+              $scope.contentResults = response.data;
+
+              var successMsg = response.data.successCount + ' of ' + response.data.totalCount + ' content items imported successfully.';
+              if (response.data.failureCount > 0) {
+                successMsg += ' ' + response.data.failureCount + ' failed.';
+              }
+
               $scope.successNotification = {
-                type: 'success',
-                headline: 'Success',
+                type: response.data.failureCount > 0 ? 'warning' : 'success',
+                headline: 'Content Import Complete',
                 sticky: true,
-                message: 'CSV file has been imported successfully.'
+                message: successMsg
               };
               notificationsService.add($scope.successNotification);
               setTimeout(function () {
@@ -70,7 +80,7 @@ angular
               type: 'error',
               headline: 'Error',
               sticky: true,
-              message: error.data
+              message: error.data || 'An error occurred during content import.'
             };
             notificationsService.add($scope.errorNotification);
             setTimeout(function () {
@@ -80,6 +90,32 @@ angular
           .finally(function () {
             $scope.loading = false;
             angularHelper.getCurrentForm($scope).$setPristine();
+          });
+      };
+
+      $scope.onExportContentResultsClicked = function () {
+        if (!$scope.contentResults || !$scope.contentResults.results) return;
+
+        bulkUploadImportApiService.ExportContentResults($scope.contentResults.results)
+          .then(function (response) {
+            var blob = new Blob([response.data], { type: 'text/csv' });
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = 'content-import-results.csv';
+            link.click();
+
+            notificationsService.add({
+              type: 'success',
+              headline: 'Success',
+              message: 'Results exported successfully.'
+            });
+          })
+          .catch(function (error) {
+            notificationsService.add({
+              type: 'error',
+              headline: 'Error',
+              message: 'Failed to export results.'
+            });
           });
       };
 
