@@ -25,6 +25,7 @@ public class MediaImportServiceTests
             null!, // IMediaService - not needed for CreateMediaImportObject tests
             null!, // IMediaTypeService - not needed for CreateMediaImportObject tests
             null!, // MediaFileManager - sealed class, unmockable
+            null!, // MediaUrlGeneratorCollection - not needed for CreateMediaImportObject tests
             null!, // IShortStringHelper - not needed for CreateMediaImportObject tests
             null!, // IContentTypeBaseServiceProvider - not needed for CreateMediaImportObject tests
             _mockResolverFactory.Object,

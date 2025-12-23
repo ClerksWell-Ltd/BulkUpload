@@ -2,10 +2,13 @@ using BulkUpload.Constants;
 
 using Microsoft.Extensions.Logging;
 
+using Newtonsoft.Json;
+
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.IO;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.PropertyEditors;
+using Umbraco.Cms.Core.PropertyEditors.ValueConverters;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using Umbraco.Community.BulkUpload.Models;
@@ -19,6 +22,7 @@ public class MediaImportService : IMediaImportService
     private readonly IMediaService _mediaService;
     private readonly IMediaTypeService _mediaTypeService;
     private readonly MediaFileManager _mediaFileManager;
+    private readonly MediaUrlGeneratorCollection _mediaUrlGeneratorCollection;
     private readonly IShortStringHelper _shortStringHelper;
     private readonly IContentTypeBaseServiceProvider _contentTypeBaseServiceProvider;
     private readonly IResolverFactory _resolverFactory;
@@ -29,6 +33,7 @@ public class MediaImportService : IMediaImportService
         IMediaService mediaService,
         IMediaTypeService mediaTypeService,
         MediaFileManager mediaFileManager,
+        MediaUrlGeneratorCollection mediaUrlGeneratorCollection,
         IShortStringHelper shortStringHelper,
         IContentTypeBaseServiceProvider contentTypeBaseServiceProvider,
         IResolverFactory resolverFactory,
@@ -38,6 +43,7 @@ public class MediaImportService : IMediaImportService
         _mediaService = mediaService;
         _mediaTypeService = mediaTypeService;
         _mediaFileManager = mediaFileManager;
+        _mediaUrlGeneratorCollection = mediaUrlGeneratorCollection;
         _shortStringHelper = shortStringHelper;
         _contentTypeBaseServiceProvider = contentTypeBaseServiceProvider;
         _resolverFactory = resolverFactory;
@@ -280,21 +286,11 @@ public class MediaImportService : IMediaImportService
             {
                 fileStream.Position = 0;
 
-                // Get the media path using the property type and media item's key
-                var propertyType = mediaItem.Properties["umbracoFile"]?.PropertyType;
-                if (propertyType == null)
-                {
-                    result.ErrorMessage = "Media type does not have umbracoFile property";
-                    return result;
-                }
-
-                var mediaPath = _mediaFileManager.GetMediaPath(importObject.FileName, propertyType.Key, mediaItem.Key);
-
-                // Save the file to the media file system
-                _mediaFileManager.FileSystem.AddFile(mediaPath, fileStream, true);
-
-                // Set the file path on the media item
-                mediaItem.SetValue("umbracoFile", mediaPath);
+                // Use the proper Umbraco extension method for setting media files
+                // This handles file upload, path generation, and proper JSON structure creation
+                mediaItem.SetValue(_mediaFileManager, _mediaUrlGeneratorCollection, _shortStringHelper,
+                    _contentTypeBaseServiceProvider, Constants.Conventions.Media.File,
+                    importObject.FileName, fileStream);
             }
             else
             {

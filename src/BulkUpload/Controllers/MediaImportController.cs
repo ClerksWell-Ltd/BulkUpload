@@ -2,6 +2,8 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 
+using BulkUpload.Services;
+
 using CsvHelper;
 using CsvHelper.Configuration;
 
@@ -19,18 +21,33 @@ public class MediaImportController : UmbracoAuthorizedApiController
 {
     private readonly ILogger<MediaImportController> _logger;
     private readonly IMediaImportService _mediaImportService;
+    private readonly IParentLookupCache _parentLookupCache;
+    private readonly IMediaItemCache _mediaItemCache;
+    private readonly ILegacyIdCache _legacyIdCache;
 
     public MediaImportController(
         ILogger<MediaImportController> logger,
-        IMediaImportService mediaImportService)
+        IMediaImportService mediaImportService,
+        IParentLookupCache parentLookupCache,
+        IMediaItemCache mediaItemCache,
+        ILegacyIdCache legacyIdCache)
     {
         _logger = logger;
         _mediaImportService = mediaImportService;
+        _parentLookupCache = parentLookupCache;
+        _mediaItemCache = mediaItemCache;
+        _legacyIdCache = legacyIdCache;
     }
 
     [HttpPost]
     public async Task<IActionResult> ImportMedia([FromForm] IFormFile file)
     {
+        // Clear all caches at the start of each import to ensure fresh state
+        _parentLookupCache.Clear();
+        _mediaItemCache.Clear();
+        _legacyIdCache.Clear();
+        _logger.LogInformation("Bulk Upload Media: Cleared all caches for new import");
+
         string? tempDirectory = null;
 
         try
