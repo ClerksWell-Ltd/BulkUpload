@@ -12,12 +12,12 @@ It currently just works with Umbraco 13, but we are looking at releasing it for 
 
 ## Features
 
-- **Content CSV Import:** Upload and process CSV files to create or update Umbraco content nodes.
-- **Media ZIP Import:** Upload ZIP files containing CSV metadata and media files (images, documents, videos) for bulk media creation.
+- **Content Import:** Upload CSV files or ZIP files (CSV + media) to create or update Umbraco content nodes with embedded images.
+- **Media Import:** Upload ZIP files containing CSV metadata and media files (images, documents, videos) for bulk media creation, or CSV-only for URL-based media.
 - **Custom Mapping:** Supports mapping CSV columns to Umbraco content properties, including complex types.
 - **Content Type Support:** Import data for different content types by specifying aliases and parent nodes.
-- **Extensible Resolvers:** Includes a set of resolvers for handling various property types (e.g., text, dates, media, block lists).
-- **Export Results:** Download CSV files containing IDs of imported media items for use in subsequent content imports.
+- **Extensible Resolvers:** Includes a set of resolvers for handling various property types (e.g., text, dates, media, block lists, ZIP files).
+- **Export Results:** Download CSV files containing IDs of imported content and media items for tracking and subsequent imports.
 - **Error Handling & Logging:** Provides feedback and logging for import operations to help diagnose issues.
 
 ## How It Works
@@ -67,16 +67,35 @@ In the umbraco backoffice, go to the users section and add the Bulk Upload secti
 
 ### Content Import
 
-- You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv?raw=true" download>download this sample CSV file</a>
+The package supports bulk importing content with optional media files:
+- **CSV file** (content only) - Upload just the CSV when using URLs or existing media references
+- **ZIP file** (new) - Upload a ZIP containing CSV + media files for content with embedded images/files
 
-- In the Bulk Upload section, click on the **Content Import** tab.
+Sample files:
+- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv?raw=true" download>CSV-only sample</a>
 
-- Click on the upload button, choose your CSV file and then click on the import button.
+**How it works:**
 
-- It will attempt to import the content for you.
+1. **Prepare your content CSV** with required columns: `parentId`, `docTypeAlias`, `name`
+2. **For content with media:**
+   - Add media references using resolvers: `heroImage|zipFileToMedia`, `heroImage|urlToMedia`, or `heroImage|pathToMedia`
+   - Use `zipFileToMedia` for media files packaged in the ZIP
+   - Use `urlToMedia` for images from URLs
+   - Use `pathToMedia` for images from file system paths
+3. **Upload:**
+   - **CSV only:** For content without media or using URL/path media references
+   - **ZIP file:** Package CSV + media files together for content with embedded images
+4. **View results:** Success message shows counts, download results CSV for imported content IDs
 
+**Example CSV with ZIP media:**
+```csv
+parentId,docTypeAlias,name,heroImage|zipFileToMedia
+1100,productPage,Red Widget,hero-red-widget.jpg
+1100,productPage,Blue Widget,hero-blue-widget.jpg
+```
+
+Create a ZIP with this CSV and the media files (`hero-red-widget.jpg`, `hero-blue-widget.jpg`) and upload it via the Content Import tab.
 - If it is successful you will see a green success message and can go to the content tree and find your new content.
-
 - If it errors, it will show you a red message. You will be able to see the error details in the Log Viewer
 
 ### Media Import

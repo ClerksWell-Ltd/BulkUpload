@@ -1,5 +1,6 @@
 
 using System.Globalization;
+using System.IO.Compression;
 using System.Text;
 
 using BulkUpload.Services;
@@ -67,84 +68,151 @@ public class BulkUploadController : UmbracoAuthorizedApiController
         _legacyIdCache.Clear();
         _logger.LogInformation("Bulk Upload: Cleared all caches for new import");
 
+        string? tempDirectory = null;
+
         try
         {
             if (file == null || file.Length == 0)
             {
-                _logger.LogError("Bulk Upload: Uploaded csv file is not valid");
-                return BadRequest("Uploaded CSV file not valid.");
+                _logger.LogError("Bulk Upload: Uploaded file is not valid");
+                return BadRequest("Uploaded file not valid.");
+            }
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (extension != ".zip" && extension != ".csv")
+            {
+                _logger.LogError("Bulk Upload: File is not a ZIP or CSV file");
+                return BadRequest("Please upload either a CSV file (content only) or a ZIP file (content + media files).");
+            }
+
+            string csvFilePath;
+            bool isZipUpload = extension == ".zip";
+
+            if (isZipUpload)
+            {
+                // Create temporary directory for extraction
+                tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                Directory.CreateDirectory(tempDirectory);
+
+                // Extract ZIP file
+                using (var fileStream = file.OpenReadStream())
+                {
+                    using var archive = new ZipArchive(fileStream, ZipArchiveMode.Read);
+                    archive.ExtractToDirectory(tempDirectory);
+                }
+
+                // Find CSV file in extracted contents
+                var csvFiles = Directory.GetFiles(tempDirectory, "*.csv", SearchOption.AllDirectories);
+                if (csvFiles.Length == 0)
+                {
+                    _logger.LogError("Bulk Upload: No CSV file found in ZIP archive");
+                    return BadRequest("No CSV file found in ZIP archive.");
+                }
+
+                csvFilePath = csvFiles[0]; // Use first CSV found
+                if (csvFiles.Length > 1)
+                {
+                    _logger.LogWarning("Bulk Upload: Multiple CSV files found, using first: {CsvFile}", Path.GetFileName(csvFilePath));
+                }
+
+                _logger.LogInformation("Bulk Upload: Processing ZIP file with CSV and media files");
             }
             else
             {
+                // CSV file uploaded directly - save to temporary location for consistent handling
+                tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                Directory.CreateDirectory(tempDirectory);
+                csvFilePath = Path.Combine(tempDirectory, file.FileName);
 
-                using (var reader = new StreamReader(file.OpenReadStream()))
-                using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+                using (var stream = new FileStream(csvFilePath, FileMode.Create))
                 {
-                    HasHeaderRecord = true,
-                }))
-                {
-                    var records = new List<dynamic>();
-
-                    await foreach (var record in csv.GetRecordsAsync<dynamic>())
-                    {
-                        records.Add(record);
-                    }
-
-                    if (records != null && records.Any())
-                    {
-                        // Step 1: Preprocess media items to avoid duplicates
-                        _logger.LogDebug("Preprocessing media items from CSV records");
-                        var mediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(records);
-
-                        // Step 2: Create all ImportObjects from CSV records
-                        var importObjects = new List<ImportObject>();
-                        foreach (var item in records)
-                        {
-                            ImportObject importObject = _importUtilityService.CreateImportObject(item);
-                            if (importObject.CanImport)
-                            {
-                                importObjects.Add(importObject);
-                            }
-                        }
-
-                        // Step 3: Validate and sort based on legacy hierarchy (if present)
-                        var sortedImportObjects = _hierarchyResolver.ValidateAndSort(importObjects);
-                        _logger.LogDebug("Sorted {Count} import objects for processing", sortedImportObjects.Count);
-
-                        // Step 4: Import in sorted order (parents before children) and collect results
-                        var results = new List<ContentImportResult>();
-                        foreach (var importObject in sortedImportObjects)
-                        {
-                            var result = _importUtilityService.ImportSingleItem(importObject);
-                            results.Add(result);
-                        }
-
-                        var successCount = results.Count(r => r.Success);
-                        var failureCount = results.Count(r => !r.Success);
-
-                        _logger.LogInformation("Bulk Upload: Processed {Total} records - {Success} successful, {Failed} failed",
-                            results.Count, successCount, failureCount);
-
-                        return Ok(new
-                        {
-                            totalCount = results.Count,
-                            successCount = successCount,
-                            failureCount = failureCount,
-                            results = results,
-                            mediaPreprocessingResults = mediaPreprocessingResults
-                        });
-                    }
-
-                    _logger.LogInformation("Bulk Upload: No valid records found in CSV");
-                    return Ok(new { totalCount = 0, successCount = 0, failureCount = 0, results = new List<ContentImportResult>() });
+                    await file.CopyToAsync(stream);
                 }
 
+                _logger.LogInformation("Bulk Upload: Processing CSV file (no media files in archive)");
+            }
+
+            using (var reader = new StreamReader(csvFilePath))
+            using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                HasHeaderRecord = true,
+            }))
+            {
+                var records = new List<dynamic>();
+
+                await foreach (var record in csv.GetRecordsAsync<dynamic>())
+                {
+                    records.Add(record);
+                }
+
+                if (records != null && records.Any())
+                {
+                    // Step 1: Preprocess media items to avoid duplicates
+                    _logger.LogDebug("Preprocessing media items from CSV records");
+                    var mediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(records, tempDirectory);
+
+                    // Step 2: Create all ImportObjects from CSV records
+                    var importObjects = new List<ImportObject>();
+                    foreach (var item in records)
+                    {
+                        ImportObject importObject = _importUtilityService.CreateImportObject(item);
+                        if (importObject.CanImport)
+                        {
+                            importObjects.Add(importObject);
+                        }
+                    }
+
+                    // Step 3: Validate and sort based on legacy hierarchy (if present)
+                    var sortedImportObjects = _hierarchyResolver.ValidateAndSort(importObjects);
+                    _logger.LogDebug("Sorted {Count} import objects for processing", sortedImportObjects.Count);
+
+                    // Step 4: Import in sorted order (parents before children) and collect results
+                    var results = new List<ContentImportResult>();
+                    foreach (var importObject in sortedImportObjects)
+                    {
+                        var result = _importUtilityService.ImportSingleItem(importObject);
+                        results.Add(result);
+                    }
+
+                    var successCount = results.Count(r => r.Success);
+                    var failureCount = results.Count(r => !r.Success);
+
+                    _logger.LogInformation("Bulk Upload: Processed {Total} records - {Success} successful, {Failed} failed",
+                        results.Count, successCount, failureCount);
+
+                    return Ok(new
+                    {
+                        totalCount = results.Count,
+                        successCount = successCount,
+                        failureCount = failureCount,
+                        results = results,
+                        mediaPreprocessingResults = mediaPreprocessingResults
+                    });
+                }
+
+                _logger.LogInformation("Bulk Upload: No valid records found in CSV");
+                return Ok(new { totalCount = 0, successCount = 0, failureCount = 0, results = new List<ContentImportResult>() });
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Bulk Upload Case Studies: Error occurred while importing case studies from CSV");
             return BadRequest("\r\n" + "Something went wrong while processing the records. Please try after some time.");
+        }
+        finally
+        {
+            // Clean up temporary directory
+            if (tempDirectory != null && Directory.Exists(tempDirectory))
+            {
+                try
+                {
+                    Directory.Delete(tempDirectory, true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete temporary directory: {TempDirectory}", tempDirectory);
+                }
+            }
         }
     }
 
