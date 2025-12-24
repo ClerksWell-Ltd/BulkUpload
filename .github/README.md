@@ -267,6 +267,21 @@ In your CSV file add a column e.g. `title` and get it to use the `example` resol
 
 `title|example`
 
+## Documentation
+
+For complete documentation, see the [Documentation Index](../docs/README.md) which includes:
+
+- **User Guides**: Media import, legacy hierarchy mapping, and advanced features
+- **Developer Guides**: Branching strategy, release process, and workflow diagrams
+- **Sample Files**: Example CSV templates and use cases
+- **Contributing**: Development workflow and contribution guidelines
+
+Quick links:
+- [Media Import Guide](../docs/media-import-guide.md) - Comprehensive media import documentation
+- [Legacy Hierarchy Mapping](../docs/LEGACY_HIERARCHY_MAPPING.md) - Preserve CMS hierarchies during migration
+- [Contributing Guidelines](./CONTRIBUTING.md) - How to contribute to the project
+- [Changelog](../CHANGELOG.md) - Version history and release notes
+
 ## License
 
 MIT &copy; ClerksWell Ltd
