@@ -6,7 +6,7 @@ namespace Umbraco.Community.BulkUpload.Resolvers;
 /// <summary>
 /// Resolver for creating BlockList structures with multiple block types from CSV data.
 /// Format: blockType::content;;blockType::content
-/// Supported block types: richtext, image, video, code, carousel
+/// Supported block types: richtext, image, video, code, carousel, articlelist, iconlink
 /// </summary>
 public class MultiBlockListResolver : IResolver
 {
@@ -70,6 +70,14 @@ public class MultiBlockListResolver : IResolver
 
                 case "carousel":
                     contentDataList.Add(CreateCarouselBlock(blockContent, contentUdi));
+                    break;
+
+                case "articlelist":
+                    contentDataList.Add(CreateArticleListBlock(blockContent, contentUdi));
+                    break;
+
+                case "iconlink":
+                    contentDataList.Add(CreateIconLinkBlock(blockContent, contentUdi));
                     break;
 
                 default:
@@ -210,6 +218,82 @@ public class MultiBlockListResolver : IResolver
         };
     }
 
+    private Dictionary<string, object> CreateArticleListBlock(string content, GuidUdi udi)
+    {
+        // Format: "documentUdi|pageSize:value|showPagination:value"
+        var parts = content.Split('|');
+        var articleListUdi = parts.Length > 0 ? parts[0].Trim() : "";
+        var pageSize = "5";
+        var showPagination = "1";
+
+        // Parse optional parameters
+        foreach (var part in parts.Skip(1))
+        {
+            var keyValue = part.Split(':', 2);
+            if (keyValue.Length == 2)
+            {
+                var key = keyValue[0].Trim().ToLower();
+                var value = keyValue[1].Trim();
+
+                if (key == "pagesize")
+                    pageSize = value;
+                else if (key == "showpagination")
+                    showPagination = value;
+            }
+        }
+
+        return new Dictionary<string, object>
+        {
+            { "contentTypeKey", "60085a63-b77b-4509-9df4-bcb75db2755f" }, // Article list block
+            { "udi", udi.ToString() },
+            { "articleList", articleListUdi },
+            { "pageSize", pageSize },
+            { "showPagination", showPagination }
+        };
+    }
+
+    private Dictionary<string, object> CreateIconLinkBlock(string content, GuidUdi udi)
+    {
+        // Format: "iconMediaGuid|linkUrl|linkName"
+        var parts = content.Split('|', 3);
+        var iconMediaGuidStr = parts.Length > 0 ? parts[0].Trim() : "";
+        var linkUrl = parts.Length > 1 ? parts[1].Trim() : "";
+        var linkName = parts.Length > 2 ? parts[2].Trim() : "";
+
+        Guid iconMediaGuid;
+        if (!Guid.TryParse(iconMediaGuidStr, out iconMediaGuid))
+        {
+            iconMediaGuid = Guid.NewGuid();
+        }
+
+        return new Dictionary<string, object>
+        {
+            { "contentTypeKey", "17db13ba-bbd9-4a44-b28f-986301156754" }, // Icon link block
+            { "udi", udi.ToString() },
+            {
+                "icon", new[]
+                {
+                    new
+                    {
+                        key = Guid.NewGuid(),
+                        mediaKey = iconMediaGuid
+                    }
+                }
+            },
+            {
+                "link", new[]
+                {
+                    new
+                    {
+                        name = linkName,
+                        target = "_blank",
+                        url = linkUrl
+                    }
+                }
+            }
+        };
+    }
+
     private string GetSettingsTypeKey(string blockType)
     {
         return blockType switch
@@ -218,6 +302,8 @@ public class MultiBlockListResolver : IResolver
             "video" => "eef34ceb-ddf6-4894-b1ac-f96c8c05d3d2",
             "code" => "93638715-f76c-4a11-86b1-6a9d66504901",
             "carousel" => "378fde96-51b6-4506-93e3-ec3038e636bb",
+            "articlelist" => "c56fb5b8-0b89-4206-847e-a6fecd865b84",
+            "iconlink" => "84e89805-5a53-4dcf-930d-fd87c48572dd",
             _ => "da15dc43-43f6-45f6-bda8-1fd17a49d25c" // Default settings (used for richtext)
         };
     }
