@@ -103,29 +103,21 @@ After import completes, you'll see:
 Click "Download Results CSV" to get a detailed report with:
 
 ```csv
-fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage,bulkUploadLegacyId
-product-hero.jpg,true,2001,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123
-product-error.jpg,false,0,,,File not found in ZIP archive: product-error.jpg,old-124
+fileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId
+product-hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123
+product-error.jpg,false,,,File not found in ZIP archive: product-error.jpg,old-124
 ```
 
 The `bulkUploadLegacyId` column in the results allows you to correlate the new Umbraco media items with their original identifiers from your legacy CMS or source system.
 
 ## Using Imported Media IDs
 
-The results CSV provides three identifiers for each imported media item:
+The results CSV provides two identifiers for each imported media item:
 
-1. **mediaId** - Numeric ID (e.g., `2001`)
-2. **mediaGuid** - GUID (e.g., `a1b2c3d4-e5f6-7890-abcd-ef1234567890`)
-3. **mediaUdi** - UDI format (e.g., `umb://media/a1b2c3d4e5f67890abcdef1234567890`)
+1. **bulkUploadMediaGuid** - GUID (e.g., `a1b2c3d4-e5f6-7890-abcd-ef1234567890`)
+2. **bulkUploadMediaUdi** - UDI format (e.g., `umb://media/a1b2c3d4e5f67890abcdef1234567890`)
 
-You can use these in a subsequent content import CSV:
-
-```csv
-parentId,docTypeAlias,name,heroImage|mediaIdToMediaUdi
-1100,productPage,Red Widget,2001
-```
-
-Or reference by GUID:
+You can use these in a subsequent content import CSV by referencing the GUID:
 
 ```csv
 parentId,docTypeAlias,name,heroImage|guidToMediaUdi
