@@ -2,7 +2,9 @@
 
 ## Overview
 
-The BulkUpload extension now supports legacy hierarchy mapping during bulk imports. This feature allows you to preserve hierarchical relationships from legacy CMS systems when migrating content to Umbraco.
+The BulkUpload extension supports legacy hierarchy mapping during bulk imports. This feature allows you to preserve hierarchical relationships from legacy CMS systems when migrating content to Umbraco.
+
+**Multi-CSV Support:** The hierarchy mapping works seamlessly across multiple CSV files in a single import, allowing parent-child relationships to span different files while maintaining correct dependency order.
 
 ## Features
 
@@ -45,22 +47,26 @@ Sub Article,article,/,art-003,art-001,Nested Article
 
 The import process works in three phases:
 
-**Phase 1: Create Import Objects**
-- CSV records are parsed into `ImportObject` instances
+**Phase 1: Gather All CSV Records**
+- **All CSV files** in the ZIP are read together
+- Records from all CSVs are parsed into `ImportObject` instances
+- Each record is tagged with its source CSV filename for results tracking
 - Legacy ID and parent ID are extracted and stored separately
 - Reserved columns are excluded from property mapping
 
-**Phase 2: Validate and Sort**
-- The `HierarchyResolver` validates the hierarchy:
-  - Checks for duplicate legacy IDs
-  - Verifies all parent references exist
-  - Detects circular references
-- Items are sorted using topological sort to ensure parents are created first
+**Phase 2: Validate and Sort Across All CSVs**
+- The `HierarchyResolver` validates the hierarchy **globally across all CSVs**:
+  - Checks for duplicate legacy IDs (across all files)
+  - Verifies all parent references exist (across all files)
+  - Detects circular references (across all files)
+- Items are sorted using **topological sort** (Kahn's algorithm) to ensure parents are created first
+- **Critical:** Sorting happens across all items from all CSVs, not per-file
 
-**Phase 3: Import in Order**
-- Items are created in dependency order
+**Phase 3: Import in Dependency Order**
+- Items are created in the sorted order (parents before children)
 - After each creation, the Umbraco GUID is cached with its legacy ID
 - Child items resolve their parent's GUID from the cache
+- Works seamlessly even when parent is from a different CSV file
 
 ### 3. Parent Resolution
 
@@ -95,6 +101,57 @@ Article New,article,/News,,,New Article
 ```
 
 **Result**: Items without legacy IDs (News, Article New) are created first using standard parent resolution. Items with legacy IDs are sorted and created afterward.
+
+### Multi-CSV Hierarchy Example
+
+**File 1: `categories.csv`**
+```csv
+name,docTypeAlias,parent,bulkUploadLegacyId,bulkUploadLegacyParentId,title|text
+Blog,contentFolder,/,,blog-root,Blog Section
+Products,contentFolder,/,,prod-root,Products Section
+Electronics,category,/,cat-electronics,prod-root,Electronics Category
+Computers,category,/,cat-computers,cat-electronics,Computer Category
+```
+
+**File 2: `articles.csv`**
+```csv
+name,docTypeAlias,parent,bulkUploadLegacyId,bulkUploadLegacyParentId,title|text
+Article 1,article,/,art-001,blog-root,First Blog Post
+Article 2,article,/,art-002,blog-root,Second Blog Post
+```
+
+**File 3: `products.csv`**
+```csv
+name,docTypeAlias,parent,bulkUploadLegacyId,bulkUploadLegacyParentId,title|text
+Laptop A,product,/,prod-001,cat-computers,Gaming Laptop
+Laptop B,product,/,prod-002,cat-computers,Business Laptop
+Phone X,product,/,prod-003,cat-electronics,Smartphone X
+```
+
+**Result with Global Topological Sort:**
+
+1. **First Pass - No Dependencies (Root Items):**
+   - Blog (from `categories.csv`)
+   - Products (from `categories.csv`)
+
+2. **Second Pass - Dependent on Roots:**
+   - Electronics (parent: `prod-root` from same file)
+   - Article 1 (parent: `blog-root` from different file ✓)
+   - Article 2 (parent: `blog-root` from different file ✓)
+
+3. **Third Pass - Deeper Dependencies:**
+   - Computers (parent: `cat-electronics` from same file)
+
+4. **Fourth Pass - Deepest Dependencies:**
+   - Laptop A (parent: `cat-computers` from different file ✓)
+   - Laptop B (parent: `cat-computers` from different file ✓)
+   - Phone X (parent: `cat-electronics` from different file ✓)
+
+**Key Points:**
+- Parent-child relationships work **across CSV files**
+- All items are sorted together in a **single global hierarchy**
+- Cache persists across all CSVs within the import
+- Legacy IDs must be unique across **all CSV files**, not just within one file
 
 ## Validation Errors
 
@@ -175,11 +232,14 @@ The architecture supports future reserved columns:
 
 ## Best Practices
 
-1. **Use Consistent Legacy IDs**: Keep legacy IDs unique and meaningful
-2. **Plan Your Hierarchy**: Ensure all parent items are in the same CSV
-3. **Test with Small Samples**: Validate your CSV structure before large imports
-4. **Review Logs**: Check debug logs for hierarchy resolution details
-5. **Handle Root Items**: Items with no legacy parent should still have a standard `parent` value (e.g., `/` or a GUID)
+1. **Use Consistent Legacy IDs**: Keep legacy IDs unique and meaningful across **all CSV files**
+2. **Plan Your Hierarchy**: Parent items can be in different CSV files - the system handles cross-file dependencies
+3. **Organize by Type**: Consider separating categories, articles, and products into different CSVs for better organization
+4. **Ensure Global Uniqueness**: Legacy IDs must be unique across **all CSV files in the import**, not just within a single file
+5. **Test with Small Samples**: Validate your CSV structure before large imports
+6. **Review Logs**: Check debug logs for hierarchy resolution details
+7. **Handle Root Items**: Items with no legacy parent should still have a standard `parent` value (e.g., `/` or a GUID)
+8. **Track Source Files**: Use meaningful CSV filenames - they appear in result exports for tracking
 
 ## Technical Details
 
@@ -242,8 +302,10 @@ Check that:
 
 - **In-Memory Cache**: The legacy ID cache is stored in memory and cleared after each import
 - **Thread Safety**: All caches use `ConcurrentDictionary` for thread-safe operations
-- **Complexity**: Topological sort is O(V + E) where V = items, E = relationships
+- **Complexity**: Topological sort is O(V + E) where V = total items from all CSVs, E = total relationships
 - **No Database Overhead**: Legacy IDs are never persisted to the database
+- **Multi-CSV Efficiency**: All CSVs are processed in a single pass - no per-file overhead
+- **Global Validation**: Validation happens once for all items, not per CSV file
 
 ## Future Enhancements
 
