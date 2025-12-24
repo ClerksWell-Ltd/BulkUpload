@@ -24,4 +24,14 @@ public class MediaPreprocessingResult
     /// Error message if the media creation failed.
     /// </summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// The filename of the media item (extracted from URL, path, or zip file).
+    /// </summary>
+    public string? FileName { get; set; }
+
+    /// <summary>
+    /// Source CSV filename (without path) that this media reference came from.
+    /// </summary>
+    public string? SourceCsvFileName { get; set; }
 }

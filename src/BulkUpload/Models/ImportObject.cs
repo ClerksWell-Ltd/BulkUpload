@@ -56,6 +56,12 @@ public class ImportObject
     /// </summary>
     public Dictionary<string, string>? OriginalCsvData { get; set; }
 
+    /// <summary>
+    /// Source CSV filename (without path) that this record came from.
+    /// Used for grouping results by source file in exports.
+    /// </summary>
+    public string? SourceCsvFileName { get; set; }
+
     public bool CanImport => !string.IsNullOrWhiteSpace(Name)
         && !string.IsNullOrWhiteSpace(ContentTypeAlais);
 }
