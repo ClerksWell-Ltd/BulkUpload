@@ -19,12 +19,19 @@ public static class ReservedColumns
     public const string BulkUploadLegacyParentId = "bulkUploadLegacyParentId";
 
     /// <summary>
+    /// Column indicating whether to publish the content item after saving.
+    /// Accepts true/false values. Defaults to false if not present.
+    /// </summary>
+    public const string BulkUploadShouldPublish = "bulkUploadShouldPublish";
+
+    /// <summary>
     /// Gets all reserved column names that should be excluded from property mapping.
     /// </summary>
     public static readonly HashSet<string> All = new(StringComparer.OrdinalIgnoreCase)
     {
         BulkUploadLegacyId,
-        BulkUploadLegacyParentId
+        BulkUploadLegacyParentId,
+        BulkUploadShouldPublish
     };
 
     /// <summary>

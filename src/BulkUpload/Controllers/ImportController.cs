@@ -171,7 +171,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                     var results = new List<ContentImportResult>();
                     foreach (var importObject in sortedImportObjects)
                     {
-                        var result = _importUtilityService.ImportSingleItem(importObject);
+                        var result = _importUtilityService.ImportSingleItem(importObject, importObject.ShouldPublish);
                         results.Add(result);
                     }
 
