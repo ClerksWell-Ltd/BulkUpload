@@ -13,18 +13,26 @@ It currently just works with Umbraco 13, but we are looking at releasing it for 
 ## Features
 
 - **Content Import:** Upload CSV files or ZIP files (CSV + media) to create or update Umbraco content nodes with embedded images.
+- **Multi-CSV Support:** Import multiple CSV files in a single ZIP upload with automatic media deduplication and cross-file hierarchy management.
 - **Media Import:** Upload ZIP files containing CSV metadata and media files (images, documents, videos) for bulk media creation, or CSV-only for URL-based media.
+- **Legacy Hierarchy Mapping:** Preserve parent-child relationships from legacy CMS systems across multiple CSV files using `bulkUploadLegacyId` and `bulkUploadLegacyParentId` columns.
 - **Custom Mapping:** Supports mapping CSV columns to Umbraco content properties, including complex types.
 - **Content Type Support:** Import data for different content types by specifying aliases and parent nodes.
 - **Extensible Resolvers:** Includes a set of resolvers for handling various property types (e.g., text, dates, media, block lists, ZIP files).
-- **Export Results:** Download CSV files containing IDs of imported content and media items for tracking and subsequent imports.
+- **Export Results:** Download CSV files containing IDs of imported content and media items for tracking and subsequent imports. Multi-CSV imports generate separate result files per source CSV.
 - **Error Handling & Logging:** Provides feedback and logging for import operations to help diagnose issues.
 
 ## How It Works
 
-1. Prepare your CSV file with columns matching your Umbraco content type properties.
-2. Use the BulkUpload interface to upload your CSV.
-3. The package parses each row, maps data to content properties, and creates or updates nodes in Umbraco.
+1. Prepare one or more CSV files with columns matching your Umbraco content type properties.
+2. Package your CSV file(s) in a ZIP file (optionally with media files).
+3. Use the BulkUpload interface to upload your ZIP file.
+4. The package processes all CSVs together, handling:
+   - **Media deduplication** - Same media file referenced in multiple CSVs is created only once
+   - **Hierarchy sorting** - Parent-child relationships work across CSV files using topological sort
+   - **Legacy ID mapping** - Cross-file parent references using `bulkUploadLegacyParentId`
+5. Data is mapped to content properties, and nodes are created or updated in the correct dependency order.
+6. Download results as a single CSV (one file) or ZIP with separate CSVs per source file.
 
 ## Installation
 
@@ -101,10 +109,16 @@ Create a ZIP with this CSV and the media files (`hero-red-widget.jpg`, `hero-blu
 ### Media Import
 
 The package supports bulk importing media files (images, documents, videos, etc.) from multiple sources:
-- **ZIP file** (traditional approach) - Upload a ZIP containing both CSV metadata and media files
-- **CSV file only** (new) - Upload just a CSV when all media comes from external sources
+- **ZIP file with single CSV** - Upload a ZIP containing one CSV metadata file and media files
+- **ZIP file with multiple CSVs** - Upload multiple CSV files in one ZIP for organized imports with automatic deduplication
+- **CSV file only** - Upload just a CSV when all media comes from external sources
 - **File paths** - Import from local or network file system paths
 - **URLs** - Download directly from HTTP/HTTPS URLs
+
+**Multi-CSV Benefits:**
+- Organize imports by category, department, or source system
+- Automatic deduplication: same media file referenced in multiple CSVs is created only once
+- Separate result files per source CSV for easy tracking
 
 Sample files:
 - <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-sample.csv?raw=true" download>Traditional media CSV (for use in ZIP)</a>

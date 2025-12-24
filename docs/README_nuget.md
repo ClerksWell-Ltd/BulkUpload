@@ -13,16 +13,23 @@ It currently just works with Umbraco 13, but we are looking at releasing it for 
 ## Features
 
 - **CSV Import:** Upload and process CSV files to create or update Umbraco content nodes.
+- **Multi-CSV Support:** Import multiple CSV files in a single ZIP upload with automatic deduplication and cross-file hierarchy management.
 - **Custom Mapping:** Supports mapping CSV columns to Umbraco content properties, including complex types.
 - **Content Type Support:** Import data for different content types by specifying aliases and parent nodes.
+- **Legacy Hierarchy Mapping:** Preserve parent-child relationships from legacy CMS systems across multiple CSV files.
+- **Media Import:** Bulk import media files with automatic deduplication across all CSV files.
 - **Extensible Resolvers:** Includes a set of resolvers for handling various property types (e.g., text, dates, media, block lists).
 - **Error Handling & Logging:** Provides feedback and logging for import operations to help diagnose issues.
+- **Separate Results Export:** When importing multiple CSVs, results are exported as separate files for easy tracking.
 
 ## How It Works
 
-1. Prepare your CSV file with columns matching your Umbraco content type properties.
-2. Use the BulkUpload interface to upload your CSV.
-3. The package parses each row, maps data to content properties, and creates or updates nodes in Umbraco.
+1. Prepare one or more CSV files with columns matching your Umbraco content type properties.
+2. Package your CSV file(s) in a ZIP file (optionally with media files for media imports).
+3. Use the BulkUpload interface to upload your ZIP file.
+4. The package processes all CSVs together, handling media deduplication and hierarchy sorting across all files.
+5. Data is mapped to content properties, and nodes are created or updated in the correct dependency order.
+6. Download results as a single CSV (one file) or ZIP (multiple files) with detailed import status.
 
 ## Installation
 

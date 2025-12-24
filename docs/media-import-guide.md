@@ -1,14 +1,27 @@
 # Media Import Guide
 
-The Bulk Upload package now supports importing media files (images, documents, videos, etc.) in bulk using a ZIP file containing both a CSV metadata file and the actual media files.
+The Bulk Upload package supports importing media files (images, documents, videos, etc.) in bulk using a ZIP file containing CSV metadata files and the actual media files.
+
+## Multi-CSV Support
+
+You can include **multiple CSV files** in a single ZIP upload. This enables you to:
+- Organize imports by category, department, or source system
+- Process large batches in logical groups
+- Maintain separate metadata files while ensuring media deduplication across all files
+
+When multiple CSV files are included, the system:
+1. **Processes all CSV files together** - All media references from all CSVs are gathered first
+2. **Deduplicates media across all files** - If `image.jpg` appears in multiple CSVs, it's created only once
+3. **Creates media items** - All unique media items are created before any content processing
+4. **Exports results per CSV** - Each source CSV gets its own results file in a ZIP
 
 ## How It Works
 
 1. **Prepare your media files** - Collect all images, PDFs, videos, or other files you want to import
-2. **Create a CSV file** - Define metadata for each media item (see format below)
-3. **Create a ZIP file** - Package the CSV and all media files together
+2. **Create one or more CSV files** - Define metadata for each media item (see format below)
+3. **Create a ZIP file** - Package the CSV(s) and all media files together
 4. **Upload via dashboard** - Use the "Media Import" tab in the Bulk Upload dashboard
-5. **Download results** - After import, download a CSV with IDs of created media items
+5. **Download results** - After import, download results (single CSV or ZIP with multiple CSVs)
 
 ## CSV Format
 
@@ -63,6 +76,8 @@ See `docs/bulk-upload-media-sample.csv` for a complete example.
 
 ## Creating the ZIP File
 
+### Single CSV Import
+
 Your ZIP file structure should look like this:
 
 ```
@@ -76,11 +91,32 @@ media-import.zip
 └── logo.svg
 ```
 
+### Multiple CSV Import
+
+When using multiple CSV files, organize your ZIP like this:
+
+```
+media-import.zip
+├── marketing-images.csv        # First CSV with marketing media
+├── product-images.csv          # Second CSV with product media
+├── documents.csv               # Third CSV with documents
+├── marketing/
+│   ├── banner-homepage.png
+│   └── hero-campaign.jpg
+├── products/
+│   ├── product-hero.jpg
+│   └── product-thumbnail.jpg
+└── docs/
+    ├── user-manual.pdf
+    └── brochure.pdf
+```
+
 **Important Notes:**
-- The ZIP must contain exactly one CSV file
-- All files referenced in the CSV's `fileName` column must exist in the ZIP
+- The ZIP can contain one or more CSV files
+- All files referenced in any CSV's `fileName` column must exist in the ZIP
 - Files can be in subdirectories within the ZIP
-- The CSV filename can be anything ending in `.csv`
+- CSV filenames can be anything ending in `.csv`
+- **Deduplication:** If the same filename appears in multiple CSVs, the media is created only once and reused
 
 ## Finding Parent IDs
 
@@ -96,9 +132,11 @@ Alternatively, use `-1` to import to the root of the Media section.
 ## Import Results
 
 After import completes, you'll see:
-- **Total Count**: Number of media items in CSV
+- **Total Count**: Number of media items across all CSVs
 - **Success Count**: Number successfully imported
 - **Failure Count**: Number that failed
+
+### Single CSV Results
 
 Click "Download Results CSV" to get a detailed report. The report includes:
 - **BulkUpload result columns**: Status, IDs, and error information
@@ -131,6 +169,51 @@ hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890a
 ```
 
 The report preserves your original column names (including resolver syntax like `tags|stringArray`) and values, making it easy to correlate results with your source data.
+
+### Multiple CSV Results
+
+When you upload a ZIP with multiple CSV files, the results download as a ZIP file containing:
+- **Separate CSV files** - One result file per source CSV with the naming pattern: `{source-csv-name}-import-results.csv`
+- **Same format** - Each result CSV has the same structure as single CSV results
+- **Source tracking** - A `SourceCsvFileName` column identifies which original CSV the row came from
+
+**Example:** Upload `media-import.zip` containing:
+- `marketing-images.csv` (10 items)
+- `product-images.csv` (15 items)
+- `documents.csv` (5 items)
+
+**Download:** `media-import-import-results.zip` containing:
+- `marketing-images-import-results.csv` (10 rows)
+- `product-images-import-results.csv` (15 rows)
+- `documents-import-results.csv` (5 rows)
+
+This separation makes it easy to:
+- Review results for each source separately
+- Share results with different teams or departments
+- Re-import only failed items from a specific source
+- Track which original CSV each media item came from
+
+### Media Deduplication Across CSVs
+
+**Important:** When the same media file is referenced in multiple CSV files:
+
+1. **Created once** - The media item is created only the first time it's encountered
+2. **Same GUID for all** - All CSVs referencing that file receive the same `bulkUploadMediaGuid` and `bulkUploadMediaUdi`
+3. **No duplicates** - This prevents duplicate media items in your Media library
+
+**Example:** Both `marketing-images.csv` and `product-images.csv` reference `logo.jpg`:
+
+```csv
+# marketing-images-import-results.csv
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,SourceCsvFileName
+logo.jpg,true,abc123-def456-...,marketing-images.csv
+
+# product-images-import-results.csv
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,SourceCsvFileName
+logo.jpg,true,abc123-def456-...,product-images.csv
+```
+
+Both rows show `bulkUploadSuccess=true` and the **same GUID**, confirming the media was created once and reused.
 
 ## Using Imported Media IDs
 
@@ -182,3 +265,44 @@ Available resolvers:
 - `stringArray` - Comma-separated values converted to array
 - `objectToJson` - Complex JSON objects
 - And more (see main documentation)
+
+## Technical Details: Processing Order
+
+Understanding the processing order is important when working with multiple CSV files:
+
+### 1. Gather Phase
+- **All CSV files** are read into memory
+- Records from all CSVs are collected with source tracking
+- No media or content is created yet
+
+### 2. Media Preprocessing Phase
+- **All media references** from all CSVs are extracted together
+- Deduplication happens using a case-insensitive dictionary
+- Each unique media reference is created **only once**
+- Media GUIDs are cached for later use
+
+### 3. Content Creation Phase (if applicable)
+- Import objects are created from all CSV records
+- Hierarchy is validated and sorted across all CSVs
+- Content items are created in dependency order (parents before children)
+
+This "gather-first" approach ensures:
+- **No duplicate media** across CSV files
+- **Correct parent-child relationships** even when split across files
+- **Efficient processing** with a single pass through all data
+- **Global consistency** in hierarchy and media references
+
+### Media Cache Behavior
+
+The media item cache (`MediaItemCache`):
+- Uses case-insensitive comparison for file paths and URLs
+- Is cleared at the start of each import to ensure fresh state
+- Persists across all CSVs within a single import operation
+- Maps original references to Umbraco media GUIDs
+
+**Example:**
+```
+CSV1: image.jpg → First encounter → Creates media → Cache: "image.jpg" → Guid(ABC)
+CSV2: image.jpg → Found in cache → Reuses Guid(ABC) → No creation
+CSV3: IMAGE.JPG → Case-insensitive match → Reuses Guid(ABC) → No creation
+```
