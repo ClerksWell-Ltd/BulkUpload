@@ -159,8 +159,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
 
             // Step 2: Preprocess media items from all CSV files to avoid duplicates
             _logger.LogDebug("Preprocessing media items from all CSV records across {CsvCount} file(s)", csvFilePaths.Count);
-            var allRecords = allRecordsWithSource.Select(r => r.record).ToList();
-            var allMediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(allRecords, tempDirectory);
+            var allMediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(allRecordsWithSource, tempDirectory);
 
             // Step 3: Create all ImportObjects from all CSV records with source tracking
             var allImportObjects = new List<ImportObject>();
@@ -354,23 +353,70 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 return BadRequest("No results to export.");
             }
 
-            var csv = new StringBuilder();
-            csv.AppendLine("key,value");
+            // Group results by source CSV file
+            var groupedResults = results
+                .GroupBy(r => r.SourceCsvFileName ?? "unknown.csv")
+                .OrderBy(g => g.Key)
+                .ToList();
 
-            foreach (var result in results)
+            // If only one source file, return a single CSV
+            if (groupedResults.Count == 1)
             {
-                var escapedKey = result.Key?.Replace("\"", "\"\"") ?? "";
-                csv.AppendLine($"\"{escapedKey}\",\"{result.Value}\"");
+                var singleCsv = GenerateCsvForMediaResults(groupedResults[0].ToList());
+                var bytes = Encoding.UTF8.GetBytes(singleCsv);
+                var fileName = Path.GetFileNameWithoutExtension(groupedResults[0].Key);
+                return File(bytes, "text/csv", $"{fileName}-media-import-results.csv");
             }
 
-            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-            return File(bytes, "text/csv", "media-preprocessing-results.csv");
+            // Multiple source files - create a ZIP with separate CSV files
+            using var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            {
+                foreach (var group in groupedResults)
+                {
+                    var csvContent = GenerateCsvForMediaResults(group.ToList());
+                    var fileName = Path.GetFileNameWithoutExtension(group.Key);
+                    var zipEntryName = $"{fileName}-media-import-results.csv";
+
+                    var zipEntry = archive.CreateEntry(zipEntryName, CompressionLevel.Optimal);
+                    using var zipEntryStream = zipEntry.Open();
+                    using var writer = new StreamWriter(zipEntryStream, Encoding.UTF8);
+                    writer.Write(csvContent);
+                }
+            }
+
+            memoryStream.Position = 0;
+            return File(memoryStream.ToArray(), "application/zip", "media-import-results.zip");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Bulk Upload: Error exporting media preprocessing results");
             return BadRequest("Error exporting media preprocessing results.");
         }
+    }
+
+    /// <summary>
+    /// Generates CSV content for media preprocessing results
+    /// </summary>
+    private string GenerateCsvForMediaResults(List<MediaPreprocessingResult> results)
+    {
+        var csv = new StringBuilder();
+
+        // Build header with user-requested column names
+        csv.AppendLine("bulkUploadMediaGuid,bulkUploadFileName,bulkUploadStatus,bulkUploadErrorMessage");
+
+        // Build each row
+        foreach (var result in results)
+        {
+            var mediaGuid = result.Value?.ToString() ?? "";
+            var fileName = (result.FileName?.Replace("\"", "\"\"") ?? "");
+            var status = result.Success ? "Success" : "Failed";
+            var errorMessage = (result.ErrorMessage?.Replace("\"", "\"\"") ?? "");
+
+            csv.AppendLine($"\"{mediaGuid}\",\"{fileName}\",\"{status}\",\"{errorMessage}\"");
+        }
+
+        return csv.ToString();
     }
 
     /// <summary>

@@ -61,15 +61,15 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     /// Preprocesses media items from CSV records.
     /// Extracts all unique media references, creates them, and caches them.
     /// </summary>
-    /// <param name="csvRecords">CSV records to extract media references from</param>
+    /// <param name="csvRecordsWithSource">CSV records with their source filenames to extract media references from</param>
     /// <param name="zipExtractDirectory">Optional directory where ZIP was extracted (for zipFileToMedia resolver)</param>
     /// <returns>List of media preprocessing results containing cache keys and values</returns>
-    public List<MediaPreprocessingResult> PreprocessMediaItems(List<dynamic> csvRecords, string? zipExtractDirectory = null)
+    public List<MediaPreprocessingResult> PreprocessMediaItems(List<(dynamic record, string sourceFileName)> csvRecordsWithSource, string? zipExtractDirectory = null)
     {
-        _logger.LogInformation("Starting media preprocessing for {Count} CSV records", csvRecords.Count);
+        _logger.LogInformation("Starting media preprocessing for {Count} CSV records", csvRecordsWithSource.Count);
 
         // Extract all unique media references
-        var mediaReferences = ExtractMediaReferences(csvRecords, zipExtractDirectory);
+        var mediaReferences = ExtractMediaReferences(csvRecordsWithSource, zipExtractDirectory);
 
         _logger.LogInformation("Found {Count} unique media references to create", mediaReferences.Count);
 
@@ -100,7 +100,9 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                     {
                         Key = mediaRef.OriginalValue,
                         Value = mediaGuid,
-                        Success = true
+                        Success = true,
+                        FileName = mediaRef.FileName,
+                        SourceCsvFileName = mediaRef.SourceCsvFileName
                     });
                 }
                 else
@@ -113,7 +115,9 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                         Key = mediaRef.OriginalValue,
                         Value = null,
                         Success = false,
-                        ErrorMessage = "Failed to create media item"
+                        ErrorMessage = "Failed to create media item",
+                        FileName = mediaRef.FileName,
+                        SourceCsvFileName = mediaRef.SourceCsvFileName
                     });
                 }
             }
@@ -127,7 +131,9 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                     Key = mediaRef.OriginalValue,
                     Value = null,
                     Success = false,
-                    ErrorMessage = ex.Message
+                    ErrorMessage = ex.Message,
+                    FileName = mediaRef.FileName,
+                    SourceCsvFileName = mediaRef.SourceCsvFileName
                 });
             }
         }
@@ -141,11 +147,11 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     /// <summary>
     /// Extracts all unique media references from CSV records.
     /// </summary>
-    private List<MediaReference> ExtractMediaReferences(List<dynamic> csvRecords, string? zipExtractDirectory)
+    private List<MediaReference> ExtractMediaReferences(List<(dynamic record, string sourceFileName)> csvRecordsWithSource, string? zipExtractDirectory)
     {
         var mediaReferences = new Dictionary<string, MediaReference>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var record in csvRecords)
+        foreach (var (record, sourceFileName) in csvRecordsWithSource)
         {
             var dynamicProperties = (IDictionary<string, object>)record;
 
@@ -201,11 +207,31 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                         _ => MediaReferenceType.Path // Default to Path for unknown
                     };
 
+                    // Extract filename from the original value
+                    string? fileName = null;
+                    try
+                    {
+                        if (refType == MediaReferenceType.Url && Uri.TryCreate(mediaValue, UriKind.Absolute, out var uri))
+                        {
+                            fileName = Path.GetFileName(uri.LocalPath);
+                        }
+                        else
+                        {
+                            fileName = Path.GetFileName(mediaValue);
+                        }
+                    }
+                    catch
+                    {
+                        fileName = mediaValue; // Fallback to original value if extraction fails
+                    }
+
                     mediaReferences[mediaValue] = new MediaReference
                     {
                         OriginalValue = mediaValue,
                         Type = refType,
-                        Parent = parent
+                        Parent = parent,
+                        FileName = fileName,
+                        SourceCsvFileName = sourceFileName
                     };
                 }
             }
@@ -496,6 +522,8 @@ internal class MediaReference
     public required string OriginalValue { get; set; }
     public required MediaReferenceType Type { get; set; }
     public string? Parent { get; set; }
+    public string? FileName { get; set; }
+    public string? SourceCsvFileName { get; set; }
 }
 
 /// <summary>
