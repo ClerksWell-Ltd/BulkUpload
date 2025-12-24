@@ -91,13 +91,23 @@ public class ImportUtilityService : IImportUtilityService
             legacyParentId = legacyParentIdValue?.ToString();
         }
 
+        // Extract bulkUploadShouldPublish flag (defaults to false if not present)
+        bool shouldPublish = false;
+        if (dynamicProperties.TryGetValue(ReservedColumns.BulkUploadShouldPublish, out object? shouldPublishValue))
+        {
+            var shouldPublishStr = shouldPublishValue?.ToString()?.Trim().ToLowerInvariant();
+            // Support various true values: "true", "yes", "1"
+            shouldPublish = shouldPublishStr == "true" || shouldPublishStr == "yes" || shouldPublishStr == "1";
+        }
+
         ImportObject importObject = new ImportObject()
         {
             ContentTypeAlais = docTypeAlias,
             Name = name,
             Parent = parent,
             LegacyId = legacyId,
-            LegacyParentId = legacyParentId
+            LegacyParentId = legacyParentId,
+            ShouldPublish = shouldPublish
         };
 
         foreach (var property in dynamicProperties)

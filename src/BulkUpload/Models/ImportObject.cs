@@ -31,6 +31,13 @@ public class ImportObject
     public string? LegacyParentId { get; set; }
 
     /// <summary>
+    /// Indicates whether the content item should be published after saving.
+    /// Defaults to false if not specified in the CSV.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public bool ShouldPublish { get; set; } = false;
+
+    /// <summary>
     /// Original CSV row data with column names including resolver syntax (e.g., "tags|stringArray")
     /// </summary>
     public Dictionary<string, string>? OriginalCsvData { get; set; }
