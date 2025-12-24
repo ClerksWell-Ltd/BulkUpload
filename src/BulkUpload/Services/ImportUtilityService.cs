@@ -185,7 +185,8 @@ public class ImportUtilityService : IImportUtilityService
                         BulkUploadSuccess = false,
                         BulkUploadErrorMessage = $"Content with GUID {importObject.BulkUploadContentGuid.Value} not found",
                         BulkUploadLegacyId = importObject.LegacyId,
-                        OriginalCsvData = importObject.OriginalCsvData
+                        OriginalCsvData = importObject.OriginalCsvData,
+                        SourceCsvFileName = importObject.SourceCsvFileName
                     };
                 }
 
@@ -218,7 +219,8 @@ public class ImportUtilityService : IImportUtilityService
                                 BulkUploadSuccess = false,
                                 BulkUploadErrorMessage = $"Parent with GUID {newParentGuid} not found",
                                 BulkUploadLegacyId = importObject.LegacyId,
-                                OriginalCsvData = importObject.OriginalCsvData
+                                OriginalCsvData = importObject.OriginalCsvData,
+                                SourceCsvFileName = importObject.SourceCsvFileName
                             };
                         }
                         newParentId = newParentContent.Id;
@@ -256,7 +258,8 @@ public class ImportUtilityService : IImportUtilityService
                             BulkUploadSuccess = false,
                             BulkUploadErrorMessage = $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache. The parent must be created before this item.",
                             BulkUploadLegacyId = importObject.LegacyId,
-                            OriginalCsvData = importObject.OriginalCsvData
+                            OriginalCsvData = importObject.OriginalCsvData,
+                            SourceCsvFileName = importObject.SourceCsvFileName
                         };
                     }
                 }
@@ -288,7 +291,8 @@ public class ImportUtilityService : IImportUtilityService
                                 BulkUploadSuccess = false,
                                 BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found",
                                 BulkUploadLegacyId = importObject.LegacyId,
-                                OriginalCsvData = importObject.OriginalCsvData
+                                OriginalCsvData = importObject.OriginalCsvData,
+                                SourceCsvFileName = importObject.SourceCsvFileName
                             };
                         }
                         queryParentId = parentContent.Id;
@@ -306,7 +310,8 @@ public class ImportUtilityService : IImportUtilityService
                         BulkUploadSuccess = false,
                         BulkUploadErrorMessage = "Invalid parent type resolved",
                         BulkUploadLegacyId = importObject.LegacyId,
-                        OriginalCsvData = importObject.OriginalCsvData
+                        OriginalCsvData = importObject.OriginalCsvData,
+                        SourceCsvFileName = importObject.SourceCsvFileName
                     };
                 }
 
@@ -340,7 +345,8 @@ public class ImportUtilityService : IImportUtilityService
                             BulkUploadSuccess = false,
                             BulkUploadErrorMessage = "Invalid parent type for content creation",
                             BulkUploadLegacyId = importObject.LegacyId,
-                            OriginalCsvData = importObject.OriginalCsvData
+                            OriginalCsvData = importObject.OriginalCsvData,
+                            SourceCsvFileName = importObject.SourceCsvFileName
                         };
                     }
                 }
@@ -397,7 +403,8 @@ public class ImportUtilityService : IImportUtilityService
                 BulkUploadContentGuid = contentItem.Key,
                 BulkUploadParentGuid = bulkUploadParentGuid,
                 BulkUploadLegacyId = importObject.LegacyId,
-                OriginalCsvData = importObject.OriginalCsvData
+                OriginalCsvData = importObject.OriginalCsvData,
+                SourceCsvFileName = importObject.SourceCsvFileName
             };
         }
         catch (Exception ex)
@@ -409,7 +416,8 @@ public class ImportUtilityService : IImportUtilityService
                 BulkUploadSuccess = false,
                 BulkUploadErrorMessage = ex.Message,
                 BulkUploadLegacyId = importObject.LegacyId,
-                OriginalCsvData = importObject.OriginalCsvData
+                OriginalCsvData = importObject.OriginalCsvData,
+                SourceCsvFileName = importObject.SourceCsvFileName
             };
         }
     }

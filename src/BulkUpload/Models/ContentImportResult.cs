@@ -13,4 +13,9 @@ public class ContentImportResult
     /// Original CSV row data with column names including resolver syntax (e.g., "tags|stringArray")
     /// </summary>
     public Dictionary<string, string>? OriginalCsvData { get; set; }
+
+    /// <summary>
+    /// Source CSV filename (without path) that this record came from
+    /// </summary>
+    public string? SourceCsvFileName { get; set; }
 }

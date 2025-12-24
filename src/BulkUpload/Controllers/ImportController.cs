@@ -128,11 +128,12 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 _logger.LogInformation("Bulk Upload: Processing CSV file (no media files in archive)");
             }
 
-            // Step 1: Read all CSV files and collect all records
-            var allRecords = new List<dynamic>();
+            // Step 1: Read all CSV files and collect all records with their source file
+            var allRecordsWithSource = new List<(dynamic record, string sourceFileName)>();
             foreach (var csvFilePath in csvFilePaths)
             {
-                _logger.LogInformation("Bulk Upload: Reading CSV file: {CsvFile}", Path.GetFileName(csvFilePath));
+                var sourceFileName = Path.GetFileName(csvFilePath);
+                _logger.LogInformation("Bulk Upload: Reading CSV file: {CsvFile}", sourceFileName);
 
                 using (var reader = new StreamReader(csvFilePath))
                 using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -142,15 +143,15 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 {
                     await foreach (var record in csv.GetRecordsAsync<dynamic>())
                     {
-                        allRecords.Add(record);
+                        allRecordsWithSource.Add((record, sourceFileName));
                     }
                 }
 
-                _logger.LogInformation("Bulk Upload: Read {RecordCount} records from {CsvFile}",
-                    allRecords.Count, Path.GetFileName(csvFilePath));
+                _logger.LogInformation("Bulk Upload: Read {RecordCount} total records so far (current file: {CsvFile})",
+                    allRecordsWithSource.Count, sourceFileName);
             }
 
-            if (!allRecords.Any())
+            if (!allRecordsWithSource.Any())
             {
                 _logger.LogInformation("Bulk Upload: No valid records found in any CSV file");
                 return Ok(new { totalCount = 0, successCount = 0, failureCount = 0, results = new List<ContentImportResult>() });
@@ -158,14 +159,16 @@ public class BulkUploadController : UmbracoAuthorizedApiController
 
             // Step 2: Preprocess media items from all CSV files to avoid duplicates
             _logger.LogDebug("Preprocessing media items from all CSV records across {CsvCount} file(s)", csvFilePaths.Count);
+            var allRecords = allRecordsWithSource.Select(r => r.record).ToList();
             var allMediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(allRecords, tempDirectory);
 
-            // Step 3: Create all ImportObjects from all CSV records
+            // Step 3: Create all ImportObjects from all CSV records with source tracking
             var allImportObjects = new List<ImportObject>();
-            foreach (var item in allRecords)
+            foreach (var (record, sourceFileName) in allRecordsWithSource)
             {
-                ImportObject importObject = _importUtilityService.CreateImportObject(item);
-                importObject.OriginalCsvData = ConvertCsvRecordToDictionary(item);
+                ImportObject importObject = _importUtilityService.CreateImportObject(record);
+                importObject.OriginalCsvData = ConvertCsvRecordToDictionary(record);
+                importObject.SourceCsvFileName = sourceFileName;
                 if (importObject.CanImport)
                 {
                     allImportObjects.Add(importObject);
@@ -233,72 +236,112 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 return BadRequest("No results to export.");
             }
 
-            // Collect all unique original column names from all results (preserving order from first occurrence)
-            var originalColumns = new List<string>();
-            foreach (var result in results)
+            // Group results by source CSV file
+            var groupedResults = results
+                .GroupBy(r => r.SourceCsvFileName ?? "unknown.csv")
+                .OrderBy(g => g.Key)
+                .ToList();
+
+            // If only one source file, return a single CSV
+            if (groupedResults.Count == 1)
             {
-                if (result.OriginalCsvData != null)
+                var singleCsv = GenerateCsvForResults(groupedResults[0].ToList());
+                var bytes = Encoding.UTF8.GetBytes(singleCsv);
+                var fileName = Path.GetFileNameWithoutExtension(groupedResults[0].Key);
+                return File(bytes, "text/csv", $"{fileName}-import-results.csv");
+            }
+
+            // Multiple source files - create a ZIP with separate CSV files
+            using var memoryStream = new MemoryStream();
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+            {
+                foreach (var group in groupedResults)
                 {
-                    foreach (var key in result.OriginalCsvData.Keys)
-                    {
-                        if (!originalColumns.Contains(key))
-                        {
-                            originalColumns.Add(key);
-                        }
-                    }
+                    var csvContent = GenerateCsvForResults(group.ToList());
+                    var fileName = Path.GetFileNameWithoutExtension(group.Key);
+                    var zipEntryName = $"{fileName}-import-results.csv";
+
+                    var zipEntry = archive.CreateEntry(zipEntryName, CompressionLevel.Optimal);
+                    using var zipEntryStream = zipEntry.Open();
+                    using var writer = new StreamWriter(zipEntryStream, Encoding.UTF8);
+                    writer.Write(csvContent);
                 }
             }
 
-            var csv = new StringBuilder();
-
-            // Build header: BulkUpload columns + original columns
-            var headerParts = new List<string>
-            {
-                "bulkUploadContentName",
-                "bulkUploadSuccess",
-                "bulkUploadContentGuid",
-                "bulkUploadParentGuid",
-                "bulkUploadErrorMessage",
-                "bulkUploadLegacyId"
-            };
-            headerParts.AddRange(originalColumns);
-            csv.AppendLine(string.Join(",", headerParts));
-
-            // Build each row: BulkUpload values + original values
-            foreach (var result in results)
-            {
-                var rowParts = new List<string>();
-
-                // BulkUpload columns
-                rowParts.Add($"\"{result.BulkUploadContentName}\"");
-                rowParts.Add(result.BulkUploadSuccess.ToString());
-                rowParts.Add($"\"{result.BulkUploadContentGuid}\"");
-                rowParts.Add($"\"{result.BulkUploadParentGuid}\"");
-                rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
-                rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
-
-                // Original CSV columns
-                foreach (var columnName in originalColumns)
-                {
-                    string value = "";
-                    if (result.OriginalCsvData != null && result.OriginalCsvData.TryGetValue(columnName, out var csvValue))
-                    {
-                        value = csvValue?.Replace("\"", "\"\"") ?? "";
-                    }
-                    rowParts.Add($"\"{value}\"");
-                }
-
-                csv.AppendLine(string.Join(",", rowParts));
-            }
-
-            var bytes = Encoding.UTF8.GetBytes(csv.ToString());
-            return File(bytes, "text/csv", "content-import-results.csv");
+            memoryStream.Position = 0;
+            return File(memoryStream.ToArray(), "application/zip", "content-import-results.zip");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Bulk Upload: Error exporting results");
             return BadRequest("Error exporting results.");
         }
+    }
+
+    /// <summary>
+    /// Generates CSV content for a list of results
+    /// </summary>
+    private string GenerateCsvForResults(List<ContentImportResult> results)
+    {
+        // Collect all unique original column names from results (preserving order from first occurrence)
+        var originalColumns = new List<string>();
+        foreach (var result in results)
+        {
+            if (result.OriginalCsvData != null)
+            {
+                foreach (var key in result.OriginalCsvData.Keys)
+                {
+                    if (!originalColumns.Contains(key))
+                    {
+                        originalColumns.Add(key);
+                    }
+                }
+            }
+        }
+
+        var csv = new StringBuilder();
+
+        // Build header: BulkUpload columns + original columns
+        var headerParts = new List<string>
+        {
+            "bulkUploadContentName",
+            "bulkUploadSuccess",
+            "bulkUploadContentGuid",
+            "bulkUploadParentGuid",
+            "bulkUploadErrorMessage",
+            "bulkUploadLegacyId"
+        };
+        headerParts.AddRange(originalColumns);
+        csv.AppendLine(string.Join(",", headerParts));
+
+        // Build each row: BulkUpload values + original values
+        foreach (var result in results)
+        {
+            var rowParts = new List<string>();
+
+            // BulkUpload columns
+            rowParts.Add($"\"{result.BulkUploadContentName}\"");
+            rowParts.Add(result.BulkUploadSuccess.ToString());
+            rowParts.Add($"\"{result.BulkUploadContentGuid}\"");
+            rowParts.Add($"\"{result.BulkUploadParentGuid}\"");
+            rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
+            rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
+
+            // Original CSV columns
+            foreach (var columnName in originalColumns)
+            {
+                string value = "";
+                if (result.OriginalCsvData != null && result.OriginalCsvData.TryGetValue(columnName, out var csvValue))
+                {
+                    value = csvValue?.Replace("\"", "\"\"") ?? "";
+                }
+                rowParts.Add($"\"{value}\"");
+            }
+
+            csv.AppendLine(string.Join(",", rowParts));
+        }
+
+        return csv.ToString();
     }
 
     [HttpPost]
