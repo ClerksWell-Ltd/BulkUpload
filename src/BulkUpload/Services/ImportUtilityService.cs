@@ -279,11 +279,11 @@ public class ImportUtilityService : IImportUtilityService
             // Cache the created content GUID for legacy hierarchy resolution
             if (!string.IsNullOrWhiteSpace(importObject.LegacyId))
             {
-                var contentGuid = contentItem.Key;
-                if (_legacyIdCache.TryAdd(importObject.LegacyId, contentGuid))
+                var bulkUploadContentGuid = contentItem.Key;
+                if (_legacyIdCache.TryAdd(importObject.LegacyId, bulkUploadContentGuid))
                 {
                     _logger.LogDebug("Cached legacy ID '{LegacyId}' → Umbraco GUID {Guid}",
-                        importObject.LegacyId, contentGuid);
+                        importObject.LegacyId, bulkUploadContentGuid);
                 }
                 else
                 {
