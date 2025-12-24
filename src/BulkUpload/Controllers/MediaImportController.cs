@@ -142,7 +142,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                     BulkUploadFileName = importObject.FileName,
                                     BulkUploadSuccess = false,
                                     BulkUploadErrorMessage = "Invalid import object: Missing required fields",
-                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                    OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                 });
                                 continue;
                             }
@@ -165,7 +166,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                                 BulkUploadFileName = filePath,
                                                 BulkUploadSuccess = false,
                                                 BulkUploadErrorMessage = "Access to this file path is not allowed for security reasons",
-                                                BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                                BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                                OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                             });
                                             continue;
                                         }
@@ -177,7 +179,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                                 BulkUploadFileName = filePath,
                                                 BulkUploadSuccess = false,
                                                 BulkUploadErrorMessage = $"File not found at path: {filePath}",
-                                                BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                                BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                                OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                             });
                                             _logger.LogWarning("Bulk Upload Media: File not found at path: {FilePath}", filePath);
                                             continue;
@@ -199,7 +202,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                                     BulkUploadFileName = url,
                                                     BulkUploadSuccess = false,
                                                     BulkUploadErrorMessage = "Access to this URL is not allowed for security reasons",
-                                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                                    OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                                 });
                                                 continue;
                                             }
@@ -233,7 +237,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                                     BulkUploadFileName = url,
                                                     BulkUploadSuccess = false,
                                                     BulkUploadErrorMessage = $"Failed to download from URL: {ex.Message}",
-                                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                                    OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                                 });
                                                 _logger.LogError(ex, "Bulk Upload Media: Failed to download from URL: {Url}", url);
                                                 continue;
@@ -252,7 +257,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                         BulkUploadFileName = importObject.FileName,
                                         BulkUploadSuccess = false,
                                         BulkUploadErrorMessage = $"Media file '{importObject.FileName}' requires a source. For CSV-only uploads, use mediaSource|urlToStream (for URLs) or mediaSource|pathToStream (for file paths).",
-                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                        OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                     });
                                     _logger.LogWarning("Bulk Upload Media: CSV-only upload requires external source for file: {FileName}", importObject.FileName);
                                     continue;
@@ -267,7 +273,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                         BulkUploadFileName = importObject.FileName,
                                         BulkUploadSuccess = false,
                                         BulkUploadErrorMessage = $"File not found in ZIP archive: {importObject.FileName}",
-                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId
+                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                        OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                     });
                                     _logger.LogWarning("Bulk Upload Media: File not found in ZIP: {FileName}", importObject.FileName);
                                     continue;
@@ -285,6 +292,7 @@ public class MediaImportController : UmbracoAuthorizedApiController
 
                             // Import the media item
                             var result = _mediaImportService.ImportSingleMediaItem(importObject, fileStream);
+                            result.OriginalCsvData = ConvertCsvRecordToDictionary(item);
                             results.Add(result);
                         }
                         catch (Exception ex)
@@ -311,7 +319,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                 BulkUploadFileName = "Unknown",
                                 BulkUploadSuccess = false,
                                 BulkUploadErrorMessage = ex.Message,
-                                BulkUploadLegacyId = legacyId
+                                BulkUploadLegacyId = legacyId,
+                                OriginalCsvData = ConvertCsvRecordToDictionary(item)
                             });
                         }
                         finally
@@ -369,14 +378,62 @@ public class MediaImportController : UmbracoAuthorizedApiController
                 return BadRequest("No results to export.");
             }
 
-            var csv = new StringBuilder();
-            csv.AppendLine("bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId");
-
+            // Collect all unique original column names from all results (preserving order from first occurrence)
+            var originalColumns = new List<string>();
             foreach (var result in results)
             {
-                var escapedErrorMessage = result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "";
-                var escapedLegacyId = result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "";
-                csv.AppendLine($"\"{result.BulkUploadFileName}\",{result.BulkUploadSuccess},\"{result.BulkUploadMediaGuid}\",\"{result.BulkUploadMediaUdi}\",\"{escapedErrorMessage}\",\"{escapedLegacyId}\"");
+                if (result.OriginalCsvData != null)
+                {
+                    foreach (var key in result.OriginalCsvData.Keys)
+                    {
+                        if (!originalColumns.Contains(key))
+                        {
+                            originalColumns.Add(key);
+                        }
+                    }
+                }
+            }
+
+            var csv = new StringBuilder();
+
+            // Build header: BulkUpload columns + original columns
+            var headerParts = new List<string>
+            {
+                "bulkUploadFileName",
+                "bulkUploadSuccess",
+                "bulkUploadMediaGuid",
+                "bulkUploadMediaUdi",
+                "bulkUploadErrorMessage",
+                "bulkUploadLegacyId"
+            };
+            headerParts.AddRange(originalColumns);
+            csv.AppendLine(string.Join(",", headerParts));
+
+            // Build each row: BulkUpload values + original values
+            foreach (var result in results)
+            {
+                var rowParts = new List<string>();
+
+                // BulkUpload columns
+                rowParts.Add($"\"{result.BulkUploadFileName}\"");
+                rowParts.Add(result.BulkUploadSuccess.ToString());
+                rowParts.Add($"\"{result.BulkUploadMediaGuid}\"");
+                rowParts.Add($"\"{result.BulkUploadMediaUdi}\"");
+                rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
+                rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
+
+                // Original CSV columns
+                foreach (var columnName in originalColumns)
+                {
+                    string value = "";
+                    if (result.OriginalCsvData != null && result.OriginalCsvData.TryGetValue(columnName, out var csvValue))
+                    {
+                        value = csvValue?.Replace("\"", "\"\"") ?? "";
+                    }
+                    rowParts.Add($"\"{value}\"");
+                }
+
+                csv.AppendLine(string.Join(",", rowParts));
             }
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
@@ -474,5 +531,22 @@ public class MediaImportController : UmbracoAuthorizedApiController
             _logger.LogWarning(ex, "Bulk Upload Media: Invalid file path: {Path}", path);
             return false;
         }
+    }
+
+    /// <summary>
+    /// Converts a dynamic CSV record to a dictionary preserving column names with resolver syntax
+    /// </summary>
+    private Dictionary<string, string> ConvertCsvRecordToDictionary(dynamic record)
+    {
+        var dictionary = new Dictionary<string, string>();
+        var recordDict = (IDictionary<string, object>)record;
+
+        foreach (var kvp in recordDict)
+        {
+            // Store the value as a string, handling nulls
+            dictionary[kvp.Key] = kvp.Value?.ToString() ?? "";
+        }
+
+        return dictionary;
     }
 }
