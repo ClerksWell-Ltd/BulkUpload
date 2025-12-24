@@ -293,11 +293,11 @@ public class ImportUtilityService : IImportUtilityService
             }
 
             // Get parent GUID if content has a parent
-            Guid? parentGuid = null;
+            Guid? bulkUploadParentGuid = null;
             if (contentItem.ParentId != Constants.System.Root)
             {
                 var parentContent = _contentService.GetById(contentItem.ParentId);
-                parentGuid = parentContent?.Key;
+                bulkUploadParentGuid = parentContent?.Key;
             }
 
             // Return success result
@@ -306,7 +306,7 @@ public class ImportUtilityService : IImportUtilityService
                 BulkUploadContentName = importObject.Name,
                 BulkUploadSuccess = true,
                 BulkUploadContentGuid = contentItem.Key,
-                BulkUploadParentGuid = parentGuid,
+                BulkUploadParentGuid = bulkUploadParentGuid,
                 BulkUploadLegacyId = importObject.LegacyId,
                 OriginalCsvData = importObject.OriginalCsvData
             };
