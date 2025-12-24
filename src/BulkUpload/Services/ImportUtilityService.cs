@@ -292,13 +292,21 @@ public class ImportUtilityService : IImportUtilityService
                 }
             }
 
+            // Get parent GUID if content has a parent
+            Guid? parentGuid = null;
+            if (contentItem.ParentId != Constants.System.Root)
+            {
+                var parentContent = _contentService.GetById(contentItem.ParentId);
+                parentGuid = parentContent?.Key;
+            }
+
             // Return success result
             return new ContentImportResult
             {
                 BulkUploadContentName = importObject.Name,
                 BulkUploadSuccess = true,
                 BulkUploadContentGuid = contentItem.Key,
-                BulkUploadContentUdi = Udi.Create(Constants.UdiEntityType.Document, contentItem.Key).ToString(),
+                BulkUploadParentGuid = parentGuid,
                 BulkUploadLegacyId = importObject.LegacyId,
                 OriginalCsvData = importObject.OriginalCsvData
             };
