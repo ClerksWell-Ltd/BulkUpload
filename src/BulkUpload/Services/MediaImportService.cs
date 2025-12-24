@@ -187,7 +187,7 @@ public class MediaImportService : IMediaImportService
     {
         var result = new MediaImportResult
         {
-            FileName = importObject.FileName,
+            BulkUploadFileName = importObject.FileName,
             BulkUploadSuccess = false,
             BulkUploadLegacyId = importObject.BulkUploadLegacyId
         };

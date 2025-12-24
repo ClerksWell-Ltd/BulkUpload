@@ -103,7 +103,7 @@ After import completes, you'll see:
 Click "Download Results CSV" to get a detailed report with:
 
 ```csv
-fileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId
 product-hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123
 product-error.jpg,false,,,File not found in ZIP archive: product-error.jpg,old-124
 ```

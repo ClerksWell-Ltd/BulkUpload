@@ -201,7 +201,7 @@ public class MediaImportControllerTests
             .Setup(s => s.CreateMediaImportObject(It.IsAny<object>()))
             .Returns(new MediaImportObject
             {
-                FileName = "test.jpg",
+                BulkUploadFileName = "test.jpg",
                 Parent = "123"
             });
 
@@ -264,7 +264,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
+                BulkUploadFileName = "test.jpg",
                 BulkUploadSuccess = true,
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",
@@ -289,7 +289,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
+                BulkUploadFileName = "test.jpg",
                 BulkUploadSuccess = true,
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",
@@ -303,7 +303,7 @@ public class MediaImportControllerTests
         // Assert
         var fileResult = Assert.IsType<FileContentResult>(result);
         var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
-        Assert.Contains("fileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId", csvContent);
+        Assert.Contains("bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId", csvContent);
     }
 
     [Fact]
@@ -315,7 +315,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
+                BulkUploadFileName = "test.jpg",
                 Success = true,
                 MediaId = 123,
                 MediaGuid = guid,
@@ -342,7 +342,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test1.jpg",
+                BulkUploadFileName = "test1.jpg",
                 BulkUploadSuccess = true,
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",
@@ -350,7 +350,7 @@ public class MediaImportControllerTests
             },
             new MediaImportResult
             {
-                FileName = "test2.jpg",
+                BulkUploadFileName = "test2.jpg",
                 BulkUploadSuccess = false,
                 BulkUploadMediaGuid = null,
                 BulkUploadMediaUdi = null,
@@ -377,7 +377,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test,with,commas.jpg",
+                BulkUploadFileName = "test,with,commas.jpg",
                 BulkUploadSuccess = false,
                 BulkUploadMediaGuid = null,
                 BulkUploadMediaUdi = null,
@@ -402,7 +402,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
+                BulkUploadFileName = "test.jpg",
                 BulkUploadSuccess = true,
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",
@@ -428,7 +428,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
+                BulkUploadFileName = "test.jpg",
                 BulkUploadSuccess = true,
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",
@@ -453,7 +453,7 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
+                BulkUploadFileName = "test.jpg",
                 BulkUploadSuccess = true,
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",

@@ -10,11 +10,11 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg"
+            BulkUploadFileName = "test.jpg"
         };
 
         // Assert
-        Assert.Equal("test.jpg", result.FileName);
+        Assert.Equal("test.jpg", result.BulkUploadFileName);
     }
 
     [Fact]
@@ -23,7 +23,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg"
+            BulkUploadFileName = "test.jpg"
         };
 
         // Assert
@@ -36,7 +36,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadSuccess = true
         };
 
@@ -50,7 +50,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadMediaGuid = null
         };
 
@@ -67,7 +67,7 @@ public class MediaImportResultTests
         // Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadMediaGuid = guid
         };
 
@@ -81,7 +81,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadMediaUdi = null
         };
 
@@ -95,7 +95,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadMediaUdi = "umb://media/1234567890abcdef1234567890abcdef"
         };
 
@@ -109,7 +109,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadErrorMessage = null
         };
 
@@ -123,7 +123,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadErrorMessage = "File not found"
         };
 
@@ -140,7 +140,7 @@ public class MediaImportResultTests
         // Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadSuccess = true,
             BulkUploadMediaGuid = guid,
             BulkUploadMediaUdi = $"umb://media/{guid:N}",
@@ -148,7 +148,7 @@ public class MediaImportResultTests
         };
 
         // Assert
-        Assert.Equal("test.jpg", result.FileName);
+        Assert.Equal("test.jpg", result.BulkUploadFileName);
         Assert.True(result.BulkUploadSuccess);
         Assert.Equal(guid, result.BulkUploadMediaGuid);
         Assert.Equal($"umb://media/{guid:N}", result.BulkUploadMediaUdi);
@@ -161,7 +161,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadSuccess = false,
             BulkUploadMediaGuid = null,
             BulkUploadMediaUdi = null,
@@ -169,7 +169,7 @@ public class MediaImportResultTests
         };
 
         // Assert
-        Assert.Equal("test.jpg", result.FileName);
+        Assert.Equal("test.jpg", result.BulkUploadFileName);
         Assert.False(result.BulkUploadSuccess);
         Assert.Null(result.BulkUploadMediaGuid);
         Assert.Null(result.BulkUploadMediaUdi);
@@ -182,7 +182,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadLegacyId = null
         };
 
@@ -196,7 +196,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadLegacyId = "legacy-123"
         };
 
