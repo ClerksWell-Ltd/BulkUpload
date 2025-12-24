@@ -153,10 +153,11 @@ public class ImportUtilityService : IImportUtilityService
                 {
                     return new ContentImportResult
                     {
-                        ContentName = importObject.Name,
-                        Success = false,
-                        ErrorMessage = $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache. The parent must be created before this item.",
-                        BulkUploadLegacyId = importObject.LegacyId
+                        BulkUploadContentName = importObject.Name,
+                        BulkUploadSuccess = false,
+                        BulkUploadErrorMessage = $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache. The parent must be created before this item.",
+                        BulkUploadLegacyId = importObject.LegacyId,
+                        OriginalCsvData = importObject.OriginalCsvData
                     };
                 }
             }
@@ -184,10 +185,11 @@ public class ImportUtilityService : IImportUtilityService
                     {
                         return new ContentImportResult
                         {
-                            ContentName = importObject.Name,
-                            Success = false,
-                            ErrorMessage = $"Parent with GUID {parentGuid} not found",
-                            BulkUploadLegacyId = importObject.LegacyId
+                            BulkUploadContentName = importObject.Name,
+                            BulkUploadSuccess = false,
+                            BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found",
+                            BulkUploadLegacyId = importObject.LegacyId,
+                            OriginalCsvData = importObject.OriginalCsvData
                         };
                     }
                     queryParentId = parentContent.Id;
@@ -201,10 +203,11 @@ public class ImportUtilityService : IImportUtilityService
             {
                 return new ContentImportResult
                 {
-                    ContentName = importObject.Name,
-                    Success = false,
-                    ErrorMessage = "Invalid parent type resolved",
-                    BulkUploadLegacyId = importObject.LegacyId
+                    BulkUploadContentName = importObject.Name,
+                    BulkUploadSuccess = false,
+                    BulkUploadErrorMessage = "Invalid parent type resolved",
+                    BulkUploadLegacyId = importObject.LegacyId,
+                    OriginalCsvData = importObject.OriginalCsvData
                 };
             }
 
@@ -235,10 +238,11 @@ public class ImportUtilityService : IImportUtilityService
                 {
                     return new ContentImportResult
                     {
-                        ContentName = importObject.Name,
-                        Success = false,
-                        ErrorMessage = "Invalid parent type for content creation",
-                        BulkUploadLegacyId = importObject.LegacyId
+                        BulkUploadContentName = importObject.Name,
+                        BulkUploadSuccess = false,
+                        BulkUploadErrorMessage = "Invalid parent type for content creation",
+                        BulkUploadLegacyId = importObject.LegacyId,
+                        OriginalCsvData = importObject.OriginalCsvData
                     };
                 }
             }
@@ -281,12 +285,12 @@ public class ImportUtilityService : IImportUtilityService
             // Return success result
             return new ContentImportResult
             {
-                ContentName = importObject.Name,
-                Success = true,
-                ContentId = contentItem.Id,
-                ContentGuid = contentItem.Key,
-                ContentUdi = Udi.Create(Constants.UdiEntityType.Document, contentItem.Key).ToString(),
-                BulkUploadLegacyId = importObject.LegacyId
+                BulkUploadContentName = importObject.Name,
+                BulkUploadSuccess = true,
+                BulkUploadContentGuid = contentItem.Key,
+                BulkUploadContentUdi = Udi.Create(Constants.UdiEntityType.Document, contentItem.Key).ToString(),
+                BulkUploadLegacyId = importObject.LegacyId,
+                OriginalCsvData = importObject.OriginalCsvData
             };
         }
         catch (Exception ex)
@@ -294,10 +298,11 @@ public class ImportUtilityService : IImportUtilityService
             _logger.LogError(ex, "Error importing content item '{Name}'", importObject.Name);
             return new ContentImportResult
             {
-                ContentName = importObject.Name,
-                Success = false,
-                ErrorMessage = ex.Message,
-                BulkUploadLegacyId = importObject.LegacyId
+                BulkUploadContentName = importObject.Name,
+                BulkUploadSuccess = false,
+                BulkUploadErrorMessage = ex.Message,
+                BulkUploadLegacyId = importObject.LegacyId,
+                OriginalCsvData = importObject.OriginalCsvData
             };
         }
     }

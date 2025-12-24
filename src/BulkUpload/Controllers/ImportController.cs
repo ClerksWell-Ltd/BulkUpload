@@ -156,6 +156,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                     foreach (var item in records)
                     {
                         ImportObject importObject = _importUtilityService.CreateImportObject(item);
+                        importObject.OriginalCsvData = ConvertCsvRecordToDictionary(item);
                         if (importObject.CanImport)
                         {
                             importObjects.Add(importObject);
@@ -174,8 +175,8 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                         results.Add(result);
                     }
 
-                    var successCount = results.Count(r => r.Success);
-                    var failureCount = results.Count(r => !r.Success);
+                    var successCount = results.Count(r => r.BulkUploadSuccess);
+                    var failureCount = results.Count(r => !r.BulkUploadSuccess);
 
                     _logger.LogInformation("Bulk Upload: Processed {Total} records - {Success} successful, {Failed} failed",
                         results.Count, successCount, failureCount);
@@ -226,14 +227,62 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 return BadRequest("No results to export.");
             }
 
-            var csv = new StringBuilder();
-            csv.AppendLine("contentName,success,contentId,contentGuid,contentUdi,errorMessage,bulkUploadLegacyId");
-
+            // Collect all unique original column names from all results (preserving order from first occurrence)
+            var originalColumns = new List<string>();
             foreach (var result in results)
             {
-                var escapedErrorMessage = result.ErrorMessage?.Replace("\"", "\"\"") ?? "";
-                var escapedLegacyId = result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "";
-                csv.AppendLine($"\"{result.ContentName}\",{result.Success},{result.ContentId ?? 0},\"{result.ContentGuid}\",\"{result.ContentUdi}\",\"{escapedErrorMessage}\",\"{escapedLegacyId}\"");
+                if (result.OriginalCsvData != null)
+                {
+                    foreach (var key in result.OriginalCsvData.Keys)
+                    {
+                        if (!originalColumns.Contains(key))
+                        {
+                            originalColumns.Add(key);
+                        }
+                    }
+                }
+            }
+
+            var csv = new StringBuilder();
+
+            // Build header: BulkUpload columns + original columns
+            var headerParts = new List<string>
+            {
+                "bulkUploadContentName",
+                "bulkUploadSuccess",
+                "bulkUploadContentGuid",
+                "bulkUploadContentUdi",
+                "bulkUploadErrorMessage",
+                "bulkUploadLegacyId"
+            };
+            headerParts.AddRange(originalColumns);
+            csv.AppendLine(string.Join(",", headerParts));
+
+            // Build each row: BulkUpload values + original values
+            foreach (var result in results)
+            {
+                var rowParts = new List<string>();
+
+                // BulkUpload columns
+                rowParts.Add($"\"{result.BulkUploadContentName}\"");
+                rowParts.Add(result.BulkUploadSuccess.ToString());
+                rowParts.Add($"\"{result.BulkUploadContentGuid}\"");
+                rowParts.Add($"\"{result.BulkUploadContentUdi}\"");
+                rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
+                rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
+
+                // Original CSV columns
+                foreach (var columnName in originalColumns)
+                {
+                    string value = "";
+                    if (result.OriginalCsvData != null && result.OriginalCsvData.TryGetValue(columnName, out var csvValue))
+                    {
+                        value = csvValue?.Replace("\"", "\"\"") ?? "";
+                    }
+                    rowParts.Add($"\"{value}\"");
+                }
+
+                csv.AppendLine(string.Join(",", rowParts));
             }
 
             var bytes = Encoding.UTF8.GetBytes(csv.ToString());
@@ -273,5 +322,22 @@ public class BulkUploadController : UmbracoAuthorizedApiController
             _logger.LogError(ex, "Bulk Upload: Error exporting media preprocessing results");
             return BadRequest("Error exporting media preprocessing results.");
         }
+    }
+
+    /// <summary>
+    /// Converts a dynamic CSV record to a dictionary preserving column names with resolver syntax
+    /// </summary>
+    private Dictionary<string, string> ConvertCsvRecordToDictionary(dynamic record)
+    {
+        var dictionary = new Dictionary<string, string>();
+        var recordDict = (IDictionary<string, object>)record;
+
+        foreach (var kvp in recordDict)
+        {
+            // Store the value as a string, handling nulls
+            dictionary[kvp.Key] = kvp.Value?.ToString() ?? "";
+        }
+
+        return dictionary;
     }
 }
