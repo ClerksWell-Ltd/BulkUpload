@@ -10,84 +10,56 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg"
+            BulkUploadFileName = "test.jpg"
         };
 
         // Assert
-        Assert.Equal("test.jpg", result.FileName);
+        Assert.Equal("test.jpg", result.BulkUploadFileName);
     }
 
     [Fact]
-    public void Success_DefaultsToFalse()
+    public void BulkUploadSuccess_DefaultsToFalse()
     {
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg"
+            BulkUploadFileName = "test.jpg"
         };
 
         // Assert
-        Assert.False(result.Success);
+        Assert.False(result.BulkUploadSuccess);
     }
 
     [Fact]
-    public void Success_CanBeSetToTrue()
+    public void BulkUploadSuccess_CanBeSetToTrue()
     {
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            Success = true
+            BulkUploadFileName = "test.jpg",
+            BulkUploadSuccess = true
         };
 
         // Assert
-        Assert.True(result.Success);
+        Assert.True(result.BulkUploadSuccess);
     }
 
     [Fact]
-    public void MediaId_CanBeNull()
+    public void BulkUploadMediaGuid_CanBeNull()
     {
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            MediaId = null
+            BulkUploadFileName = "test.jpg",
+            BulkUploadMediaGuid = null
         };
 
         // Assert
-        Assert.Null(result.MediaId);
+        Assert.Null(result.BulkUploadMediaGuid);
     }
 
     [Fact]
-    public void MediaId_CanBeSet()
-    {
-        // Arrange & Act
-        var result = new MediaImportResult
-        {
-            FileName = "test.jpg",
-            MediaId = 123
-        };
-
-        // Assert
-        Assert.Equal(123, result.MediaId);
-    }
-
-    [Fact]
-    public void MediaGuid_CanBeNull()
-    {
-        // Arrange & Act
-        var result = new MediaImportResult
-        {
-            FileName = "test.jpg",
-            MediaGuid = null
-        };
-
-        // Assert
-        Assert.Null(result.MediaGuid);
-    }
-
-    [Fact]
-    public void MediaGuid_CanBeSet()
+    public void BulkUploadMediaGuid_CanBeSet()
     {
         // Arrange
         var guid = Guid.NewGuid();
@@ -95,68 +67,68 @@ public class MediaImportResultTests
         // Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            MediaGuid = guid
+            BulkUploadFileName = "test.jpg",
+            BulkUploadMediaGuid = guid
         };
 
         // Assert
-        Assert.Equal(guid, result.MediaGuid);
+        Assert.Equal(guid, result.BulkUploadMediaGuid);
     }
 
     [Fact]
-    public void MediaUdi_CanBeNull()
+    public void BulkUploadMediaUdi_CanBeNull()
     {
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            MediaUdi = null
+            BulkUploadFileName = "test.jpg",
+            BulkUploadMediaUdi = null
         };
 
         // Assert
-        Assert.Null(result.MediaUdi);
+        Assert.Null(result.BulkUploadMediaUdi);
     }
 
     [Fact]
-    public void MediaUdi_CanBeSet()
+    public void BulkUploadMediaUdi_CanBeSet()
     {
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            MediaUdi = "umb://media/1234567890abcdef1234567890abcdef"
+            BulkUploadFileName = "test.jpg",
+            BulkUploadMediaUdi = "umb://media/1234567890abcdef1234567890abcdef"
         };
 
         // Assert
-        Assert.Equal("umb://media/1234567890abcdef1234567890abcdef", result.MediaUdi);
+        Assert.Equal("umb://media/1234567890abcdef1234567890abcdef", result.BulkUploadMediaUdi);
     }
 
     [Fact]
-    public void ErrorMessage_CanBeNull()
+    public void BulkUploadErrorMessage_CanBeNull()
     {
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            ErrorMessage = null
+            BulkUploadFileName = "test.jpg",
+            BulkUploadErrorMessage = null
         };
 
         // Assert
-        Assert.Null(result.ErrorMessage);
+        Assert.Null(result.BulkUploadErrorMessage);
     }
 
     [Fact]
-    public void ErrorMessage_CanBeSet()
+    public void BulkUploadErrorMessage_CanBeSet()
     {
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            ErrorMessage = "File not found"
+            BulkUploadFileName = "test.jpg",
+            BulkUploadErrorMessage = "File not found"
         };
 
         // Assert
-        Assert.Equal("File not found", result.ErrorMessage);
+        Assert.Equal("File not found", result.BulkUploadErrorMessage);
     }
 
     [Fact]
@@ -168,21 +140,19 @@ public class MediaImportResultTests
         // Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            Success = true,
-            MediaId = 123,
-            MediaGuid = guid,
-            MediaUdi = $"umb://media/{guid:N}",
-            ErrorMessage = null
+            BulkUploadFileName = "test.jpg",
+            BulkUploadSuccess = true,
+            BulkUploadMediaGuid = guid,
+            BulkUploadMediaUdi = $"umb://media/{guid:N}",
+            BulkUploadErrorMessage = null
         };
 
         // Assert
-        Assert.Equal("test.jpg", result.FileName);
-        Assert.True(result.Success);
-        Assert.Equal(123, result.MediaId);
-        Assert.Equal(guid, result.MediaGuid);
-        Assert.Equal($"umb://media/{guid:N}", result.MediaUdi);
-        Assert.Null(result.ErrorMessage);
+        Assert.Equal("test.jpg", result.BulkUploadFileName);
+        Assert.True(result.BulkUploadSuccess);
+        Assert.Equal(guid, result.BulkUploadMediaGuid);
+        Assert.Equal($"umb://media/{guid:N}", result.BulkUploadMediaUdi);
+        Assert.Null(result.BulkUploadErrorMessage);
     }
 
     [Fact]
@@ -191,21 +161,19 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
-            Success = false,
-            MediaId = null,
-            MediaGuid = null,
-            MediaUdi = null,
-            ErrorMessage = "Media type not found"
+            BulkUploadFileName = "test.jpg",
+            BulkUploadSuccess = false,
+            BulkUploadMediaGuid = null,
+            BulkUploadMediaUdi = null,
+            BulkUploadErrorMessage = "Media type not found"
         };
 
         // Assert
-        Assert.Equal("test.jpg", result.FileName);
-        Assert.False(result.Success);
-        Assert.Null(result.MediaId);
-        Assert.Null(result.MediaGuid);
-        Assert.Null(result.MediaUdi);
-        Assert.Equal("Media type not found", result.ErrorMessage);
+        Assert.Equal("test.jpg", result.BulkUploadFileName);
+        Assert.False(result.BulkUploadSuccess);
+        Assert.Null(result.BulkUploadMediaGuid);
+        Assert.Null(result.BulkUploadMediaUdi);
+        Assert.Equal("Media type not found", result.BulkUploadErrorMessage);
     }
 
     [Fact]
@@ -214,7 +182,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadLegacyId = null
         };
 
@@ -228,7 +196,7 @@ public class MediaImportResultTests
         // Arrange & Act
         var result = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadLegacyId = "legacy-123"
         };
 

@@ -187,8 +187,8 @@ public class MediaImportService : IMediaImportService
     {
         var result = new MediaImportResult
         {
-            FileName = importObject.FileName,
-            Success = false,
+            BulkUploadFileName = importObject.FileName,
+            BulkUploadSuccess = false,
             BulkUploadLegacyId = importObject.BulkUploadLegacyId
         };
 
@@ -196,7 +196,7 @@ public class MediaImportService : IMediaImportService
         {
             if (!importObject.CanImport)
             {
-                result.ErrorMessage = "Invalid import object: Missing required fields (fileName or parent)";
+                result.BulkUploadErrorMessage = "Invalid import object: Missing required fields (fileName or parent)";
                 return result;
             }
 
@@ -216,7 +216,7 @@ public class MediaImportService : IMediaImportService
             var mediaType = _mediaTypeService.Get(mediaTypeAlias);
             if (mediaType == null)
             {
-                result.ErrorMessage = $"Media type '{mediaTypeAlias}' not found";
+                result.BulkUploadErrorMessage = $"Media type '{mediaTypeAlias}' not found";
                 return result;
             }
 
@@ -234,7 +234,7 @@ public class MediaImportService : IMediaImportService
                     var parentMedia = _mediaService.GetById(parentGuid);
                     if (parentMedia == null)
                     {
-                        result.ErrorMessage = $"Parent with GUID {parentGuid} not found";
+                        result.BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found";
                         return result;
                     }
                     queryParentId = parentMedia.Id;
@@ -246,7 +246,7 @@ public class MediaImportService : IMediaImportService
             }
             else
             {
-                result.ErrorMessage = "Invalid parent type resolved";
+                result.BulkUploadErrorMessage = "Invalid parent type resolved";
                 return result;
             }
 
@@ -275,7 +275,7 @@ public class MediaImportService : IMediaImportService
                 }
                 else
                 {
-                    result.ErrorMessage = "Invalid parent type for media creation";
+                    result.BulkUploadErrorMessage = "Invalid parent type for media creation";
                     return result;
                 }
                 _logger.LogInformation("Creating new media: {Name}", importObject.DisplayName);
@@ -294,7 +294,7 @@ public class MediaImportService : IMediaImportService
             }
             else
             {
-                result.ErrorMessage = "File stream is null or empty";
+                result.BulkUploadErrorMessage = "File stream is null or empty";
                 return result;
             }
 
@@ -319,21 +319,20 @@ public class MediaImportService : IMediaImportService
 
             if (saveResult.Success)
             {
-                result.Success = true;
-                result.MediaId = mediaItem.Id;
-                result.MediaGuid = mediaItem.Key;
-                result.MediaUdi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key).ToString();
+                result.BulkUploadSuccess = true;
+                result.BulkUploadMediaGuid = mediaItem.Key;
+                result.BulkUploadMediaUdi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key).ToString();
                 _logger.LogInformation("Successfully imported media: {Name} (ID: {Id})", importObject.DisplayName, mediaItem.Id);
             }
             else
             {
-                result.ErrorMessage = "Failed to save media item";
+                result.BulkUploadErrorMessage = "Failed to save media item";
                 _logger.LogError("Failed to save media: {Name}", importObject.DisplayName);
             }
         }
         catch (Exception ex)
         {
-            result.ErrorMessage = ex.Message;
+            result.BulkUploadErrorMessage = ex.Message;
             _logger.LogError(ex, "Error importing media: {FileName}", importObject.FileName);
         }
 

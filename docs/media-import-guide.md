@@ -100,32 +100,46 @@ After import completes, you'll see:
 - **Success Count**: Number successfully imported
 - **Failure Count**: Number that failed
 
-Click "Download Results CSV" to get a detailed report with:
+Click "Download Results CSV" to get a detailed report. The report includes:
+- **BulkUpload result columns**: Status, IDs, and error information
+- **Original CSV columns**: All columns from your uploaded CSV with their original values (including resolver syntax in headers)
 
+Example with a simple input CSV:
 ```csv
-fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage,bulkUploadLegacyId
-product-hero.jpg,true,2001,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123
-product-error.jpg,false,0,,,File not found in ZIP archive: product-error.jpg,old-124
+fileName,parentId,name,bulkUploadLegacyId
+product-hero.jpg,1150,Product Hero,old-123
+product-error.jpg,1150,Product Error,old-124
 ```
 
-The `bulkUploadLegacyId` column in the results allows you to correlate the new Umbraco media items with their original identifiers from your legacy CMS or source system.
+Results in this report CSV:
+```csv
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId,fileName,parentId,name,bulkUploadLegacyId
+product-hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123,product-hero.jpg,1150,Product Hero,old-123
+product-error.jpg,false,,,File not found in ZIP archive: product-error.jpg,old-124,product-error.jpg,1150,Product Error,old-124
+```
+
+Example with custom properties and resolvers:
+```csv
+fileName,parentId,name,altText,tags|stringArray,bulkUploadLegacyId
+hero.jpg,1150,Hero Image,Alt text here,"tag1,tag2",old-123
+```
+
+Results in:
+```csv
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId,fileName,parentId,name,altText,tags|stringArray,bulkUploadLegacyId
+hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123,hero.jpg,1150,Hero Image,Alt text here,"tag1,tag2",old-123
+```
+
+The report preserves your original column names (including resolver syntax like `tags|stringArray`) and values, making it easy to correlate results with your source data.
 
 ## Using Imported Media IDs
 
-The results CSV provides three identifiers for each imported media item:
+The results CSV provides two identifiers for each imported media item:
 
-1. **mediaId** - Numeric ID (e.g., `2001`)
-2. **mediaGuid** - GUID (e.g., `a1b2c3d4-e5f6-7890-abcd-ef1234567890`)
-3. **mediaUdi** - UDI format (e.g., `umb://media/a1b2c3d4e5f67890abcdef1234567890`)
+1. **bulkUploadMediaGuid** - GUID (e.g., `a1b2c3d4-e5f6-7890-abcd-ef1234567890`)
+2. **bulkUploadMediaUdi** - UDI format (e.g., `umb://media/a1b2c3d4e5f67890abcdef1234567890`)
 
-You can use these in a subsequent content import CSV:
-
-```csv
-parentId,docTypeAlias,name,heroImage|mediaIdToMediaUdi
-1100,productPage,Red Widget,2001
-```
-
-Or reference by GUID:
+You can use these in a subsequent content import CSV by referencing the GUID:
 
 ```csv
 parentId,docTypeAlias,name,heroImage|guidToMediaUdi

@@ -114,9 +114,9 @@ public class MediaImportControllerTests
 
         var importResult = new MediaImportResult
         {
-            FileName = "test.jpg",
-            Success = false,
-            ErrorMessage = "File not found in ZIP archive: test.jpg"
+            BulkUploadFileName = "test.jpg",
+            BulkUploadSuccess = false,
+            BulkUploadErrorMessage = "File not found in ZIP archive: test.jpg"
         };
 
         _mockMediaImportService
@@ -264,12 +264,11 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = Guid.NewGuid(),
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null
+                BulkUploadFileName = "test.jpg",
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = Guid.NewGuid(),
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null
             }
         };
 
@@ -290,12 +289,11 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = Guid.NewGuid(),
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null
+                BulkUploadFileName = "test.jpg",
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = Guid.NewGuid(),
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null
             }
         };
 
@@ -305,7 +303,7 @@ public class MediaImportControllerTests
         // Assert
         var fileResult = Assert.IsType<FileContentResult>(result);
         var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
-        Assert.Contains("fileName,success,mediaId,mediaGuid,mediaUdi,errorMessage,bulkUploadLegacyId", csvContent);
+        Assert.Contains("bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId", csvContent);
     }
 
     [Fact]
@@ -317,12 +315,11 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = guid,
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null
+                BulkUploadFileName = "test.jpg",
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = guid,
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null
             }
         };
 
@@ -334,7 +331,6 @@ public class MediaImportControllerTests
         var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
         Assert.Contains("test.jpg", csvContent);
         Assert.Contains("True", csvContent);
-        Assert.Contains("123", csvContent);
     }
 
     [Fact]
@@ -345,21 +341,19 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test1.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = Guid.NewGuid(),
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null
+                BulkUploadFileName = "test1.jpg",
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = Guid.NewGuid(),
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null
             },
             new MediaImportResult
             {
-                FileName = "test2.jpg",
-                Success = false,
-                MediaId = null,
-                MediaGuid = null,
-                MediaUdi = null,
-                ErrorMessage = "File not found"
+                BulkUploadFileName = "test2.jpg",
+                BulkUploadSuccess = false,
+                BulkUploadMediaGuid = null,
+                BulkUploadMediaUdi = null,
+                BulkUploadErrorMessage = "File not found"
             }
         };
 
@@ -382,12 +376,11 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test,with,commas.jpg",
-                Success = false,
-                MediaId = null,
-                MediaGuid = null,
-                MediaUdi = null,
-                ErrorMessage = "Error with \"quotes\""
+                BulkUploadFileName = "test,with,commas.jpg",
+                BulkUploadSuccess = false,
+                BulkUploadMediaGuid = null,
+                BulkUploadMediaUdi = null,
+                BulkUploadErrorMessage = "Error with \"quotes\""
             }
         };
 
@@ -408,12 +401,11 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = Guid.NewGuid(),
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null,
+                BulkUploadFileName = "test.jpg",
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = Guid.NewGuid(),
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null,
                 BulkUploadLegacyId = "legacy-999"
             }
         };
@@ -435,12 +427,11 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = Guid.NewGuid(),
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null,
+                BulkUploadFileName = "test.jpg",
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = Guid.NewGuid(),
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null,
                 BulkUploadLegacyId = null
             }
         };
@@ -461,12 +452,11 @@ public class MediaImportControllerTests
         {
             new MediaImportResult
             {
-                FileName = "test.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = Guid.NewGuid(),
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null,
+                BulkUploadFileName = "test.jpg",
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = Guid.NewGuid(),
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null,
                 BulkUploadLegacyId = "legacy\"with\"quotes"
             }
         };

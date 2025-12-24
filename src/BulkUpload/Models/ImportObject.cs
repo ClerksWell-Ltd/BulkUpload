@@ -30,6 +30,11 @@ public class ImportObject
     /// </summary>
     public string? LegacyParentId { get; set; }
 
+    /// <summary>
+    /// Original CSV row data with column names including resolver syntax (e.g., "tags|stringArray")
+    /// </summary>
+    public Dictionary<string, string>? OriginalCsvData { get; set; }
+
     public bool CanImport => !string.IsNullOrWhiteSpace(Name)
         && !string.IsNullOrWhiteSpace(ContentTypeAlais);
 }

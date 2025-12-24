@@ -2,11 +2,15 @@ namespace Umbraco.Community.BulkUpload.Models;
 
 public class MediaImportResult
 {
-    public required string FileName { get; set; }
-    public bool Success { get; set; }
-    public int? MediaId { get; set; }
-    public Guid? MediaGuid { get; set; }
-    public string? MediaUdi { get; set; }
-    public string? ErrorMessage { get; set; }
+    public required string BulkUploadFileName { get; set; }
+    public bool BulkUploadSuccess { get; set; }
+    public Guid? BulkUploadMediaGuid { get; set; }
+    public string? BulkUploadMediaUdi { get; set; }
+    public string? BulkUploadErrorMessage { get; set; }
     public string? BulkUploadLegacyId { get; set; }
+
+    /// <summary>
+    /// Original CSV row data with column names including resolver syntax (e.g., "tags|stringArray")
+    /// </summary>
+    public Dictionary<string, string>? OriginalCsvData { get; set; }
 }
