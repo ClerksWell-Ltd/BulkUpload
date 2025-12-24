@@ -114,7 +114,7 @@ public class MediaImportControllerTests
 
         var importResult = new MediaImportResult
         {
-            FileName = "test.jpg",
+            BulkUploadFileName = "test.jpg",
             BulkUploadSuccess = false,
             BulkUploadErrorMessage = "File not found in ZIP archive: test.jpg"
         };
@@ -201,7 +201,7 @@ public class MediaImportControllerTests
             .Setup(s => s.CreateMediaImportObject(It.IsAny<object>()))
             .Returns(new MediaImportObject
             {
-                BulkUploadFileName = "test.jpg",
+                FileName = "test.jpg",
                 Parent = "123"
             });
 
@@ -316,11 +316,10 @@ public class MediaImportControllerTests
             new MediaImportResult
             {
                 BulkUploadFileName = "test.jpg",
-                Success = true,
-                MediaId = 123,
-                MediaGuid = guid,
-                MediaUdi = "umb://media/123",
-                ErrorMessage = null
+                BulkUploadSuccess = true,
+                BulkUploadMediaGuid = guid,
+                BulkUploadMediaUdi = "umb://media/123",
+                BulkUploadErrorMessage = null
             }
         };
 
