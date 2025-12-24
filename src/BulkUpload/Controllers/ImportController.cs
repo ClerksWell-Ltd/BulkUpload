@@ -128,14 +128,11 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 _logger.LogInformation("Bulk Upload: Processing CSV file (no media files in archive)");
             }
 
-            // Aggregate results from all CSV files
-            var allResults = new List<ContentImportResult>();
-            var allMediaPreprocessingResults = new List<MediaPreprocessingResult>();
-
-            // Process each CSV file
+            // Step 1: Read all CSV files and collect all records
+            var allRecords = new List<dynamic>();
             foreach (var csvFilePath in csvFilePaths)
             {
-                _logger.LogInformation("Bulk Upload: Processing CSV file: {CsvFile}", Path.GetFileName(csvFilePath));
+                _logger.LogInformation("Bulk Upload: Reading CSV file: {CsvFile}", Path.GetFileName(csvFilePath));
 
                 using (var reader = new StreamReader(csvFilePath))
                 using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -143,60 +140,52 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                     HasHeaderRecord = true,
                 }))
                 {
-                    var records = new List<dynamic>();
-
                     await foreach (var record in csv.GetRecordsAsync<dynamic>())
                     {
-                        records.Add(record);
+                        allRecords.Add(record);
                     }
+                }
 
-                    if (records != null && records.Any())
-                    {
-                        // Step 1: Preprocess media items to avoid duplicates
-                        _logger.LogDebug("Preprocessing media items from CSV records in {CsvFile}", Path.GetFileName(csvFilePath));
-                        var mediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(records, tempDirectory);
-                        allMediaPreprocessingResults.AddRange(mediaPreprocessingResults);
+                _logger.LogInformation("Bulk Upload: Read {RecordCount} records from {CsvFile}",
+                    allRecords.Count, Path.GetFileName(csvFilePath));
+            }
 
-                        // Step 2: Create all ImportObjects from CSV records
-                        var importObjects = new List<ImportObject>();
-                        foreach (var item in records)
-                        {
-                            ImportObject importObject = _importUtilityService.CreateImportObject(item);
-                            importObject.OriginalCsvData = ConvertCsvRecordToDictionary(item);
-                            if (importObject.CanImport)
-                            {
-                                importObjects.Add(importObject);
-                            }
-                        }
+            if (!allRecords.Any())
+            {
+                _logger.LogInformation("Bulk Upload: No valid records found in any CSV file");
+                return Ok(new { totalCount = 0, successCount = 0, failureCount = 0, results = new List<ContentImportResult>() });
+            }
 
-                        // Step 3: Validate and sort based on legacy hierarchy (if present)
-                        var sortedImportObjects = _hierarchyResolver.ValidateAndSort(importObjects);
-                        _logger.LogDebug("Sorted {Count} import objects for processing from {CsvFile}", sortedImportObjects.Count, Path.GetFileName(csvFilePath));
+            // Step 2: Preprocess media items from all CSV files to avoid duplicates
+            _logger.LogDebug("Preprocessing media items from all CSV records across {CsvCount} file(s)", csvFilePaths.Count);
+            var allMediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(allRecords, tempDirectory);
 
-                        // Step 4: Import in sorted order (parents before children) and collect results
-                        var results = new List<ContentImportResult>();
-                        foreach (var importObject in sortedImportObjects)
-                        {
-                            var result = _importUtilityService.ImportSingleItem(importObject, importObject.ShouldPublish);
-                            results.Add(result);
-                        }
-
-                        var successCount = results.Count(r => r.BulkUploadSuccess);
-                        var failureCount = results.Count(r => !r.BulkUploadSuccess);
-
-                        _logger.LogInformation("Bulk Upload: Processed {Total} records from {CsvFile} - {Success} successful, {Failed} failed",
-                            results.Count, Path.GetFileName(csvFilePath), successCount, failureCount);
-
-                        allResults.AddRange(results);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("Bulk Upload: No valid records found in {CsvFile}", Path.GetFileName(csvFilePath));
-                    }
+            // Step 3: Create all ImportObjects from all CSV records
+            var allImportObjects = new List<ImportObject>();
+            foreach (var item in allRecords)
+            {
+                ImportObject importObject = _importUtilityService.CreateImportObject(item);
+                importObject.OriginalCsvData = ConvertCsvRecordToDictionary(item);
+                if (importObject.CanImport)
+                {
+                    allImportObjects.Add(importObject);
                 }
             }
 
-            // Return aggregated results from all CSV files
+            // Step 4: Validate and sort ALL import objects across all CSV files based on legacy hierarchy
+            // This ensures parent-child relationships work correctly even when spread across different CSV files
+            var sortedImportObjects = _hierarchyResolver.ValidateAndSort(allImportObjects);
+            _logger.LogDebug("Sorted {Count} import objects for processing across {CsvCount} CSV file(s)",
+                sortedImportObjects.Count, csvFilePaths.Count);
+
+            // Step 5: Import in sorted order (parents before children) and collect results
+            var allResults = new List<ContentImportResult>();
+            foreach (var importObject in sortedImportObjects)
+            {
+                var result = _importUtilityService.ImportSingleItem(importObject, importObject.ShouldPublish);
+                allResults.Add(result);
+            }
+
             var totalSuccessCount = allResults.Count(r => r.BulkUploadSuccess);
             var totalFailureCount = allResults.Count(r => !r.BulkUploadSuccess);
 
