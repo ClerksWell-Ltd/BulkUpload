@@ -251,7 +251,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 "bulkUploadContentName",
                 "bulkUploadSuccess",
                 "bulkUploadContentGuid",
-                "bulkUploadContentUdi",
+                "bulkUploadParentGuid",
                 "bulkUploadErrorMessage",
                 "bulkUploadLegacyId"
             };
@@ -267,7 +267,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 rowParts.Add($"\"{result.BulkUploadContentName}\"");
                 rowParts.Add(result.BulkUploadSuccess.ToString());
                 rowParts.Add($"\"{result.BulkUploadContentGuid}\"");
-                rowParts.Add($"\"{result.BulkUploadContentUdi}\"");
+                rowParts.Add($"\"{result.BulkUploadParentGuid}\"");
                 rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
                 rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
 
