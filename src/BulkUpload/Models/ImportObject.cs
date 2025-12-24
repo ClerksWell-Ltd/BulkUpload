@@ -31,6 +31,20 @@ public class ImportObject
     public string? LegacyParentId { get; set; }
 
     /// <summary>
+    /// Optional: Umbraco content GUID for updating existing content.
+    /// When present, the import will update the existing content item instead of creating new.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public Guid? BulkUploadContentGuid { get; set; }
+
+    /// <summary>
+    /// Optional: Umbraco parent content GUID for moving content.
+    /// When present with BulkUploadContentGuid, the content will be moved to this parent.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public Guid? BulkUploadParentGuid { get; set; }
+
+    /// <summary>
     /// Indicates whether the content item should be published after saving.
     /// Defaults to false if not specified in the CSV.
     /// This is NOT persisted as a content property.

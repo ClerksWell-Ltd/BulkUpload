@@ -100,6 +100,28 @@ public class ImportUtilityService : IImportUtilityService
             shouldPublish = shouldPublishStr == "true" || shouldPublishStr == "yes" || shouldPublishStr == "1";
         }
 
+        // Extract bulkUploadContentGuid for updating existing content
+        Guid? bulkUploadContentGuid = null;
+        if (dynamicProperties.TryGetValue(ReservedColumns.BulkUploadContentGuid, out object? contentGuidValue))
+        {
+            var contentGuidStr = contentGuidValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(contentGuidStr) && Guid.TryParse(contentGuidStr, out var parsedContentGuid))
+            {
+                bulkUploadContentGuid = parsedContentGuid;
+            }
+        }
+
+        // Extract bulkUploadParentGuid for moving content
+        Guid? bulkUploadParentGuid = null;
+        if (dynamicProperties.TryGetValue(ReservedColumns.BulkUploadParentGuid, out object? parentGuidValue))
+        {
+            var parentGuidStr = parentGuidValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(parentGuidStr) && Guid.TryParse(parentGuidStr, out var parsedParentGuid))
+            {
+                bulkUploadParentGuid = parsedParentGuid;
+            }
+        }
+
         ImportObject importObject = new ImportObject()
         {
             ContentTypeAlais = docTypeAlias,
@@ -107,6 +129,8 @@ public class ImportUtilityService : IImportUtilityService
             Parent = parent,
             LegacyId = legacyId,
             LegacyParentId = legacyParentId,
+            BulkUploadContentGuid = bulkUploadContentGuid,
+            BulkUploadParentGuid = bulkUploadParentGuid,
             ShouldPublish = shouldPublish
         };
 
@@ -146,103 +170,133 @@ public class ImportUtilityService : IImportUtilityService
     {
         try
         {
-            // Resolve parent specification to content parent (GUID or int)
-            object parent;
+            IContent contentItem;
 
-            // Check if using legacy hierarchy mapping
-            if (!string.IsNullOrWhiteSpace(importObject.LegacyParentId))
+            // Check if this is an update operation (bulkUploadContentGuid is present)
+            if (importObject.BulkUploadContentGuid.HasValue)
             {
-                // Resolve parent from legacy ID cache
-                if (_legacyIdCache.TryGetGuid(importObject.LegacyParentId, out var legacyParentGuid))
-                {
-                    parent = legacyParentGuid;
-                    _logger.LogDebug("Resolved legacy parent ID '{LegacyParentId}' to GUID {Guid}",
-                        importObject.LegacyParentId, legacyParentGuid);
-                }
-                else
+                // Update mode: Get existing content by GUID
+                contentItem = _contentService.GetById(importObject.BulkUploadContentGuid.Value);
+                if (contentItem == null)
                 {
                     return new ContentImportResult
                     {
                         BulkUploadContentName = importObject.Name,
                         BulkUploadSuccess = false,
-                        BulkUploadErrorMessage = $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache. The parent must be created before this item.",
+                        BulkUploadErrorMessage = $"Content with GUID {importObject.BulkUploadContentGuid.Value} not found",
                         BulkUploadLegacyId = importObject.LegacyId,
                         OriginalCsvData = importObject.OriginalCsvData
                     };
                 }
+
+                _logger.LogDebug("Updating existing content with GUID {Guid}", importObject.BulkUploadContentGuid.Value);
+
+                // Update name if different
+                if (!string.IsNullOrWhiteSpace(importObject.Name) && contentItem.Name != importObject.Name)
+                {
+                    contentItem.Name = importObject.Name;
+                }
+
+                // Move to new parent if bulkUploadParentGuid is specified
+                if (importObject.BulkUploadParentGuid.HasValue)
+                {
+                    var newParentGuid = importObject.BulkUploadParentGuid.Value;
+                    int newParentId;
+
+                    if (newParentGuid == Guid.Empty)
+                    {
+                        newParentId = Constants.System.Root;
+                    }
+                    else
+                    {
+                        var newParentContent = _contentService.GetById(newParentGuid);
+                        if (newParentContent == null)
+                        {
+                            return new ContentImportResult
+                            {
+                                BulkUploadContentName = importObject.Name,
+                                BulkUploadSuccess = false,
+                                BulkUploadErrorMessage = $"Parent with GUID {newParentGuid} not found",
+                                BulkUploadLegacyId = importObject.LegacyId,
+                                OriginalCsvData = importObject.OriginalCsvData
+                            };
+                        }
+                        newParentId = newParentContent.Id;
+                    }
+
+                    // Move content to new parent if different
+                    if (contentItem.ParentId != newParentId)
+                    {
+                        _contentService.Move(contentItem, newParentId);
+                        _logger.LogDebug("Moved content '{Name}' to new parent {ParentId}", importObject.Name, newParentId);
+                    }
+                }
             }
             else
             {
-                // Use standard parent resolution
-                parent = ResolveParent(importObject.Parent);
-                _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
-                    importObject.Parent, parent.GetType().Name, parent);
-            }
+                // Create mode: Use existing logic
+                // Resolve parent specification to content parent (GUID or int)
+                object parent;
 
-            // Try to find an existing item under the same parent with the same name
-            // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
-            int queryParentId;
-            if (parent is Guid parentGuid)
-            {
-                if (parentGuid == Guid.Empty)
+                // Check if using legacy hierarchy mapping
+                if (!string.IsNullOrWhiteSpace(importObject.LegacyParentId))
                 {
-                    queryParentId = Constants.System.Root;
-                }
-                else
-                {
-                    var parentContent = _contentService.GetById(parentGuid);
-                    if (parentContent == null)
+                    // Resolve parent from legacy ID cache
+                    if (_legacyIdCache.TryGetGuid(importObject.LegacyParentId, out var legacyParentGuid))
+                    {
+                        parent = legacyParentGuid;
+                        _logger.LogDebug("Resolved legacy parent ID '{LegacyParentId}' to GUID {Guid}",
+                            importObject.LegacyParentId, legacyParentGuid);
+                    }
+                    else
                     {
                         return new ContentImportResult
                         {
                             BulkUploadContentName = importObject.Name,
                             BulkUploadSuccess = false,
-                            BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found",
+                            BulkUploadErrorMessage = $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache. The parent must be created before this item.",
                             BulkUploadLegacyId = importObject.LegacyId,
                             OriginalCsvData = importObject.OriginalCsvData
                         };
                     }
-                    queryParentId = parentContent.Id;
                 }
-            }
-            else if (parent is int parentId)
-            {
-                queryParentId = parentId;
-            }
-            else
-            {
-                return new ContentImportResult
+                else
                 {
-                    BulkUploadContentName = importObject.Name,
-                    BulkUploadSuccess = false,
-                    BulkUploadErrorMessage = "Invalid parent type resolved",
-                    BulkUploadLegacyId = importObject.LegacyId,
-                    OriginalCsvData = importObject.OriginalCsvData
-                };
-            }
-
-            var existingItem = _contentService
-                .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
-                .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
-
-            // Create or reuse existing item
-            IContent contentItem;
-            if (existingItem != null)
-            {
-                contentItem = existingItem;
-            }
-            else
-            {
-                // Use GUID-based or int-based Create depending on parent type
-                if (parent is Guid guid)
-                {
-                    contentItem = guid == Guid.Empty
-                        ? _contentService.Create(importObject!.Name, Constants.System.Root, importObject.ContentTypeAlais)
-                        : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
+                    // Use standard parent resolution
+                    parent = ResolveParent(importObject.Parent);
+                    _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
+                        importObject.Parent, parent.GetType().Name, parent);
                 }
-                else if (parent is int id)
+
+                // Try to find an existing item under the same parent with the same name
+                // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
+                int queryParentId;
+                if (parent is Guid parentGuid)
                 {
-                    contentItem = _contentService.Create(importObject!.Name, id, importObject.ContentTypeAlais);
+                    if (parentGuid == Guid.Empty)
+                    {
+                        queryParentId = Constants.System.Root;
+                    }
+                    else
+                    {
+                        var parentContent = _contentService.GetById(parentGuid);
+                        if (parentContent == null)
+                        {
+                            return new ContentImportResult
+                            {
+                                BulkUploadContentName = importObject.Name,
+                                BulkUploadSuccess = false,
+                                BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found",
+                                BulkUploadLegacyId = importObject.LegacyId,
+                                OriginalCsvData = importObject.OriginalCsvData
+                            };
+                        }
+                        queryParentId = parentContent.Id;
+                    }
+                }
+                else if (parent is int parentId)
+                {
+                    queryParentId = parentId;
                 }
                 else
                 {
@@ -250,10 +304,45 @@ public class ImportUtilityService : IImportUtilityService
                     {
                         BulkUploadContentName = importObject.Name,
                         BulkUploadSuccess = false,
-                        BulkUploadErrorMessage = "Invalid parent type for content creation",
+                        BulkUploadErrorMessage = "Invalid parent type resolved",
                         BulkUploadLegacyId = importObject.LegacyId,
                         OriginalCsvData = importObject.OriginalCsvData
                     };
+                }
+
+                var existingItem = _contentService
+                    .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
+                    .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
+
+                // Create or reuse existing item
+                if (existingItem != null)
+                {
+                    contentItem = existingItem;
+                }
+                else
+                {
+                    // Use GUID-based or int-based Create depending on parent type
+                    if (parent is Guid guid)
+                    {
+                        contentItem = guid == Guid.Empty
+                            ? _contentService.Create(importObject!.Name, Constants.System.Root, importObject.ContentTypeAlais)
+                            : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
+                    }
+                    else if (parent is int id)
+                    {
+                        contentItem = _contentService.Create(importObject!.Name, id, importObject.ContentTypeAlais);
+                    }
+                    else
+                    {
+                        return new ContentImportResult
+                        {
+                            BulkUploadContentName = importObject.Name,
+                            BulkUploadSuccess = false,
+                            BulkUploadErrorMessage = "Invalid parent type for content creation",
+                            BulkUploadLegacyId = importObject.LegacyId,
+                            OriginalCsvData = importObject.OriginalCsvData
+                        };
+                    }
                 }
             }
 

@@ -25,13 +25,27 @@ public static class ReservedColumns
     public const string BulkUploadShouldPublish = "bulkUploadShouldPublish";
 
     /// <summary>
+    /// Column containing the Umbraco content GUID for updating existing content.
+    /// When present, the import will update the existing content item instead of creating new.
+    /// </summary>
+    public const string BulkUploadContentGuid = "bulkUploadContentGuid";
+
+    /// <summary>
+    /// Column containing the Umbraco parent content GUID for moving content.
+    /// When present with bulkUploadContentGuid, the content will be moved to this parent.
+    /// </summary>
+    public const string BulkUploadParentGuid = "bulkUploadParentGuid";
+
+    /// <summary>
     /// Gets all reserved column names that should be excluded from property mapping.
     /// </summary>
     public static readonly HashSet<string> All = new(StringComparer.OrdinalIgnoreCase)
     {
         BulkUploadLegacyId,
         BulkUploadLegacyParentId,
-        BulkUploadShouldPublish
+        BulkUploadShouldPublish,
+        BulkUploadContentGuid,
+        BulkUploadParentGuid
     };
 
     /// <summary>
