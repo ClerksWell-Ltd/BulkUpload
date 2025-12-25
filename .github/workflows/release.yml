@@ -15,13 +15,32 @@ jobs:
 
     - name: Verify release branch
       run: |
-        BRANCH="${GITHUB_REF#refs/heads/}"
+        BRANCH="${{ github.event.release.target_commitish }}"
         if [[ ! "$BRANCH" =~ ^release/ ]]; then
           echo "Error: Releases can only be created from release/* branches"
           echo "Current branch: $BRANCH"
           exit 1
         fi
         echo "✓ Release is from valid branch: $BRANCH"
+
+    - name: Detect Umbraco version from branch
+      id: umbraco-version
+      run: |
+        BRANCH="${{ github.event.release.target_commitish }}"
+
+        # Determine Umbraco version from branch name
+        if [[ "$BRANCH" == "release/v13.x" ]]; then
+          UMBRACO_VERSION="13"
+        elif [[ "$BRANCH" == "release/v17.x" ]]; then
+          UMBRACO_VERSION="17"
+        else
+          UMBRACO_VERSION="Unknown"
+        fi
+
+        echo "umbraco_version=$UMBRACO_VERSION" >> $GITHUB_OUTPUT
+        echo "✓ Detected Umbraco version: $UMBRACO_VERSION"
+        echo "✓ Release version: ${{ github.event.release.tag_name }}"
+        echo "✓ Release date: $(date +%Y-%m-%d)"
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -52,6 +71,19 @@ jobs:
           echo "use_npm=false" >> $GITHUB_OUTPUT
           echo "Will NOT use npm for .NET $DOTNET_VERSION"
         fi
+
+    - name: Update csproj version from release tag
+      run: |
+        # Extract version from release tag (e.g., v1.0.0 -> 1.0.0)
+        VERSION="${{ github.event.release.tag_name }}"
+        VERSION="${VERSION#v}"  # Remove 'v' prefix if present
+
+        # Update the Version element in the csproj file
+        sed -i "s|<Version>.*</Version>|<Version>${VERSION}</Version>|" src/BulkUpload/BulkUpload.csproj
+
+        # Verify the update
+        echo "Updated version to: ${VERSION}"
+        grep "<Version>" src/BulkUpload/BulkUpload.csproj
 
     - name: Restore dependencies
       run: dotnet restore src/BulkUpload/BulkUpload.csproj --disable-parallel
