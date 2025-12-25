@@ -15,7 +15,7 @@ jobs:
 
     - name: Verify release branch
       run: |
-        BRANCH="${GITHUB_REF#refs/heads/}"
+        BRANCH="${{ github.event.release.target_commitish }}"
         if [[ ! "$BRANCH" =~ ^release/ ]]; then
           echo "Error: Releases can only be created from release/* branches"
           echo "Current branch: $BRANCH"
