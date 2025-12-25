@@ -88,15 +88,15 @@ jobs:
 
       - name: Restore dependencies
         if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet restore
+        run: dotnet restore src/BulkUpload.sln
 
       - name: Build solution
         if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build src/BulkUpload.sln --configuration Release --no-restore
 
       - name: Run tests
         if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet test --configuration Release --no-build --verbosity normal
+        run: dotnet test src/BulkUpload.sln --configuration Release --no-build --verbosity normal
 
       - name: Create Pull Request
         if: |
