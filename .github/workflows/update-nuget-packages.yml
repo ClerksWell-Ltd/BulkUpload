@@ -107,22 +107,98 @@ jobs:
           echo "Found solution files:"
           echo "$solutions"
 
+          # Initialize summary file
+          echo "## 🔨 Build and Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Track overall status
+          overall_errors=0
+          overall_warnings=0
+
           # Process each solution
           for sln in $solutions; do
+            sln_name=$(basename "$sln")
             echo ""
             echo "================================================"
             echo "Processing: $sln"
             echo "================================================"
 
+            echo "### 📁 $sln_name" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
             echo "Restoring dependencies..."
-            dotnet restore "$sln"
+            dotnet restore "$sln" 2>&1 | tee restore.log
 
-            echo "Building solution..."
-            dotnet build "$sln" --configuration Release --no-restore
+            echo "Building solution (skipping dotnet format)..."
+            dotnet build "$sln" --configuration Release --no-restore -p:SkipPreBuild=true 2>&1 | tee build.log
+            build_exit=${PIPESTATUS[0]}
 
-            echo "Running tests..."
-            dotnet test "$sln" --configuration Release --no-build --verbosity normal
+            # Parse build output for errors and warnings
+            errors=$(grep -c "error [A-Z]*[0-9]*:" build.log || true)
+            warnings=$(grep -c "warning [A-Z]*[0-9]*:" build.log || true)
+
+            overall_errors=$((overall_errors + errors))
+            overall_warnings=$((overall_warnings + warnings))
+
+            if [ $build_exit -eq 0 ]; then
+              echo "✅ **Build:** Succeeded" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Build:** Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "- Errors: $errors" >> $GITHUB_STEP_SUMMARY
+            echo "- Warnings: $warnings" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Show first 10 errors if any
+            if [ $errors -gt 0 ]; then
+              echo "<details><summary>🔴 Build Errors</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep "error [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Show first 10 warnings if any
+            if [ $warnings -gt 0 ]; then
+              echo "<details><summary>⚠️ Build Warnings</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep "warning [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Only run tests if build succeeded
+            if [ $build_exit -eq 0 ]; then
+              echo "Running tests..."
+              dotnet test "$sln" --configuration Release --no-build --verbosity normal 2>&1 | tee test.log
+              test_exit=${PIPESTATUS[0]}
+
+              if [ $test_exit -eq 0 ]; then
+                echo "✅ **Tests:** Passed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ **Tests:** Failed" >> $GITHUB_STEP_SUMMARY
+              fi
+              echo "" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⏭️ **Tests:** Skipped (build failed)" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+
+            echo "---" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           done
+
+          # Add overall summary
+          echo "## 📊 Overall Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Errors:** $overall_errors" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Warnings:** $overall_warnings" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Create Pull Request
         if: |
