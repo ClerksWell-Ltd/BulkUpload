@@ -30,19 +30,27 @@ function Write-Log {
 function Get-LatestNuGetVersion {
     param(
         [string]$PackageId,
+        [string]$CurrentVersion,
         [hashtable]$Cache,
         [switch]$IncludePrerelease
     )
 
-    $key = $PackageId.ToLower()
-    if ($Cache.ContainsKey($key)) {
-        return $Cache[$key]
+    # Extract major version from current version
+    $currentMajor = $null
+    if ($CurrentVersion -match '^(\d+)\.') {
+        $currentMajor = [int]$matches[1]
+    }
+
+    $cacheKey = "$($PackageId.ToLower())_v$currentMajor"
+    if ($Cache.ContainsKey($cacheKey)) {
+        return $Cache[$cacheKey]
     }
 
     try {
-        Write-Log "Querying NuGet for package: $PackageId" -Color Cyan
+        Write-Log "Querying NuGet for package: $PackageId (current: $CurrentVersion, target major: $currentMajor)" -Color Cyan
 
         # Query NuGet.org API
+        $key = $PackageId.ToLower()
         $url = "https://api.nuget.org/v3-flatcontainer/$key/index.json"
         $response = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 10 -ErrorAction Stop
 
@@ -50,12 +58,31 @@ function Get-LatestNuGetVersion {
 
         if ($versions.Count -eq 0) {
             Write-Log "No versions found for $PackageId" -Level WARN -Color Yellow
-            $Cache[$key] = $null
+            $Cache[$cacheKey] = $null
             return $null
         }
 
         # Filter out nightly builds
         $versions = @($versions | Where-Object { $_ -notmatch '-build' })
+
+        # Filter to same major version if we could extract it
+        if ($null -ne $currentMajor) {
+            $versions = @($versions | Where-Object {
+                if ($_ -match '^(\d+)\.') {
+                    [int]$matches[1] -eq $currentMajor
+                } else {
+                    $false
+                }
+            })
+
+            if ($versions.Count -eq 0) {
+                Write-Log "No versions found in major version $currentMajor for $PackageId" -Level WARN -Color Yellow
+                $Cache[$cacheKey] = $null
+                return $null
+            }
+
+            Write-Log "Found $($versions.Count) version(s) in major version $currentMajor" -Color Cyan
+        }
 
         if (-not $IncludePrerelease) {
             # Get only stable versions
@@ -69,13 +96,13 @@ function Get-LatestNuGetVersion {
         $sortedVersions = $versions | Sort-Object { [Version]($_ -replace '-.*$', '') } -Descending
         $latest = $sortedVersions[0]
 
-        Write-Log "Latest version for ${PackageId}: $latest" -Color Green
-        $Cache[$key] = $latest
+        Write-Log "Latest version for ${PackageId} (major $currentMajor): $latest" -Color Green
+        $Cache[$cacheKey] = $latest
         return $latest
     }
     catch {
         Write-Log "Failed to query NuGet for ${PackageId}: $($_.Exception.Message)" -Level ERROR -Color Red
-        $Cache[$key] = $null
+        $Cache[$cacheKey] = $null
         return $null
     }
 }
@@ -118,7 +145,7 @@ function Update-CsprojPackages {
             continue
         }
 
-        $latestVersion = Get-LatestNuGetVersion -PackageId $packageId -Cache $VersionCache -IncludePrerelease:$IncludePrerelease
+        $latestVersion = Get-LatestNuGetVersion -PackageId $packageId -CurrentVersion $currentVersion -Cache $VersionCache -IncludePrerelease:$IncludePrerelease
 
         if (-not $latestVersion) {
             continue
