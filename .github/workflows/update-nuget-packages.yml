@@ -86,17 +86,37 @@ jobs:
             echo "No changes detected"
           fi
 
-      - name: Restore dependencies
+      - name: Find and build solutions
         if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet restore src/BulkUpload.sln
+        shell: bash
+        run: |
+          # Find all solution files recursively
+          solutions=$(find . -name "*.sln" -type f)
 
-      - name: Build solution
-        if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet build src/BulkUpload.sln --configuration Release --no-restore
+          if [ -z "$solutions" ]; then
+            echo "Error: No solution files found"
+            exit 1
+          fi
 
-      - name: Run tests
-        if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet test src/BulkUpload.sln --configuration Release --no-build --verbosity normal
+          echo "Found solution files:"
+          echo "$solutions"
+
+          # Process each solution
+          for sln in $solutions; do
+            echo ""
+            echo "================================================"
+            echo "Processing: $sln"
+            echo "================================================"
+
+            echo "Restoring dependencies..."
+            dotnet restore "$sln"
+
+            echo "Building solution..."
+            dotnet build "$sln" --configuration Release --no-restore
+
+            echo "Running tests..."
+            dotnet test "$sln" --configuration Release --no-build --verbosity normal
+          done
 
       - name: Create Pull Request
         if: |
