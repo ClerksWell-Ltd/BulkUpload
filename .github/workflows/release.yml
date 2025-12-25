@@ -23,6 +23,25 @@ jobs:
         fi
         echo "✓ Release is from valid branch: $BRANCH"
 
+    - name: Detect Umbraco version from branch
+      id: umbraco-version
+      run: |
+        BRANCH="${{ github.event.release.target_commitish }}"
+
+        # Determine Umbraco version from branch name
+        if [[ "$BRANCH" == "release/v13.x" ]]; then
+          UMBRACO_VERSION="13"
+        elif [[ "$BRANCH" == "release/v17.x" ]]; then
+          UMBRACO_VERSION="17"
+        else
+          UMBRACO_VERSION="Unknown"
+        fi
+
+        echo "umbraco_version=$UMBRACO_VERSION" >> $GITHUB_OUTPUT
+        echo "✓ Detected Umbraco version: $UMBRACO_VERSION"
+        echo "✓ Release version: ${{ github.event.release.tag_name }}"
+        echo "✓ Release date: $(date +%Y-%m-%d)"
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
