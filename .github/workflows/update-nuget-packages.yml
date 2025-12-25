@@ -28,6 +28,12 @@ env:
   # Set to 'true' if you want scheduled runs to include prerelease versions
   SCHEDULED_INCLUDE_PRERELEASE: 'false'
 
+# Required permissions for the workflow to:
+# - Commit changes (contents: write)
+# - Create pull requests (pull-requests: write)
+# Note: Repository settings must allow GitHub Actions to create PRs:
+# Settings → Actions → General → Workflow permissions →
+# ✓ Allow GitHub Actions to create and approve pull requests
 permissions:
   contents: write
   pull-requests: write
