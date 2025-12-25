@@ -140,11 +140,9 @@ jobs:
           body: |
             ## 🔄 Automated NuGet Package Updates
 
-            This PR updates NuGet packages to their latest versions.
+            This PR updates **${{ steps.update.outputs.package_count }}** NuGet package(s) to their latest versions within the same major version.
 
             ### 📦 Package Updates
-
-            See the package update summary below:
 
             ```
             ${{ steps.update.outputs.summary }}
@@ -155,6 +153,7 @@ jobs:
             - [x] All packages updated successfully
             - [x] Solution builds without errors
             - [x] All tests pass
+            - [x] Updates limited to same major version (no breaking changes)
 
             ### 🤖 Automated Changes
 
@@ -175,16 +174,21 @@ jobs:
           Write-Host "========== Workflow Summary ==========" -ForegroundColor Cyan
 
           if ('${{ steps.check-changes.outputs.has_changes }}' -eq 'true') {
-            Write-Host "✅ Package updates found and processed" -ForegroundColor Green
+            if ('${{ steps.update.outputs.has_updates }}' -eq 'true') {
+              Write-Host "✅ Package updates found and processed" -ForegroundColor Green
+              Write-Host "   Updated ${{ steps.update.outputs.package_count }} package(s)" -ForegroundColor Cyan
 
-            if (Test-Path "package-update-summary.txt") {
-              Write-Host "`nPackage Updates:" -ForegroundColor Yellow
-              Get-Content "package-update-summary.txt" | Write-Host
-            }
+              if (Test-Path "package-update-summary.txt") {
+                Write-Host "`nPackage Updates:" -ForegroundColor Yellow
+                Get-Content "package-update-summary.txt" | Write-Host
+              }
 
-            if ('${{ github.event.inputs.dryRun }}' -eq 'true') {
-              Write-Host "`n⚠️  Dry run mode - no PR created" -ForegroundColor Yellow
+              if ('${{ github.event.inputs.dryRun }}' -eq 'true') {
+                Write-Host "`n⚠️  Dry run mode - no PR created" -ForegroundColor Yellow
+              }
+            } else {
+              Write-Host "ℹ️  All packages are up to date" -ForegroundColor Cyan
             }
           } else {
-            Write-Host "ℹ️  All packages are up to date" -ForegroundColor Cyan
+            Write-Host "ℹ️  No changes detected in repository" -ForegroundColor Cyan
           }

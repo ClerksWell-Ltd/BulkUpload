@@ -350,6 +350,12 @@ Write-Log "`n========== UPDATE SUMMARY ==========" -Color Cyan
 if ($allChanges.Count -eq 0) {
     Write-Log "No packages needed updating" -Color Green
 
+    # Write to GitHub Actions step output
+    if ($env:GITHUB_OUTPUT) {
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "package_count=0"
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "has_updates=false"
+    }
+
     # Write to GitHub Actions summary if available
     if ($env:GITHUB_STEP_SUMMARY) {
         "## 📦 NuGet Package Update Summary`n" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8 -Append
@@ -369,6 +375,18 @@ else {
     $summaryPath = Join-Path $RootPath "package-update-summary.txt"
     $tableLines | Out-File -FilePath $summaryPath -Encoding UTF8
     Write-Log "Summary saved to: $summaryPath" -Color Cyan
+
+    # Write to GitHub Actions step output for use in other steps
+    if ($env:GITHUB_OUTPUT) {
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "package_count=$($allChanges.Count)"
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "has_updates=true"
+
+        # Write multi-line table output
+        $tableText = $tableLines -join "`n"
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "summary<<EOF"
+        Add-Content -Path $env:GITHUB_OUTPUT -Value $tableText
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "EOF"
+    }
 
     # Write to GitHub Actions summary if available
     if ($env:GITHUB_STEP_SUMMARY) {
