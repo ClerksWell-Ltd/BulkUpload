@@ -1,3 +1,12 @@
+/**
+ * Bulk Upload Dashboard Controller
+ * Refactored to use framework-agnostic utilities for easier migration to Umbraco 17
+ */
+
+// Import framework-agnostic utilities (works in both v13 and v17)
+import { formatFileSize, getFileTypeDescription } from './utils/fileUtils.js';
+import { getFailedResults, downloadBlob, createCsvBlob } from './utils/resultUtils.js';
+
 angular
   .module("umbraco")
   .controller(
@@ -18,26 +27,15 @@ angular
       $scope.mediaFileControlElement = null;
       $scope.mediaResults = null;
 
+      // Expose utility functions to the view
+      // These are now imported from framework-agnostic modules
+      $scope.formatFileSize = formatFileSize;
+      $scope.getFailedResults = getFailedResults;
+      $scope.getFileTypeDescription = getFileTypeDescription;
+
       // Tab management
       $scope.setActiveTab = function (tab) {
         $scope.activeTab = tab;
-      };
-
-      // Utility function to format file size
-      $scope.formatFileSize = function (bytes) {
-        if (!bytes) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-      };
-
-      // Filter function to get failed results
-      $scope.getFailedResults = function (results) {
-        if (!results) return [];
-        return results.filter(function (result) {
-          return result.success === false;
-        });
       };
 
       // Content import handlers
@@ -131,11 +129,9 @@ angular
 
         bulkUploadImportApiService.ExportContentResults($scope.contentResults.results)
           .then(function (response) {
-            var blob = new Blob([response.data], { type: 'text/csv' });
-            var link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.download = 'content-import-results.csv';
-            link.click();
+            // Use framework-agnostic utilities for blob creation and download
+            var blob = createCsvBlob(response.data);
+            downloadBlob(blob, 'content-import-results.csv');
 
             notificationsService.add({
               type: 'success',
@@ -243,11 +239,9 @@ angular
 
         bulkUploadImportApiService.ExportResults($scope.mediaResults.results)
           .then(function (response) {
-            var blob = new Blob([response.data], { type: 'text/csv' });
-            var link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.download = 'media-import-results.csv';
-            link.click();
+            // Use framework-agnostic utilities for blob creation and download
+            var blob = createCsvBlob(response.data);
+            downloadBlob(blob, 'media-import-results.csv');
 
             notificationsService.add({
               type: 'success',
