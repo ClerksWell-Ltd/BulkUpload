@@ -1,0 +1,213 @@
+/* Bulk Upload Dashboard Styles */
+
+.bulk-upload-dashboard {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+}
+
+.dashboard-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1b264f;
+}
+
+.tab-panel {
+    padding: 0;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* File info preview */
+.file-info {
+    transition: all 0.2s ease-in-out;
+}
+
+.file-info:hover {
+    background-color: #e8e8e8 !important;
+}
+
+/* Results summary badges */
+.results-summary {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Failed items table */
+details > summary {
+    transition: all 0.2s ease;
+}
+
+details > summary:hover {
+    background-color: #fff5cc;
+    padding: 0.5em;
+    margin: -0.5em;
+    border-radius: 4px;
+}
+
+details[open] > summary {
+    margin-bottom: 1em;
+    padding-bottom: 0.5em;
+    border-bottom: 2px solid #ffc107;
+}
+
+/* Table styling */
+table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Button enhancements */
+uui-button {
+    transition: all 0.2s ease;
+}
+
+uui-button:hover:not([disabled]) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+uui-button:active:not([disabled]) {
+    transform: translateY(0);
+}
+
+/* Loading animation */
+.loading-text {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Info boxes */
+uui-box[look="outline"] {
+    transition: border-color 0.3s ease;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .results-summary {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .results-summary > div {
+        text-align: center;
+    }
+
+    table {
+        font-size: 0.8em;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1em;
+    }
+}
+
+/* Code elements in info boxes */
+code {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 0.9em;
+}
+
+/* Ensure UUI components have proper spacing */
+uui-box {
+    display: block;
+}
+
+uui-box + uui-box {
+    margin-top: 20px;
+}
+
+/* Custom scrollbar for table overflow */
+.table-wrapper {
+    scrollbar-width: thin;
+    scrollbar-color: #ccc #f5f5f5;
+}
+
+.table-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Accessibility improvements */
+uui-button:focus-visible,
+input:focus-visible,
+details > summary:focus-visible {
+    outline: 2px solid #1b264f;
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .tab-panel:not(:target) {
+        display: none;
+    }
+
+    uui-button,
+    input[type="file"] {
+        display: none;
+    }
+
+    details {
+        display: block;
+    }
+
+    details > summary {
+        display: none;
+    }
+}

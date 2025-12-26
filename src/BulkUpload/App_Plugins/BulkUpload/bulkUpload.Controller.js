@@ -18,12 +18,45 @@ angular
       $scope.mediaFileControlElement = null;
       $scope.mediaResults = null;
 
+      // Tab management
+      $scope.setActiveTab = function (tab) {
+        $scope.activeTab = tab;
+      };
+
+      // Utility function to format file size
+      $scope.formatFileSize = function (bytes) {
+        if (!bytes) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+      };
+
+      // Filter function to get failed results
+      $scope.getFailedResults = function (results) {
+        if (!results) return [];
+        return results.filter(function (result) {
+          return result.success === false;
+        });
+      };
+
       // Content import handlers
       $scope.onFileSelected = function (bulkUploadImportFile, evt) {
         if (bulkUploadImportFile) {
           $scope.file = bulkUploadImportFile;
           $scope.fileControlElement = evt.target;
         }
+      };
+
+      $scope.clearContentFile = function () {
+        $scope.file = null;
+        if ($scope.fileControlElement) {
+          $scope.fileControlElement.value = "";
+        }
+      };
+
+      $scope.clearContentResults = function () {
+        $scope.contentResults = null;
       };
 
       $scope.onUploadClicked = function () {
@@ -125,6 +158,17 @@ angular
           $scope.mediaFile = mediaUploadFile;
           $scope.mediaFileControlElement = evt.target;
         }
+      };
+
+      $scope.clearMediaFile = function () {
+        $scope.mediaFile = null;
+        if ($scope.mediaFileControlElement) {
+          $scope.mediaFileControlElement.value = "";
+        }
+      };
+
+      $scope.clearMediaResults = function () {
+        $scope.mediaResults = null;
       };
 
       $scope.onMediaUploadClicked = function () {
