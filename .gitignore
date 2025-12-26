@@ -355,3 +355,6 @@ MigrationBackup/
 # Rider
 src/.idea
 /src/BulkUpload.TestSite/umbraco/Data
+
+# Ignore BulkUpload App_Plugins in TestSite13
+/src/BulkUpload.TestSite13/App_Plugins/BulkUpload/
