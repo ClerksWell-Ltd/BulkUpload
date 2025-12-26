@@ -170,7 +170,7 @@ public class ImportUtilityService : IImportUtilityService
     {
         try
         {
-            IContent contentItem;
+            IContent? contentItem;
 
             // Check if this is an update operation (bulkUploadContentGuid is present)
             if (importObject.BulkUploadContentGuid.HasValue)

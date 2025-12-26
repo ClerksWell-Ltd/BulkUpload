@@ -28,6 +28,12 @@ env:
   # Set to 'true' if you want scheduled runs to include prerelease versions
   SCHEDULED_INCLUDE_PRERELEASE: 'false'
 
+# Required permissions for the workflow to:
+# - Commit changes (contents: write)
+# - Create pull requests (pull-requests: write)
+# Note: Repository settings must allow GitHub Actions to create PRs:
+# Settings → Actions → General → Workflow permissions →
+# ✓ Allow GitHub Actions to create and approve pull requests
 permissions:
   contents: write
   pull-requests: write
@@ -86,17 +92,144 @@ jobs:
             echo "No changes detected"
           fi
 
-      - name: Restore dependencies
+      - name: Find and build solutions
         if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet restore
+        shell: bash
+        run: |
+          # Find all solution files recursively
+          solutions=$(find . -name "*.sln" -type f)
 
-      - name: Build solution
-        if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet build --configuration Release --no-restore
+          if [ -z "$solutions" ]; then
+            echo "Error: No solution files found"
+            exit 1
+          fi
 
-      - name: Run tests
-        if: steps.check-changes.outputs.has_changes == 'true'
-        run: dotnet test --configuration Release --no-build --verbosity normal
+          echo "Found solution files:"
+          echo "$solutions"
+
+          # Initialize summary file
+          echo "## 🔨 Build and Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Track overall status
+          overall_errors=0
+          overall_warnings=0
+
+          # Process each solution
+          for sln in $solutions; do
+            sln_name=$(basename "$sln")
+            echo ""
+            echo "================================================"
+            echo "Processing: $sln"
+            echo "================================================"
+
+            echo "### 📁 $sln_name" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            echo "Restoring dependencies..."
+            dotnet restore "$sln" 2>&1 | tee restore.log
+
+            echo "Building solution (skipping dotnet format)..."
+            dotnet build "$sln" --configuration Release --no-restore -p:SkipPreBuild=true 2>&1 | tee build.log
+            build_exit=${PIPESTATUS[0]}
+
+            # Parse build output for errors and warnings
+            errors=$(grep -c "error [A-Z]*[0-9]*:" build.log || true)
+            warnings=$(grep -c "warning [A-Z]*[0-9]*:" build.log || true)
+
+            overall_errors=$((overall_errors + errors))
+            overall_warnings=$((overall_warnings + warnings))
+
+            if [ $build_exit -eq 0 ]; then
+              echo "✅ **Build:** Succeeded" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Build:** Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "- Errors: $errors" >> $GITHUB_STEP_SUMMARY
+            echo "- Warnings: $warnings" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Show first 10 errors if any
+            if [ $errors -gt 0 ]; then
+              echo "<details><summary>🔴 Build Errors</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep "error [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Show first 10 warnings if any
+            if [ $warnings -gt 0 ]; then
+              echo "<details><summary>⚠️ Build Warnings</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              grep "warning [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Only run tests if build succeeded
+            if [ $build_exit -eq 0 ]; then
+              echo "Running tests..."
+              dotnet test "$sln" --configuration Release --no-build --verbosity normal 2>&1 | tee test.log
+              test_exit=${PIPESTATUS[0]}
+
+              # Parse test results
+              total_tests=$(grep -oP 'Total tests: \K\d+' test.log || echo "0")
+              passed_tests=$(grep -oP 'Passed: \K\d+' test.log || echo "0")
+              failed_tests=$(grep -oP 'Failed: \K\d+' test.log || echo "0")
+              skipped_tests=$(grep -oP 'Skipped: \K\d+' test.log || echo "0")
+              test_time=$(grep -oP 'Total time: \K[\d.]+' test.log || echo "0")
+
+              if [ $test_exit -eq 0 ]; then
+                echo "✅ **Tests:** Passed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "❌ **Tests:** Failed" >> $GITHUB_STEP_SUMMARY
+              fi
+
+              # Add test details
+              if [ "$total_tests" != "0" ]; then
+                echo "- Total: $total_tests" >> $GITHUB_STEP_SUMMARY
+                echo "- Passed: $passed_tests ✅" >> $GITHUB_STEP_SUMMARY
+                if [ "$failed_tests" != "0" ]; then
+                  echo "- Failed: $failed_tests ❌" >> $GITHUB_STEP_SUMMARY
+                fi
+                if [ "$skipped_tests" != "0" ]; then
+                  echo "- Skipped: $skipped_tests ⏭️" >> $GITHUB_STEP_SUMMARY
+                fi
+                echo "- Duration: ${test_time}s ⏱️" >> $GITHUB_STEP_SUMMARY
+              fi
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Show test failures if any
+              if [ $test_exit -ne 0 ]; then
+                echo "<details><summary>❌ Test Failures</summary>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+                grep -A 5 "Failed!" test.log | head -20 >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+                echo "</details>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "⏭️ **Tests:** Skipped (build failed)" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+
+            echo "---" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          done
+
+          # Add overall summary
+          echo "## 📊 Overall Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Errors:** $overall_errors" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Warnings:** $overall_warnings" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
       - name: Create Pull Request
         if: |
@@ -114,11 +247,9 @@ jobs:
           body: |
             ## 🔄 Automated NuGet Package Updates
 
-            This PR updates NuGet packages to their latest versions.
+            This PR updates **${{ steps.update.outputs.package_count }}** NuGet package(s) to their latest versions within the same major version.
 
             ### 📦 Package Updates
-
-            See the package update summary below:
 
             ```
             ${{ steps.update.outputs.summary }}
@@ -129,6 +260,7 @@ jobs:
             - [x] All packages updated successfully
             - [x] Solution builds without errors
             - [x] All tests pass
+            - [x] Updates limited to same major version (no breaking changes)
 
             ### 🤖 Automated Changes
 
@@ -149,16 +281,21 @@ jobs:
           Write-Host "========== Workflow Summary ==========" -ForegroundColor Cyan
 
           if ('${{ steps.check-changes.outputs.has_changes }}' -eq 'true') {
-            Write-Host "✅ Package updates found and processed" -ForegroundColor Green
+            if ('${{ steps.update.outputs.has_updates }}' -eq 'true') {
+              Write-Host "✅ Package updates found and processed" -ForegroundColor Green
+              Write-Host "   Updated ${{ steps.update.outputs.package_count }} package(s)" -ForegroundColor Cyan
 
-            if (Test-Path "package-update-summary.txt") {
-              Write-Host "`nPackage Updates:" -ForegroundColor Yellow
-              Get-Content "package-update-summary.txt" | Write-Host
-            }
+              if (Test-Path "package-update-summary.txt") {
+                Write-Host "`nPackage Updates:" -ForegroundColor Yellow
+                Get-Content "package-update-summary.txt" | Write-Host
+              }
 
-            if ('${{ github.event.inputs.dryRun }}' -eq 'true') {
-              Write-Host "`n⚠️  Dry run mode - no PR created" -ForegroundColor Yellow
+              if ('${{ github.event.inputs.dryRun }}' -eq 'true') {
+                Write-Host "`n⚠️  Dry run mode - no PR created" -ForegroundColor Yellow
+              }
+            } else {
+              Write-Host "ℹ️  All packages are up to date" -ForegroundColor Cyan
             }
           } else {
-            Write-Host "ℹ️  All packages are up to date" -ForegroundColor Cyan
+            Write-Host "ℹ️  No changes detected in repository" -ForegroundColor Cyan
           }
