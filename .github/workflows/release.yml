@@ -88,15 +88,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/BulkUpload/BulkUpload.csproj --disable-parallel
 
-    - name: Build project
-      run: dotnet build src/BulkUpload/BulkUpload.csproj --configuration Release --no-restore -p:SkipPreBuild=true
-
-    - name: Run tests
-      run: dotnet test src/BulkUpload.Tests/BulkUpload.Tests.csproj --configuration Release --no-build --verbosity normal
-
-    - name: Pack NuGet package
-      run: dotnet pack src/BulkUpload/BulkUpload.csproj --configuration Release --no-build --output ./artifacts
-
     # NPM commands for .NET 10+ (Umbraco 17+)
     # Uncomment when ready to use
     # - name: Setup Node.js
@@ -113,8 +104,189 @@ jobs:
     #   if: steps.dotnet-version.outputs.use_npm == 'true'
     #   run: npm run build
 
-    - name: Publish to NuGet
-      run: dotnet nuget push ./artifacts/*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Build, test, and publish to NuGet
+      shell: bash
+      run: |
+        # Initialize summary file
+        echo "## 📦 Release Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Release:** ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch:** ${{ github.event.release.target_commitish }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Umbraco Version:** ${{ steps.umbraco-version.outputs.umbraco_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Build
+        echo "## 🔨 Build Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "Building project..."
+        dotnet build src/BulkUpload/BulkUpload.csproj --configuration Release --no-restore -p:SkipPreBuild=true 2>&1 | tee build.log
+        build_exit=${PIPESTATUS[0]}
+
+        # Parse build output for errors and warnings
+        errors=$(grep -c "error [A-Z]*[0-9]*:" build.log || true)
+        warnings=$(grep -c "warning [A-Z]*[0-9]*:" build.log || true)
+
+        if [ $build_exit -eq 0 ]; then
+          echo "✅ **Build:** Succeeded" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Build:** Failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "- Errors: $errors" >> $GITHUB_STEP_SUMMARY
+        echo "- Warnings: $warnings" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Show first 10 errors if any
+        if [ $errors -gt 0 ]; then
+          echo "<details><summary>🔴 Build Errors</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep "error [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Show first 10 warnings if any
+        if [ $warnings -gt 0 ]; then
+          echo "<details><summary>⚠️ Build Warnings</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep "warning [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Exit if build failed
+        if [ $build_exit -ne 0 ]; then
+          echo "❌ Build failed, stopping release process" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+        # Run tests
+        echo "## 🧪 Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "Running tests..."
+        dotnet test src/BulkUpload.Tests/BulkUpload.Tests.csproj --configuration Release --no-build --verbosity normal 2>&1 | tee test.log
+        test_exit=${PIPESTATUS[0]}
+
+        # Parse test results
+        total_tests=$(grep -oP 'Total tests: \K\d+' test.log || echo "0")
+        passed_tests=$(grep -oP 'Passed: \K\d+' test.log || echo "0")
+        failed_tests=$(grep -oP 'Failed: \K\d+' test.log || echo "0")
+        skipped_tests=$(grep -oP 'Skipped: \K\d+' test.log || echo "0")
+        test_time=$(grep -oP 'Total time: \K[\d.]+' test.log || echo "0")
+
+        if [ $test_exit -eq 0 ]; then
+          echo "✅ **Tests:** Passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Tests:** Failed" >> $GITHUB_STEP_SUMMARY
+        fi
+
+        # Add test details
+        if [ "$total_tests" != "0" ]; then
+          echo "- Total: $total_tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Passed: $passed_tests ✅" >> $GITHUB_STEP_SUMMARY
+          if [ "$failed_tests" != "0" ]; then
+            echo "- Failed: $failed_tests ❌" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "$skipped_tests" != "0" ]; then
+            echo "- Skipped: $skipped_tests ⏭️" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- Duration: ${test_time}s ⏱️" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Show test failures if any
+        if [ $test_exit -ne 0 ]; then
+          echo "<details><summary>❌ Test Failures</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -A 5 "Failed!" test.log | head -20 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "❌ Tests failed, stopping release process" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+        # Pack NuGet package
+        echo "## 📦 Package Creation" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "Creating NuGet package..."
+        dotnet pack src/BulkUpload/BulkUpload.csproj --configuration Release --no-build --output ./artifacts 2>&1 | tee pack.log
+        pack_exit=${PIPESTATUS[0]}
+
+        if [ $pack_exit -eq 0 ]; then
+          # Get package info
+          package_file=$(ls ./artifacts/*.nupkg | head -1)
+          package_name=$(basename "$package_file")
+          package_size=$(du -h "$package_file" | cut -f1)
+
+          echo "✅ **Package Created Successfully**" >> $GITHUB_STEP_SUMMARY
+          echo "- Package: \`$package_name\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Size: $package_size" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Package Creation Failed**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary>🔴 Pack Errors</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat pack.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+        # Publish to NuGet
+        echo "## 🚀 NuGet Publishing" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        echo "Publishing to NuGet..."
+        dotnet nuget push ./artifacts/*.nupkg --api-key ${{secrets.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json --skip-duplicate 2>&1 | tee publish.log
+        publish_exit=${PIPESTATUS[0]}
+
+        if [ $publish_exit -eq 0 ]; then
+          echo "✅ **Published to NuGet Successfully**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Package is now available at: https://www.nuget.org/packages/BulkUpload/${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+        else
+          # Check if it was skipped due to duplicate
+          if grep -q "already exists" publish.log; then
+            echo "ℹ️ **Package Already Exists on NuGet**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "This version was already published (--skip-duplicate was used)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Publishing Failed**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>🔴 Publish Errors</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat publish.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Overall Summary
+        echo "---" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## 📊 Overall Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Errors:** $errors" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Warnings:** $warnings" >> $GITHUB_STEP_SUMMARY
+        echo "- **Tests Passed:** $passed_tests/$total_tests" >> $GITHUB_STEP_SUMMARY
+        echo "- **Package:** \`$package_name\` ($package_size)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Status:** 🎉 Release completed successfully!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
 
     - name: Upload package artifact
       uses: actions/upload-artifact@v4
