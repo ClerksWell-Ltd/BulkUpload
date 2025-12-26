@@ -177,12 +177,43 @@ jobs:
               dotnet test "$sln" --configuration Release --no-build --verbosity normal 2>&1 | tee test.log
               test_exit=${PIPESTATUS[0]}
 
+              # Parse test results
+              total_tests=$(grep -oP 'Total tests: \K\d+' test.log || echo "0")
+              passed_tests=$(grep -oP 'Passed: \K\d+' test.log || echo "0")
+              failed_tests=$(grep -oP 'Failed: \K\d+' test.log || echo "0")
+              skipped_tests=$(grep -oP 'Skipped: \K\d+' test.log || echo "0")
+              test_time=$(grep -oP 'Total time: \K[\d.]+' test.log || echo "0")
+
               if [ $test_exit -eq 0 ]; then
                 echo "✅ **Tests:** Passed" >> $GITHUB_STEP_SUMMARY
               else
                 echo "❌ **Tests:** Failed" >> $GITHUB_STEP_SUMMARY
               fi
+
+              # Add test details
+              if [ "$total_tests" != "0" ]; then
+                echo "- Total: $total_tests" >> $GITHUB_STEP_SUMMARY
+                echo "- Passed: $passed_tests ✅" >> $GITHUB_STEP_SUMMARY
+                if [ "$failed_tests" != "0" ]; then
+                  echo "- Failed: $failed_tests ❌" >> $GITHUB_STEP_SUMMARY
+                fi
+                if [ "$skipped_tests" != "0" ]; then
+                  echo "- Skipped: $skipped_tests ⏭️" >> $GITHUB_STEP_SUMMARY
+                fi
+                echo "- Duration: ${test_time}s ⏱️" >> $GITHUB_STEP_SUMMARY
+              fi
               echo "" >> $GITHUB_STEP_SUMMARY
+
+              # Show test failures if any
+              if [ $test_exit -ne 0 ]; then
+                echo "<details><summary>❌ Test Failures</summary>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+                grep -A 5 "Failed!" test.log | head -20 >> $GITHUB_STEP_SUMMARY
+                echo '```' >> $GITHUB_STEP_SUMMARY
+                echo "</details>" >> $GITHUB_STEP_SUMMARY
+                echo "" >> $GITHUB_STEP_SUMMARY
+              fi
             else
               echo "⏭️ **Tests:** Skipped (build failed)" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
