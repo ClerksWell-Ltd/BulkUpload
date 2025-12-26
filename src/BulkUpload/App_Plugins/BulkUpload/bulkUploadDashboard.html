@@ -10,19 +10,19 @@
             <uui-tab
                 label="Content Import"
                 ng-click="setActiveTab('content')"
-                active="{{activeTab === 'content'}}">
+                active="{{state.activeTab === 'content'}}">
                 Content Import
             </uui-tab>
             <uui-tab
                 label="Media Import"
                 ng-click="setActiveTab('media')"
-                active="{{activeTab === 'media'}}">
+                active="{{state.activeTab === 'media'}}">
                 Media Import
             </uui-tab>
         </uui-tab-group>
 
         <!-- Content Import Panel -->
-        <div ng-show="activeTab === 'content'" class="tab-panel">
+        <div ng-show="state.activeTab === 'content'" class="tab-panel">
             <!-- Info Alert -->
             <uui-box look="outline" style="margin-bottom: 20px; border-color: #f0ad4e; background-color: #fcf8e3;">
                 <div style="padding: 1em; color: #8a6d3b;">
@@ -53,18 +53,18 @@
                             ngf-select
                             ng-model="bulkUploadImportFile"
                             ng-change="onFileSelected(bulkUploadImportFile, $event)"
-                            ng-disabled="loading"
+                            ng-disabled="state.content.loading"
                             accept=".csv,.zip"
                             style="margin-bottom: 1em;" />
                     </div>
 
                     <!-- File preview -->
-                    <div ng-if="file && !loading" class="file-info" style="margin-bottom: 1em; padding: 0.75em; background-color: #f5f5f5; border-radius: 4px; border-left: 3px solid #1b264f;">
+                    <div ng-if="state.content.file && !state.content.loading" class="file-info" style="margin-bottom: 1em; padding: 0.75em; background-color: #f5f5f5; border-radius: 4px; border-left: 3px solid #1b264f;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 1.2em;">📄</span>
                             <div>
-                                <strong>{{file.name}}</strong>
-                                <span style="color: #666; margin-left: 8px;">({{formatFileSize(file.size)}})</span>
+                                <strong>{{state.content.file.name}}</strong>
+                                <span style="color: #666; margin-left: 8px;">({{formatFileSize(state.content.file.size)}})</span>
                             </div>
                         </div>
                     </div>
@@ -74,14 +74,14 @@
                             look="primary"
                             color="positive"
                             ng-click="onUploadClicked()"
-                            ng-disabled="!file || loading"
+                            ng-disabled="!state.content.file || state.content.loading"
                             style="--uui-button-padding: 10px 20px;">
-                            <span ng-if="!loading">▲ Import Content</span>
-                            <span ng-if="loading">Processing...</span>
+                            <span ng-if="!state.content.loading">▲ Import Content</span>
+                            <span ng-if="state.content.loading">Processing...</span>
                         </uui-button>
                         <uui-button
                             look="outline"
-                            ng-if="file && !loading"
+                            ng-if="state.content.file && !state.content.loading"
                             ng-click="clearContentFile()"
                             style="--uui-button-padding: 10px 20px;">
                             Clear
@@ -91,7 +91,7 @@
             </uui-box>
 
             <!-- Loading State -->
-            <div ng-if="loading" style="margin-bottom: 20px;">
+            <div ng-if="state.content.loading" style="margin-bottom: 20px;">
                 <uui-loader-bar style="color: #006eff"></uui-loader-bar>
                 <p style="text-align: center; color: #666; margin-top: 10px;">
                     Importing content, please wait...
@@ -99,24 +99,24 @@
             </div>
 
             <!-- Results Section -->
-            <uui-box ng-if="contentResults && !loading" headline="Import Results" style="margin-bottom: 20px;">
+            <uui-box ng-if="state.content.results && !state.content.loading" headline="Import Results" style="margin-bottom: 20px;">
                 <div style="padding: 1em;">
                     <div class="results-summary" style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1.5em;">
                         <div style="padding: 8px 16px; background-color: #f5f5f5; border-radius: 20px; border: 1px solid #ddd;">
-                            <strong>Total:</strong> {{contentResults.totalCount}}
+                            <strong>Total:</strong> {{state.content.results.totalCount}}
                         </div>
                         <div style="padding: 8px 16px; background-color: #d4edda; border-radius: 20px; border: 1px solid #28a745; color: #155724;">
-                            <strong>✓ Success:</strong> {{contentResults.successCount}}
+                            <strong>✓ Success:</strong> {{state.content.results.successCount}}
                         </div>
-                        <div ng-if="contentResults.failureCount > 0" style="padding: 8px 16px; background-color: #f8d7da; border-radius: 20px; border: 1px solid #dc3545; color: #721c24;">
-                            <strong>✗ Failed:</strong> {{contentResults.failureCount}}
+                        <div ng-if="state.content.results.failureCount > 0" style="padding: 8px 16px; background-color: #f8d7da; border-radius: 20px; border: 1px solid #dc3545; color: #721c24;">
+                            <strong>✗ Failed:</strong> {{state.content.results.failureCount}}
                         </div>
                     </div>
 
                     <!-- Failed items detail -->
-                    <details ng-if="contentResults.failureCount > 0" style="margin-bottom: 1em; padding: 1em; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
+                    <details ng-if="state.content.results.failureCount > 0" style="margin-bottom: 1em; padding: 1em; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
                         <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5em;">
-                            View Failed Items ({{contentResults.failureCount}})
+                            View Failed Items ({{state.content.results.failureCount}})
                         </summary>
                         <div style="margin-top: 1em; overflow-x: auto;">
                             <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
@@ -127,7 +127,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr ng-repeat="result in getFailedResults(contentResults.results)" style="border-bottom: 1px solid #eee;">
+                                    <tr ng-repeat="result in getFailedResults(state.content.results.results)" style="border-bottom: 1px solid #eee;">
                                         <td style="padding: 8px;">{{result.fileName}}</td>
                                         <td style="padding: 8px; color: #dc3545;">{{result.errorMessage}}</td>
                                     </tr>
@@ -140,7 +140,7 @@
                         <uui-button
                             look="outline"
                             ng-click="onExportContentResultsClicked()"
-                            ng-if="contentResults.results && contentResults.results.length > 0"
+                            ng-if="state.content.results.results && state.content.results.results.length > 0"
                             style="--uui-button-padding: 10px 20px;">
                             ⬇ Download Results CSV
                         </uui-button>
@@ -156,7 +156,7 @@
         </div>
 
         <!-- Media Import Panel -->
-        <div ng-show="activeTab === 'media'" class="tab-panel">
+        <div ng-show="state.activeTab === 'media'" class="tab-panel">
             <!-- Info Alert -->
             <uui-box look="outline" style="margin-bottom: 20px; border-color: #0078d4; background-color: #e3f2fd;">
                 <div style="padding: 1em; color: #01579b;">
@@ -188,18 +188,18 @@
                             ngf-select
                             ng-model="mediaUploadFile"
                             ng-change="onMediaFileSelected(mediaUploadFile, $event)"
-                            ng-disabled="loadingMedia"
+                            ng-disabled="state.media.loading"
                             accept=".zip,.csv"
                             style="margin-bottom: 1em;" />
                     </div>
 
                     <!-- File preview -->
-                    <div ng-if="mediaFile && !loadingMedia" class="file-info" style="margin-bottom: 1em; padding: 0.75em; background-color: #f5f5f5; border-radius: 4px; border-left: 3px solid #1b264f;">
+                    <div ng-if="state.media.file && !state.media.loading" class="file-info" style="margin-bottom: 1em; padding: 0.75em; background-color: #f5f5f5; border-radius: 4px; border-left: 3px solid #1b264f;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 1.2em;">📄</span>
                             <div>
-                                <strong>{{mediaFile.name}}</strong>
-                                <span style="color: #666; margin-left: 8px;">({{formatFileSize(mediaFile.size)}})</span>
+                                <strong>{{state.media.file.name}}</strong>
+                                <span style="color: #666; margin-left: 8px;">({{formatFileSize(state.media.file.size)}})</span>
                             </div>
                         </div>
                     </div>
@@ -209,14 +209,14 @@
                             look="primary"
                             color="positive"
                             ng-click="onMediaUploadClicked()"
-                            ng-disabled="!mediaFile || loadingMedia"
+                            ng-disabled="!state.media.file || state.media.loading"
                             style="--uui-button-padding: 10px 20px;">
-                            <span ng-if="!loadingMedia">▲ Import Media</span>
-                            <span ng-if="loadingMedia">Processing...</span>
+                            <span ng-if="!state.media.loading">▲ Import Media</span>
+                            <span ng-if="state.media.loading">Processing...</span>
                         </uui-button>
                         <uui-button
                             look="outline"
-                            ng-if="mediaFile && !loadingMedia"
+                            ng-if="state.media.file && !state.media.loading"
                             ng-click="clearMediaFile()"
                             style="--uui-button-padding: 10px 20px;">
                             Clear
@@ -226,7 +226,7 @@
             </uui-box>
 
             <!-- Loading State -->
-            <div ng-if="loadingMedia" style="margin-bottom: 20px;">
+            <div ng-if="state.media.loading" style="margin-bottom: 20px;">
                 <uui-loader-bar style="color: #006eff"></uui-loader-bar>
                 <p style="text-align: center; color: #666; margin-top: 10px;">
                     Importing media, please wait...
@@ -234,24 +234,24 @@
             </div>
 
             <!-- Results Section -->
-            <uui-box ng-if="mediaResults && !loadingMedia" headline="Import Results" style="margin-bottom: 20px;">
+            <uui-box ng-if="state.media.results && !state.media.loading" headline="Import Results" style="margin-bottom: 20px;">
                 <div style="padding: 1em;">
                     <div class="results-summary" style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1.5em;">
                         <div style="padding: 8px 16px; background-color: #f5f5f5; border-radius: 20px; border: 1px solid #ddd;">
-                            <strong>Total:</strong> {{mediaResults.totalCount}}
+                            <strong>Total:</strong> {{state.media.results.totalCount}}
                         </div>
                         <div style="padding: 8px 16px; background-color: #d4edda; border-radius: 20px; border: 1px solid #28a745; color: #155724;">
-                            <strong>✓ Success:</strong> {{mediaResults.successCount}}
+                            <strong>✓ Success:</strong> {{state.media.results.successCount}}
                         </div>
-                        <div ng-if="mediaResults.failureCount > 0" style="padding: 8px 16px; background-color: #f8d7da; border-radius: 20px; border: 1px solid #dc3545; color: #721c24;">
-                            <strong>✗ Failed:</strong> {{mediaResults.failureCount}}
+                        <div ng-if="state.media.results.failureCount > 0" style="padding: 8px 16px; background-color: #f8d7da; border-radius: 20px; border: 1px solid #dc3545; color: #721c24;">
+                            <strong>✗ Failed:</strong> {{state.media.results.failureCount}}
                         </div>
                     </div>
 
                     <!-- Failed items detail -->
-                    <details ng-if="mediaResults.failureCount > 0" style="margin-bottom: 1em; padding: 1em; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
+                    <details ng-if="state.media.results.failureCount > 0" style="margin-bottom: 1em; padding: 1em; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
                         <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5em;">
-                            View Failed Items ({{mediaResults.failureCount}})
+                            View Failed Items ({{state.media.results.failureCount}})
                         </summary>
                         <div style="margin-top: 1em; overflow-x: auto;">
                             <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
@@ -262,7 +262,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr ng-repeat="result in getFailedResults(mediaResults.results)" style="border-bottom: 1px solid #eee;">
+                                    <tr ng-repeat="result in getFailedResults(state.media.results.results)" style="border-bottom: 1px solid #eee;">
                                         <td style="padding: 8px;">{{result.fileName}}</td>
                                         <td style="padding: 8px; color: #dc3545;">{{result.errorMessage}}</td>
                                     </tr>
@@ -275,7 +275,7 @@
                         <uui-button
                             look="outline"
                             ng-click="onExportResultsClicked()"
-                            ng-if="mediaResults.results && mediaResults.results.length > 0"
+                            ng-if="state.media.results.results && state.media.results.results.length > 0"
                             style="--uui-button-padding: 10px 20px;">
                             ⬇ Download Results CSV
                         </uui-button>

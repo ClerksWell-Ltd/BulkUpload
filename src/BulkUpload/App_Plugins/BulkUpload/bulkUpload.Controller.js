@@ -1,261 +1,147 @@
 /**
  * Bulk Upload Dashboard Controller
- * Refactored to use framework-agnostic utilities for easier migration to Umbraco 17
+ * Thin wrapper around framework-agnostic BulkUploadService
+ *
+ * This controller acts as a bridge between AngularJS and the business logic.
+ * In Umbraco 17, this file will be replaced by a Lit component that uses
+ * the same BulkUploadService directly.
  */
 
-// Import framework-agnostic utilities (works in both v13 and v17)
+// Import framework-agnostic modules (works in both v13 and v17)
 import { formatFileSize, getFileTypeDescription } from './utils/fileUtils.js';
 import { getFailedResults, downloadBlob, createCsvBlob } from './utils/resultUtils.js';
+import { BulkUploadApiClient } from './services/BulkUploadApiClient.js';
+import { AngularHttpAdapter } from './services/httpAdapters.js';
+import { BulkUploadService } from './services/BulkUploadService.js';
 
 angular
   .module("umbraco")
   .controller(
     "bulkUploadController",
-    function ($scope, bulkUploadImportApiService, notificationsService, angularHelper) {
-      // Initialize tabs
-      $scope.activeTab = 'content';
+    function ($scope, $http, Upload, notificationsService, angularHelper) {
 
-      // Content import state
-      $scope.loading = false;
-      $scope.file = null;
-      $scope.fileControlElement = null;
-      $scope.contentResults = null;
+      // Create HTTP adapter for AngularJS environment
+      const httpAdapter = new AngularHttpAdapter($http, Upload);
 
-      // Media import state
-      $scope.loadingMedia = false;
-      $scope.mediaFile = null;
-      $scope.mediaFileControlElement = null;
-      $scope.mediaResults = null;
+      // Create API client with AngularJS adapter
+      const apiClient = new BulkUploadApiClient(httpAdapter);
+
+      // Create notification handler for AngularJS
+      const notificationHandler = (notification) => {
+        const notif = {
+          type: notification.type,
+          headline: notification.headline,
+          message: notification.message,
+          sticky: true
+        };
+        notificationsService.add(notif);
+
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+          notificationsService.remove(notif);
+        }, 10000);
+      };
+
+      // Create state change handler to trigger AngularJS digest
+      const stateChangeHandler = (state) => {
+        // Update scope with new state
+        $scope.state = state;
+        // Trigger AngularJS digest cycle if not already in one
+        if (!$scope.$$phase) {
+          $scope.$apply();
+        }
+      };
+
+      // Create service instance with all dependencies
+      const service = new BulkUploadService(
+        apiClient,
+        notificationHandler,
+        stateChangeHandler
+      );
+
+      // Bind service state to scope for AngularJS data binding
+      $scope.state = service.state;
 
       // Expose utility functions to the view
-      // These are now imported from framework-agnostic modules
       $scope.formatFileSize = formatFileSize;
       $scope.getFailedResults = getFailedResults;
       $scope.getFileTypeDescription = getFileTypeDescription;
 
       // Tab management
-      $scope.setActiveTab = function (tab) {
-        $scope.activeTab = tab;
+      $scope.setActiveTab = (tab) => {
+        service.setActiveTab(tab);
       };
 
       // Content import handlers
-      $scope.onFileSelected = function (bulkUploadImportFile, evt) {
-        if (bulkUploadImportFile) {
-          $scope.file = bulkUploadImportFile;
-          $scope.fileControlElement = evt.target;
+      $scope.onFileSelected = (file, evt) => {
+        service.setContentFile(file, evt ? evt.target : null);
+      };
+
+      $scope.clearContentFile = () => {
+        service.clearContentFile();
+      };
+
+      $scope.clearContentResults = () => {
+        service.clearContentResults();
+      };
+
+      $scope.onUploadClicked = async () => {
+        try {
+          await service.importContent();
+          angularHelper.getCurrentForm($scope).$setPristine();
+        } catch (error) {
+          // Error already handled by service
+          console.error('Import failed:', error);
         }
       };
 
-      $scope.clearContentFile = function () {
-        $scope.file = null;
-        if ($scope.fileControlElement) {
-          $scope.fileControlElement.value = "";
-        }
-      };
-
-      $scope.clearContentResults = function () {
-        $scope.contentResults = null;
-      };
-
-      $scope.onUploadClicked = function () {
-        if (!$scope.file || $scope.loading) return;
-
-        $scope.loading = true;
-        $scope.contentResults = null;
-
-        const promise = bulkUploadImportApiService.Import(
-          $scope.file
-        );
-
-        promise
-          .then(function (response) {
-            $scope.loading = false;
-            if (response.status === 200) {
-              if ($scope.fileControlElement) {
-                $scope.file = null;
-                $scope.fileControlElement.value = "";
-              }
-
-              $scope.contentResults = response.data;
-
-              var successMsg = response.data.successCount + ' of ' + response.data.totalCount + ' content items imported successfully.';
-              if (response.data.failureCount > 0) {
-                successMsg += ' ' + response.data.failureCount + ' failed.';
-              }
-
-              $scope.successNotification = {
-                type: response.data.failureCount > 0 ? 'warning' : 'success',
-                headline: 'Content Import Complete',
-                sticky: true,
-                message: successMsg
-              };
-              notificationsService.add($scope.successNotification);
-              setTimeout(function () {
-                notificationsService.remove($scope.successNotification)
-              }, 10000);
-            } else {
-              $scope.errorNotification = {
-                type: 'error',
-                headline: 'Error',
-                sticky: true,
-                message: '' + response.data
-              };
-              notificationsService.add($scope.errorNotification);
-              setTimeout(function () {
-                notificationsService.remove($scope.errorNotification)
-              }, 10000);
-            }
-          })
-          .catch(function (error) {
-            $scope.errorNotification = {
-              type: 'error',
-              headline: 'Error',
-              sticky: true,
-              message: error.data || 'An error occurred during content import.'
-            };
-            notificationsService.add($scope.errorNotification);
-            setTimeout(function () {
-              notificationsService.remove($scope.errorNotification)
-            }, 10000);
-          })
-          .finally(function () {
-            $scope.loading = false;
-            angularHelper.getCurrentForm($scope).$setPristine();
-          });
-      };
-
-      $scope.onExportContentResultsClicked = function () {
-        if (!$scope.contentResults || !$scope.contentResults.results) return;
-
-        bulkUploadImportApiService.ExportContentResults($scope.contentResults.results)
-          .then(function (response) {
-            // Use framework-agnostic utilities for blob creation and download
-            var blob = createCsvBlob(response.data);
+      $scope.onExportContentResultsClicked = async () => {
+        try {
+          const response = await service.exportContentResults();
+          if (response) {
+            const blob = createCsvBlob(response.data);
             downloadBlob(blob, 'content-import-results.csv');
-
-            notificationsService.add({
-              type: 'success',
-              headline: 'Success',
-              message: 'Results exported successfully.'
-            });
-          })
-          .catch(function (error) {
-            notificationsService.add({
-              type: 'error',
-              headline: 'Error',
-              message: 'Failed to export results.'
-            });
-          });
+          }
+        } catch (error) {
+          // Error already handled by service
+          console.error('Export failed:', error);
+        }
       };
 
       // Media import handlers
-      $scope.onMediaFileSelected = function (mediaUploadFile, evt) {
-        if (mediaUploadFile) {
-          $scope.mediaFile = mediaUploadFile;
-          $scope.mediaFileControlElement = evt.target;
+      $scope.onMediaFileSelected = (file, evt) => {
+        service.setMediaFile(file, evt ? evt.target : null);
+      };
+
+      $scope.clearMediaFile = () => {
+        service.clearMediaFile();
+      };
+
+      $scope.clearMediaResults = () => {
+        service.clearMediaResults();
+      };
+
+      $scope.onMediaUploadClicked = async () => {
+        try {
+          await service.importMedia();
+          angularHelper.getCurrentForm($scope).$setPristine();
+        } catch (error) {
+          // Error already handled by service
+          console.error('Import failed:', error);
         }
       };
 
-      $scope.clearMediaFile = function () {
-        $scope.mediaFile = null;
-        if ($scope.mediaFileControlElement) {
-          $scope.mediaFileControlElement.value = "";
-        }
-      };
-
-      $scope.clearMediaResults = function () {
-        $scope.mediaResults = null;
-      };
-
-      $scope.onMediaUploadClicked = function () {
-        if (!$scope.mediaFile || $scope.loadingMedia) return;
-
-        $scope.loadingMedia = true;
-        $scope.mediaResults = null;
-
-        const promise = bulkUploadImportApiService.ImportMedia(
-          $scope.mediaFile
-        );
-
-        promise
-          .then(function (response) {
-            $scope.loadingMedia = false;
-            if (response.status === 200) {
-              if ($scope.mediaFileControlElement) {
-                $scope.mediaFile = null;
-                $scope.mediaFileControlElement.value = "";
-              }
-
-              $scope.mediaResults = response.data;
-
-              var successMsg = response.data.successCount + ' of ' + response.data.totalCount + ' media items imported successfully.';
-              if (response.data.failureCount > 0) {
-                successMsg += ' ' + response.data.failureCount + ' failed.';
-              }
-
-              $scope.successNotification = {
-                type: response.data.failureCount > 0 ? 'warning' : 'success',
-                headline: 'Media Import Complete',
-                sticky: true,
-                message: successMsg
-              };
-              notificationsService.add($scope.successNotification);
-              setTimeout(function () {
-                notificationsService.remove($scope.successNotification)
-              }, 10000);
-            } else {
-              $scope.errorNotification = {
-                type: 'error',
-                headline: 'Error',
-                sticky: true,
-                message: '' + response.data
-              };
-              notificationsService.add($scope.errorNotification);
-              setTimeout(function () {
-                notificationsService.remove($scope.errorNotification)
-              }, 10000);
-            }
-          })
-          .catch(function (error) {
-            $scope.errorNotification = {
-              type: 'error',
-              headline: 'Error',
-              sticky: true,
-              message: error.data || 'An error occurred during media import.'
-            };
-            notificationsService.add($scope.errorNotification);
-            setTimeout(function () {
-              notificationsService.remove($scope.errorNotification)
-            }, 10000);
-          })
-          .finally(function () {
-            $scope.loadingMedia = false;
-            angularHelper.getCurrentForm($scope).$setPristine();
-          });
-      };
-
-      $scope.onExportResultsClicked = function () {
-        if (!$scope.mediaResults || !$scope.mediaResults.results) return;
-
-        bulkUploadImportApiService.ExportResults($scope.mediaResults.results)
-          .then(function (response) {
-            // Use framework-agnostic utilities for blob creation and download
-            var blob = createCsvBlob(response.data);
+      $scope.onExportResultsClicked = async () => {
+        try {
+          const response = await service.exportMediaResults();
+          if (response) {
+            const blob = createCsvBlob(response.data);
             downloadBlob(blob, 'media-import-results.csv');
-
-            notificationsService.add({
-              type: 'success',
-              headline: 'Success',
-              message: 'Results exported successfully.'
-            });
-          })
-          .catch(function (error) {
-            notificationsService.add({
-              type: 'error',
-              headline: 'Error',
-              message: 'Failed to export results.'
-            });
-          });
+          }
+        } catch (error) {
+          // Error already handled by service
+          console.error('Export failed:', error);
+        }
       };
     }
   );
