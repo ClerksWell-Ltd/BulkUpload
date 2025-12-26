@@ -220,11 +220,29 @@ The workflow generates a detailed summary with:
 
 ## Required Repository Settings
 
-**Actions Permissions**:
-1. Navigate to: Settings → Actions → General → Workflow permissions
-2. Enable: ✓ **Allow GitHub Actions to create and approve pull requests**
+### Required Secrets
 
-Without this setting, the workflow cannot create PRs and will fail at step 8.
+This workflow requires a Personal Access Token (PAT) to create pull requests:
+
+| Secret | Purpose | Required |
+|--------|---------|----------|
+| `PAT_TOKEN` | Personal Access Token for creating PRs | ✅ Yes |
+
+**Setup Instructions**: See `.github/workflows/SETUP.md` for detailed PAT configuration steps.
+
+**Quick Setup**:
+1. Create a Personal Access Token (classic) with `repo` and `workflow` scopes
+2. Add it as a repository secret named `PAT_TOKEN`
+3. Settings → Secrets and variables → Actions → New repository secret
+
+### Alternative: GitHub Actions Default Token
+
+Alternatively, you can use the default `GITHUB_TOKEN` by:
+1. Changing `token: ${{ secrets.PAT_TOKEN }}` to `token: ${{ secrets.GITHUB_TOKEN }}` in the workflow
+2. Enabling: Settings → Actions → General → Workflow permissions
+3. Enable: ✓ **Allow GitHub Actions to create and approve pull requests**
+
+**Note**: The repository is currently configured to use `PAT_TOKEN` for enhanced permissions and flexibility.
 
 ## Files Used
 
