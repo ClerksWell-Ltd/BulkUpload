@@ -1,52 +1,72 @@
+/**
+ * Bulk Upload Import API Service (AngularJS)
+ * Refactored to use framework-agnostic BulkUploadApiClient
+ *
+ * This service now acts as a thin wrapper around BulkUploadApiClient,
+ * making it easy to migrate to v17 by simply removing this wrapper.
+ */
+
+import { BulkUploadApiClient } from './services/BulkUploadApiClient.js';
+import { AngularHttpAdapter } from './services/httpAdapters.js';
+
 angular
   .module("umbraco")
   .factory("bulkUploadImportApiService", function ($http, Upload) {
-    var bulkUploadImportApi = {};
 
-    bulkUploadImportApi.Import = function (fileToUpload) {
+    // Create HTTP adapter for AngularJS environment
+    const httpAdapter = new AngularHttpAdapter($http, Upload);
 
-      //make use of Upload service from ng-file-upload which is used by Umbraco to upload the file
+    // Create API client with AngularJS adapter
+    const apiClient = new BulkUploadApiClient(httpAdapter);
 
-      const result = Upload.upload({
-        url: "/Umbraco/backoffice/Api/BulkUpload/ImportAll",
-        file: fileToUpload
-      }).success(function (data, status) {
-        return { data, status };
-      }).error(function (evt, status) {
-        return { evt, status };
-      });
+    // Expose API client methods through AngularJS service interface
+    const bulkUploadImportApi = {
+      /**
+       * Imports content from a CSV or ZIP file
+       * @param {File} fileToUpload - The file to import
+       * @returns {Promise} Promise resolving to import results
+       */
+      Import: function (fileToUpload) {
+        return apiClient.importContent(fileToUpload);
+      },
 
-      return result;
+      /**
+       * Imports media from a CSV or ZIP file
+       * @param {File} fileToUpload - The file to import
+       * @returns {Promise} Promise resolving to import results
+       */
+      ImportMedia: function (fileToUpload) {
+        return apiClient.importMedia(fileToUpload);
+      },
+
+      /**
+       * Exports content import results to CSV
+       * @param {Array} results - Array of import result objects
+       * @returns {Promise} Promise resolving to CSV data
+       */
+      ExportContentResults: function (results) {
+        return apiClient.exportContentResults(results);
+      },
+
+      /**
+       * Exports media import results to CSV
+       * @param {Array} results - Array of import result objects
+       * @returns {Promise} Promise resolving to CSV data
+       */
+      ExportResults: function (results) {
+        return apiClient.exportMediaResults(results);
+      },
+
+      /**
+       * Validates a file before import
+       * @param {File} file - The file to validate
+       * @param {Object} options - Validation options
+       * @returns {Object} Validation result
+       */
+      ValidateFile: function (file, options) {
+        return apiClient.validateFile(file, options);
+      }
     };
-
-    bulkUploadImportApi.ImportMedia = function (fileToUpload) {
-
-      //make use of Upload service from ng-file-upload which is used by Umbraco to upload the file
-
-      const result = Upload.upload({
-        url: "/Umbraco/backoffice/Api/MediaImport/ImportMedia",
-        file: fileToUpload
-      }).success(function (data, status) {
-        return { data, status };
-      }).error(function (evt, status) {
-        return { evt, status };
-      });
-
-      return result;
-    };
-
-    bulkUploadImportApi.ExportResults = function (results) {
-      return $http.post("/Umbraco/backoffice/Api/MediaImport/ExportResults", results, {
-        responseType: 'text'
-      });
-    };
-
-    bulkUploadImportApi.ExportContentResults = function (results) {
-      return $http.post("/Umbraco/backoffice/Api/BulkUpload/ExportResults", results, {
-        responseType: 'text'
-      });
-    };
-
 
     return bulkUploadImportApi;
   });
