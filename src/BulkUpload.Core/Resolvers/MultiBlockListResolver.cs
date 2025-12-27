@@ -1,5 +1,13 @@
 using Newtonsoft.Json;
 using Umbraco.Cms.Core;
+using Umbraco.Cms.Core.IO;
+using Umbraco.Cms.Core.Models;
+using Umbraco.Cms.Core.Services;
+using Umbraco.Cms.Core.Strings;
+using BulkUpload.Core.Services;
+using Microsoft.Extensions.Logging;
+using UmbracoConstants = Umbraco.Cms.Core.Constants;
+using IOFile = System.IO.File;
 
 namespace BulkUpload.Core.Resolvers;
 
@@ -7,9 +15,43 @@ namespace BulkUpload.Core.Resolvers;
 /// Resolver for creating BlockList structures with multiple block types from CSV data.
 /// Format: blockType::content;;blockType::content
 /// Supported block types: richtext, image, video, code, carousel, articlelist, iconlink
+///
+/// Image blocks support:
+/// - URLs: image::https://example.com/photo.jpg|Caption
+/// - File paths: image::/path/to/photo.jpg|Caption
+/// - GUIDs: image::a1b2c3d4-e5f6-7890-abcd-ef1234567890|Caption
 /// </summary>
 public class MultiBlockListResolver : IResolver
 {
+    private readonly IHttpClientFactory? _httpClientFactory;
+    private readonly IMediaService _mediaService;
+    private readonly MediaFileManager _mediaFileManager;
+    private readonly IMediaTypeService _mediaTypeService;
+    private readonly IShortStringHelper _shortStringHelper;
+    private readonly IContentTypeBaseServiceProvider _contentTypeBaseServiceProvider;
+    private readonly IMediaItemCache _mediaItemCache;
+    private readonly ILogger<MultiBlockListResolver> _logger;
+
+    public MultiBlockListResolver(
+        IMediaService mediaService,
+        MediaFileManager mediaFileManager,
+        IMediaTypeService mediaTypeService,
+        IShortStringHelper shortStringHelper,
+        IContentTypeBaseServiceProvider contentTypeBaseServiceProvider,
+        IMediaItemCache mediaItemCache,
+        ILogger<MultiBlockListResolver> logger,
+        IHttpClientFactory? httpClientFactory = null)
+    {
+        _mediaService = mediaService;
+        _mediaFileManager = mediaFileManager;
+        _mediaTypeService = mediaTypeService;
+        _shortStringHelper = shortStringHelper;
+        _contentTypeBaseServiceProvider = contentTypeBaseServiceProvider;
+        _mediaItemCache = mediaItemCache;
+        _logger = logger;
+        _httpClientFactory = httpClientFactory;
+    }
+
     public string Alias() => "multiBlockList";
 
     public object Resolve(object value)
@@ -135,17 +177,14 @@ public class MultiBlockListResolver : IResolver
 
     private Dictionary<string, object> CreateImageBlock(string content, GuidUdi udi)
     {
-        // Format: "mediaGuid|caption"
+        // Format: "mediaReference|caption"
+        // mediaReference can be: GUID, URL, or file path
         var parts = content.Split('|', 2);
-        var mediaGuidStr = parts[0].Trim();
+        var mediaReference = parts[0].Trim();
         var caption = parts.Length > 1 ? parts[1].Trim() : "";
 
-        Guid mediaGuid;
-        if (!Guid.TryParse(mediaGuidStr, out mediaGuid))
-        {
-            // If parsing fails, generate a random GUID
-            mediaGuid = Guid.NewGuid();
-        }
+        // Resolve the media reference (handles GUID, URL, or file path)
+        var mediaGuid = ResolveMediaReference(mediaReference);
 
         return new Dictionary<string, object>
         {
@@ -199,14 +238,15 @@ public class MultiBlockListResolver : IResolver
 
     private Dictionary<string, object> CreateCarouselBlock(string content, GuidUdi udi)
     {
-        // Format: "mediaGuid1,mediaGuid2,mediaGuid3,..."
-        var mediaGuids = content.Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(g => g.Trim())
-            .Where(g => Guid.TryParse(g, out _))
-            .Select(g => new
+        // Format: "mediaReference1,mediaReference2,mediaReference3,..."
+        // Each mediaReference can be: GUID, URL, or file path
+        var mediaReferences = content.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(reference => reference.Trim())
+            .Where(reference => !string.IsNullOrWhiteSpace(reference))
+            .Select(reference => new
             {
                 key = Guid.NewGuid(),
-                mediaKey = Guid.Parse(g)
+                mediaKey = ResolveMediaReference(reference)
             })
             .ToArray();
 
@@ -214,7 +254,7 @@ public class MultiBlockListResolver : IResolver
         {
             { "contentTypeKey", "1c43fe2d-4a9a-4336-923f-9d0214950d48" }, // Image carousel block
             { "udi", udi.ToString() },
-            { "images", mediaGuids }
+            { "images", mediaReferences }
         };
     }
 
@@ -254,17 +294,15 @@ public class MultiBlockListResolver : IResolver
 
     private Dictionary<string, object> CreateIconLinkBlock(string content, GuidUdi udi)
     {
-        // Format: "iconMediaGuid|linkUrl|linkName"
+        // Format: "iconMediaReference|linkUrl|linkName"
+        // iconMediaReference can be: GUID, URL, or file path
         var parts = content.Split('|', 3);
-        var iconMediaGuidStr = parts.Length > 0 ? parts[0].Trim() : "";
+        var iconMediaReference = parts.Length > 0 ? parts[0].Trim() : "";
         var linkUrl = parts.Length > 1 ? parts[1].Trim() : "";
         var linkName = parts.Length > 2 ? parts[2].Trim() : "";
 
-        Guid iconMediaGuid;
-        if (!Guid.TryParse(iconMediaGuidStr, out iconMediaGuid))
-        {
-            iconMediaGuid = Guid.NewGuid();
-        }
+        // Resolve the icon media reference (handles GUID, URL, or file path)
+        var iconMediaGuid = ResolveMediaReference(iconMediaReference);
 
         return new Dictionary<string, object>
         {
@@ -291,6 +329,234 @@ public class MultiBlockListResolver : IResolver
                     }
                 }
             }
+        };
+    }
+
+    /// <summary>
+    /// Resolves a media reference (GUID, URL, or file path) to a media GUID.
+    /// If the input is a URL or file path, creates the media item.
+    /// </summary>
+    private Guid ResolveMediaReference(string reference)
+    {
+        if (string.IsNullOrWhiteSpace(reference))
+        {
+            _logger.LogWarning("Empty media reference provided");
+            return Guid.NewGuid(); // Return random GUID for invalid input
+        }
+
+        reference = reference.Trim();
+
+        // Check if it's already a GUID
+        if (Guid.TryParse(reference, out var guid))
+        {
+            _logger.LogDebug("Using existing media GUID: {Guid}", guid);
+            return guid;
+        }
+
+        // Check cache first to avoid creating duplicates
+        if (_mediaItemCache.TryGetGuid(reference, out var cachedGuid))
+        {
+            _logger.LogDebug("Found cached media for reference: {Reference}, GUID: {Guid}", reference, cachedGuid);
+            return cachedGuid;
+        }
+
+        // Check if it's a URL
+        if (Uri.TryCreate(reference, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+        {
+            var mediaGuid = CreateMediaFromUrl(reference);
+            if (mediaGuid != Guid.Empty)
+            {
+                return mediaGuid;
+            }
+        }
+
+        // Check if it's a file path
+        if (IOFile.Exists(reference))
+        {
+            var mediaGuid = CreateMediaFromFilePath(reference);
+            if (mediaGuid != Guid.Empty)
+            {
+                return mediaGuid;
+            }
+        }
+
+        _logger.LogWarning("Could not resolve media reference: {Reference}", reference);
+        return Guid.NewGuid(); // Return random GUID for unresolvable references
+    }
+
+    /// <summary>
+    /// Creates a media item from a URL.
+    /// </summary>
+    private Guid CreateMediaFromUrl(string urlString)
+    {
+        if (_httpClientFactory == null)
+        {
+            _logger.LogWarning("HTTP client factory not available, cannot download from URL: {Url}", urlString);
+            return Guid.Empty;
+        }
+
+        try
+        {
+            var uri = new Uri(urlString);
+            var httpClient = _httpClientFactory.CreateClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+            var response = httpClient.GetAsync(uri).GetAwaiter().GetResult();
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to download media from URL: {Url}, Status: {StatusCode}",
+                    urlString, response.StatusCode);
+                return Guid.Empty;
+            }
+
+            var fileBytes = response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                _logger.LogWarning("Downloaded file from URL is empty: {Url}", urlString);
+                return Guid.Empty;
+            }
+
+            var fileName = GetFileNameFromUrl(uri);
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            var mediaTypeAlias = DetermineMediaTypeFromExtension(extension);
+
+            var mediaGuid = CreateAndUploadMedia(fileName, fileBytes, mediaTypeAlias);
+
+            if (mediaGuid != Guid.Empty)
+            {
+                _mediaItemCache.TryAdd(urlString, mediaGuid);
+                _logger.LogInformation("Successfully created media from URL: {Url}, GUID: {Guid}", urlString, mediaGuid);
+            }
+
+            return mediaGuid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating media from URL: {Url}", urlString);
+            return Guid.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Creates a media item from a file path.
+    /// </summary>
+    private Guid CreateMediaFromFilePath(string filePath)
+    {
+        try
+        {
+            var fileBytes = IOFile.ReadAllBytes(filePath);
+            if (fileBytes == null || fileBytes.Length == 0)
+            {
+                _logger.LogWarning("File is empty: {FilePath}", filePath);
+                return Guid.Empty;
+            }
+
+            var fileName = Path.GetFileName(filePath);
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileName = "uploaded-file";
+            }
+
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            var mediaTypeAlias = DetermineMediaTypeFromExtension(extension);
+
+            var mediaGuid = CreateAndUploadMedia(fileName, fileBytes, mediaTypeAlias);
+
+            if (mediaGuid != Guid.Empty)
+            {
+                _mediaItemCache.TryAdd(filePath, mediaGuid);
+                _logger.LogInformation("Successfully created media from file: {FilePath}, GUID: {Guid}", filePath, mediaGuid);
+            }
+
+            return mediaGuid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating media from file path: {FilePath}", filePath);
+            return Guid.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Creates and uploads a media item to Umbraco.
+    /// </summary>
+    private Guid CreateAndUploadMedia(string fileName, byte[] fileBytes, string mediaTypeAlias)
+    {
+        try
+        {
+            // Verify media type exists
+            var mediaType = _mediaTypeService.Get(mediaTypeAlias);
+            if (mediaType == null)
+            {
+                _logger.LogWarning("Media type '{MediaType}' not found", mediaTypeAlias);
+                return Guid.Empty;
+            }
+
+            // Create media item in root folder
+            var mediaItem = _mediaService.CreateMedia(fileName, UmbracoConstants.System.Root, mediaTypeAlias);
+
+            // Upload the file
+            using (var fileStream = new MemoryStream(fileBytes))
+            {
+                var propertyType = mediaItem.Properties["umbracoFile"]?.PropertyType;
+                if (propertyType == null)
+                {
+                    _logger.LogWarning("Media type does not have umbracoFile property");
+                    return Guid.Empty;
+                }
+
+                var mediaPath = _mediaFileManager.GetMediaPath(fileName, propertyType.Key, mediaItem.Key);
+                _mediaFileManager.FileSystem.AddFile(mediaPath, fileStream, true);
+                mediaItem.SetValue("umbracoFile", mediaPath);
+            }
+
+            // Save the media item
+            var saveResult = _mediaService.Save(mediaItem);
+            if (!saveResult.Success)
+            {
+                _logger.LogWarning("Failed to save media item for file: {FileName}", fileName);
+                return Guid.Empty;
+            }
+
+            return mediaItem.Key;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating and uploading media: {FileName}", fileName);
+            return Guid.Empty;
+        }
+    }
+
+    private string GetFileNameFromUrl(Uri uri)
+    {
+        var segments = uri.Segments;
+        var lastSegment = segments.Length > 0 ? segments[^1] : "downloaded-file";
+        var fileName = Uri.UnescapeDataString(lastSegment);
+
+        var queryIndex = fileName.IndexOf('?');
+        if (queryIndex >= 0)
+        {
+            fileName = fileName.Substring(0, queryIndex);
+        }
+
+        if (!Path.HasExtension(fileName))
+        {
+            fileName += ".jpg";
+        }
+
+        return fileName;
+    }
+
+    private string DetermineMediaTypeFromExtension(string extension)
+    {
+        return extension switch
+        {
+            ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".svg" => "Image",
+            ".pdf" or ".doc" or ".docx" or ".xls" or ".xlsx" or ".ppt" or ".pptx" or ".txt" => "File",
+            ".mp4" or ".avi" or ".mov" or ".wmv" or ".webm" => "Video",
+            ".mp3" or ".wav" or ".ogg" or ".wma" => "Audio",
+            _ => "File"
         };
     }
 
