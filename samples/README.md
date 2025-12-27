@@ -29,6 +29,33 @@ Demonstrates using flexible parent folder specification to automatically organiz
 3. Upload the ZIP through the Bulk Upload Media interface
 4. Media will be imported from the file system and organized into folders
 
+### 3. test-page-multiblock-with-urls.csv
+Demonstrates the enhanced MultiBlockListResolver that creates images directly from URLs:
+- Image blocks with URLs instead of GUIDs
+- Carousel blocks with multiple image URLs
+- Icon link blocks with icon URLs
+- No need to pre-create media items
+- Automatic media type detection and caching
+
+**Features Demonstrated:**
+- `image::https://example.com/photo.jpg|Caption` - Creates image from URL
+- `carousel::https://example.com/1.jpg,https://example.com/2.jpg` - Multiple images from URLs
+- `iconlink::https://example.com/icon.png|https://link.com|Link Name` - Icon from URL
+- Mixed with richtext, video, and code blocks
+- All images are downloaded and created automatically
+
+**Usage:**
+1. Create a ZIP file containing only this CSV file
+2. Upload through the Bulk Upload interface (content import, not media import)
+3. Images will be automatically downloaded from URLs and media items created
+4. The page content will reference the newly created media items
+
+**Benefits:**
+- Simplified CSV files - no GUID management needed
+- Supports URLs, file paths, and GUIDs (backward compatible)
+- Built-in caching prevents duplicate media creation
+- Automatic media type detection from file extension
+
 ## CSV Column Reference
 
 ### Required Columns

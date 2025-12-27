@@ -1,0 +1,18 @@
+name,docTypeAlias,parent,contentRows|multiBlockList
+Test Page,content,/Home,"richtext::<h2>Welcome to Test Page</h2>
+<p>This page demonstrates the enhanced MultiBlockListResolver that can create images directly from URLs and file paths, eliminating the need to pre-create media items.</p>;;richtext::<h2>Image Block with URL</h2>
+<p>The image below is created directly from a URL. The resolver downloads the image and creates a media item automatically.</p>;;image::https://via.placeholder.com/1200x600/4A90E2/FFFFFF|Hero Image Created from URL;;richtext::<h2>Multiple Images from Different Sources</h2>
+<p>You can mix and match different image sources in the same page.</p>;;image::https://via.placeholder.com/800x400/E74C3C/FFFFFF|First Image from URL;;image::https://via.placeholder.com/800x400/2ECC71/FFFFFF|Second Image from URL;;richtext::<h2>Image Carousel with URLs</h2>
+<p>The carousel below demonstrates creating multiple images from URLs in a single carousel block.</p>;;carousel::https://via.placeholder.com/600x400/3498DB/FFFFFF,https://via.placeholder.com/600x400/9B59B6/FFFFFF,https://via.placeholder.com/600x400/F39C12/FFFFFF,https://via.placeholder.com/600x400/1ABC9C/FFFFFF;;richtext::<h2>Video Block</h2>
+<p>Video blocks work just like before, embedding YouTube videos by URL.</p>;;video::https://www.youtube.com/watch?v=dQw4w9WgXcQ|Example Video Embed;;richtext::<h2>Code Snippet</h2>
+<p>Here's an example of using the new media creation feature in your CSV files.</p>;;code::image::https://example.com/photo.jpg|My Caption
+carousel::https://example.com/img1.jpg,https://example.com/img2.jpg
+iconlink::https://example.com/icon.png|https://mysite.com|Visit Us|CSV Format Examples;;richtext::<h2>Icon Link with URL</h2>
+<p>Icon links can also use URLs for the icon images.</p>;;iconlink::https://via.placeholder.com/64x64/E67E22/FFFFFF|https://www.example.com|Visit Our Website;;richtext::<h2>Benefits of This Approach</h2>
+<ul>
+<li>No need to pre-create media items</li>
+<li>Simplified CSV files</li>
+<li>Automatic media type detection</li>
+<li>Built-in caching to prevent duplicates</li>
+<li>Support for URLs, file paths, and GUIDs</li>
+</ul>"
