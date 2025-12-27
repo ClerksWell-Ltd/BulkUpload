@@ -163,6 +163,31 @@ namespace Umbraco.Community.BulkUpload.Core.Constants;
 
 ## 🚀 Next Steps: Adding Umbraco 17 Support
 
+> **Note:** Umbraco 17 is not yet available on NuGet. The Core project is designed for multi-targeting but currently only targets `net8.0` to avoid build failures. When Umbraco 17 is released, follow these steps:
+
+### Step 0: Enable Multi-Targeting in Core (~5 minutes)
+
+**Edit:** `src/BulkUpload.Core/BulkUpload.Core.csproj`
+
+1. Change line 5 from:
+   ```xml
+   <TargetFramework>net8.0</TargetFramework>
+   ```
+   To:
+   ```xml
+   <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+   ```
+
+2. Uncomment the Umbraco 17 dependencies (lines 45-50) and update to the actual version:
+   ```xml
+   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+     <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.0.0" />
+     <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="17.0.0" />
+   </ItemGroup>
+   ```
+
+3. Build to verify both targets compile successfully
+
 When ready to add Umbraco 17 support, follow these steps:
 
 ### Step 1: Create BulkUpload.V17 Project (~0.5 days)
