@@ -8,6 +8,7 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Services;
+using UmbracoConstants = Umbraco.Cms.Core.Constants;
 
 namespace BulkUpload.Core.Resolvers;
 
@@ -93,7 +94,7 @@ public class UrlToMediaResolver : IResolver
         // Check cache first to avoid creating duplicate media items
         if (_mediaItemCache.TryGetGuid(urlString, out var cachedMediaGuid))
         {
-            var cachedUdi = Udi.Create(Constants.UdiEntityType.Media, cachedMediaGuid);
+            var cachedUdi = Udi.Create(UmbracoConstants.UdiEntityType.Media, cachedMediaGuid);
             _logger.LogDebug("Found cached media for URL: {Url}, UDI: {Udi}", urlString, cachedUdi);
             return cachedUdi.ToString();
         }
@@ -151,7 +152,7 @@ public class UrlToMediaResolver : IResolver
             if (parent is Guid guid)
             {
                 mediaItem = guid == Guid.Empty
-                    ? _mediaService.CreateMedia(fileName, Constants.System.Root, mediaTypeAlias)
+                    ? _mediaService.CreateMedia(fileName, UmbracoConstants.System.Root, mediaTypeAlias)
                     : _mediaService.CreateMedia(fileName, guid, mediaTypeAlias);
             }
             else if (parent is int id)
@@ -197,7 +198,7 @@ public class UrlToMediaResolver : IResolver
             _mediaItemCache.TryAdd(urlString, mediaItem.Key);
 
             // Return the UDI
-            var udi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key);
+            var udi = Udi.Create(UmbracoConstants.UdiEntityType.Media, mediaItem.Key);
             var udiString = udi.ToString();
 
             _logger.LogInformation("Successfully created media from URL: {Url}, Parent: {Parent}, UDI: {Udi}",
@@ -226,7 +227,7 @@ public class UrlToMediaResolver : IResolver
 
         if (string.IsNullOrWhiteSpace(parameter))
         {
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
         }
 
         // Try to parse as GUID - use directly without lookup for modern Umbraco compatibility
@@ -251,7 +252,7 @@ public class UrlToMediaResolver : IResolver
                 return media.Key;
             }
             _logger.LogWarning("Parent ID {Id} not found, using root folder", parentId);
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
 #endif
         }
 
@@ -264,7 +265,7 @@ public class UrlToMediaResolver : IResolver
         }
 
         _logger.LogWarning("Could not resolve parent path '{Path}', using root folder", parameter);
-        return Constants.System.Root;
+        return UmbracoConstants.System.Root;
     }
 
     private string GetFileNameFromUrl(Uri uri)

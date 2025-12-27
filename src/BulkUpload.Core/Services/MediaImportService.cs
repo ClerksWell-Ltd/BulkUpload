@@ -1,5 +1,3 @@
-using BulkUpload.Core.Constants;
-
 using Microsoft.Extensions.Logging;
 
 using Newtonsoft.Json;
@@ -14,6 +12,8 @@ using Umbraco.Cms.Core.Strings;
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Resolvers;
 using Umbraco.Extensions;
+using ReservedColumns = BulkUpload.Core.Constants.ReservedColumns;
+using UmbracoConstants = Umbraco.Cms.Core.Constants;
 
 namespace BulkUpload.Core.Services;
 
@@ -227,7 +227,7 @@ public class MediaImportService : IMediaImportService
             {
                 if (parentGuid == Guid.Empty)
                 {
-                    queryParentId = Constants.System.Root;
+                    queryParentId = UmbracoConstants.System.Root;
                 }
                 else
                 {
@@ -266,7 +266,7 @@ public class MediaImportService : IMediaImportService
                 if (parent is Guid guid)
                 {
                     mediaItem = guid == Guid.Empty
-                        ? _mediaService.CreateMedia(importObject.DisplayName, Constants.System.Root, mediaTypeAlias)
+                        ? _mediaService.CreateMedia(importObject.DisplayName, UmbracoConstants.System.Root, mediaTypeAlias)
                         : _mediaService.CreateMedia(importObject.DisplayName, guid, mediaTypeAlias);
                 }
                 else if (parent is int id)
@@ -289,7 +289,7 @@ public class MediaImportService : IMediaImportService
                 // Use the proper Umbraco extension method for setting media files
                 // This handles file upload, path generation, and proper JSON structure creation
                 mediaItem.SetValue(_mediaFileManager, _mediaUrlGeneratorCollection, _shortStringHelper,
-                    _contentTypeBaseServiceProvider, Constants.Conventions.Media.File,
+                    _contentTypeBaseServiceProvider, UmbracoConstants.Conventions.Media.File,
                     importObject.FileName, fileStream);
             }
             else
@@ -321,7 +321,7 @@ public class MediaImportService : IMediaImportService
             {
                 result.BulkUploadSuccess = true;
                 result.BulkUploadMediaGuid = mediaItem.Key;
-                result.BulkUploadMediaUdi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key).ToString();
+                result.BulkUploadMediaUdi = Udi.Create(UmbracoConstants.UdiEntityType.Media, mediaItem.Key).ToString();
                 _logger.LogInformation("Successfully imported media: {Name} (ID: {Id})", importObject.DisplayName, mediaItem.Id);
             }
             else
@@ -382,7 +382,7 @@ public class MediaImportService : IMediaImportService
     {
         if (string.IsNullOrWhiteSpace(parent))
         {
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
         }
 
         // Try to parse as GUID - use directly without lookup for modern Umbraco compatibility
@@ -407,7 +407,7 @@ public class MediaImportService : IMediaImportService
                 return media.Key;
             }
             _logger.LogWarning("Parent ID {Id} not found, using root folder", parentId);
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
 #endif
         }
 
@@ -420,7 +420,7 @@ public class MediaImportService : IMediaImportService
         }
 
         _logger.LogWarning("Could not resolve parent path '{Path}', using root folder", parent);
-        return Constants.System.Root;
+        return UmbracoConstants.System.Root;
     }
 
     private string DetermineMediaTypeFromExtension(string fileName)

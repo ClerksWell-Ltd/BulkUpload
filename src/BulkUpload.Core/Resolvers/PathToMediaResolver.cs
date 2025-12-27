@@ -8,6 +8,7 @@ using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Services;
+using UmbracoConstants = Umbraco.Cms.Core.Constants;
 
 using IOFile = System.IO.File;
 
@@ -97,7 +98,7 @@ public class PathToMediaResolver : IResolver
         // Check cache first to avoid creating duplicate media items
         if (_mediaItemCache.TryGetGuid(filePath, out var cachedMediaGuid))
         {
-            var cachedUdi = Udi.Create(Constants.UdiEntityType.Media, cachedMediaGuid);
+            var cachedUdi = Udi.Create(UmbracoConstants.UdiEntityType.Media, cachedMediaGuid);
             _logger.LogDebug("Found cached media for path: {Path}, UDI: {Udi}", filePath, cachedUdi);
             return cachedUdi.ToString();
         }
@@ -165,7 +166,7 @@ public class PathToMediaResolver : IResolver
             if (parent is Guid guid)
             {
                 mediaItem = guid == Guid.Empty
-                    ? _mediaService.CreateMedia(fileName, Constants.System.Root, mediaTypeAlias)
+                    ? _mediaService.CreateMedia(fileName, UmbracoConstants.System.Root, mediaTypeAlias)
                     : _mediaService.CreateMedia(fileName, guid, mediaTypeAlias);
             }
             else if (parent is int id)
@@ -211,7 +212,7 @@ public class PathToMediaResolver : IResolver
             _mediaItemCache.TryAdd(filePath, mediaItem.Key);
 
             // Return the UDI
-            var udi = Udi.Create(Constants.UdiEntityType.Media, mediaItem.Key);
+            var udi = Udi.Create(UmbracoConstants.UdiEntityType.Media, mediaItem.Key);
             var udiString = udi.ToString();
 
             _logger.LogInformation("Successfully created media from file: {FilePath}, Parent: {Parent}, UDI: {Udi}",
@@ -240,7 +241,7 @@ public class PathToMediaResolver : IResolver
 
         if (string.IsNullOrWhiteSpace(parameter))
         {
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
         }
 
         // Try to parse as GUID - use directly without lookup for modern Umbraco compatibility
@@ -265,7 +266,7 @@ public class PathToMediaResolver : IResolver
                 return media.Key;
             }
             _logger.LogWarning("Parent ID {Id} not found, using root folder", parentId);
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
 #endif
         }
 
@@ -278,7 +279,7 @@ public class PathToMediaResolver : IResolver
         }
 
         _logger.LogWarning("Could not resolve parent path '{Path}', using root folder", parameter);
-        return Constants.System.Root;
+        return UmbracoConstants.System.Root;
     }
 
     private string DetermineMediaTypeFromExtension(string extension)

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
+using UmbracoConstants = Umbraco.Cms.Core.Constants;
 
 namespace BulkUpload.Core.Services;
 
@@ -142,7 +143,7 @@ public class ParentLookupCache : IParentLookupCache
             int currentParentId;
             if (currentParentGuid == Guid.Empty)
             {
-                currentParentId = Constants.System.Root;
+                currentParentId = UmbracoConstants.System.Root;
             }
             else
             {
@@ -173,7 +174,7 @@ public class ParentLookupCache : IParentLookupCache
                 IMedia newFolder;
                 if (currentParentGuid == Guid.Empty)
                 {
-                    newFolder = _mediaService.CreateMedia(folderName, Constants.System.Root, "Folder");
+                    newFolder = _mediaService.CreateMedia(folderName, UmbracoConstants.System.Root, "Folder");
                 }
                 else
                 {
@@ -238,7 +239,7 @@ public class ParentLookupCache : IParentLookupCache
             int currentParentId;
             if (currentParentGuid == Guid.Empty)
             {
-                currentParentId = Constants.System.Root;
+                currentParentId = UmbracoConstants.System.Root;
             }
             else
             {

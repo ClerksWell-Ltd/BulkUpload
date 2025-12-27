@@ -1,5 +1,3 @@
-using BulkUpload.Core.Services;
-
 using Microsoft.Extensions.Logging;
 
 using Newtonsoft.Json;
@@ -12,7 +10,9 @@ using Umbraco.Cms.Core.PropertyEditors.ValueConverters;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
 using BulkUpload.Core.Models;
+using BulkUpload.Core.Services;
 using Umbraco.Extensions;
+using UmbracoConstants = Umbraco.Cms.Core.Constants;
 
 namespace BulkUpload.Core.Services;
 
@@ -395,7 +395,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     {
         if (string.IsNullOrWhiteSpace(parent))
         {
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
         }
 
         // Try GUID
@@ -415,7 +415,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
             {
                 return media.Key;
             }
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
 #endif
         }
 
@@ -426,7 +426,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
             return folderGuid.Value;
         }
 
-        return Constants.System.Root;
+        return UmbracoConstants.System.Root;
     }
 
     /// <summary>
@@ -439,7 +439,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
             if (parent is Guid guid)
             {
                 return guid == Guid.Empty
-                    ? _mediaService.CreateMedia(fileName, Constants.System.Root, mediaTypeAlias)
+                    ? _mediaService.CreateMedia(fileName, UmbracoConstants.System.Root, mediaTypeAlias)
                     : _mediaService.CreateMedia(fileName, guid, mediaTypeAlias);
             }
             else if (parent is int id)
@@ -466,7 +466,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
         // Use the proper Umbraco extension method for setting media files
         // This handles file upload, path generation, and proper JSON structure creation
         mediaItem.SetValue(_mediaFileManager, _mediaUrlGeneratorCollection, _shortStringHelper,
-            _contentTypeBaseServiceProvider, Constants.Conventions.Media.File,
+            _contentTypeBaseServiceProvider, UmbracoConstants.Conventions.Media.File,
             fileName, stream);
     }
 

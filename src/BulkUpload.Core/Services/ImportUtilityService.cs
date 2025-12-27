@@ -1,5 +1,3 @@
-using BulkUpload.Core.Constants;
-
 using Microsoft.Extensions.Logging;
 
 using Umbraco.Cms.Core;
@@ -7,6 +5,8 @@ using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Resolvers;
+using ReservedColumns = BulkUpload.Core.Constants.ReservedColumns;
+using UmbracoConstants = Umbraco.Cms.Core.Constants;
 
 namespace BulkUpload.Core.Services;
 
@@ -206,7 +206,7 @@ public class ImportUtilityService : IImportUtilityService
 
                     if (newParentGuid == Guid.Empty)
                     {
-                        newParentId = Constants.System.Root;
+                        newParentId = UmbracoConstants.System.Root;
                     }
                     else
                     {
@@ -278,7 +278,7 @@ public class ImportUtilityService : IImportUtilityService
                 {
                     if (parentGuid == Guid.Empty)
                     {
-                        queryParentId = Constants.System.Root;
+                        queryParentId = UmbracoConstants.System.Root;
                     }
                     else
                     {
@@ -330,7 +330,7 @@ public class ImportUtilityService : IImportUtilityService
                     if (parent is Guid guid)
                     {
                         contentItem = guid == Guid.Empty
-                            ? _contentService.Create(importObject!.Name, Constants.System.Root, importObject.ContentTypeAlais)
+                            ? _contentService.Create(importObject!.Name, UmbracoConstants.System.Root, importObject.ContentTypeAlais)
                             : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
                     }
                     else if (parent is int id)
@@ -389,7 +389,7 @@ public class ImportUtilityService : IImportUtilityService
 
             // Get parent GUID if content has a parent
             Guid? bulkUploadParentGuid = null;
-            if (contentItem.ParentId != Constants.System.Root)
+            if (contentItem.ParentId != UmbracoConstants.System.Root)
             {
                 var parentContent = _contentService.GetById(contentItem.ParentId);
                 bulkUploadParentGuid = parentContent?.Key;
@@ -465,7 +465,7 @@ public class ImportUtilityService : IImportUtilityService
     {
         if (string.IsNullOrWhiteSpace(parent))
         {
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
         }
 
         // Try to parse as GUID - use directly without lookup for modern Umbraco compatibility
@@ -490,7 +490,7 @@ public class ImportUtilityService : IImportUtilityService
                 return content.Key;
             }
             _logger.LogWarning("Parent ID {Id} not found, using root folder", parentId);
-            return Constants.System.Root;
+            return UmbracoConstants.System.Root;
 #endif
         }
 
@@ -503,6 +503,6 @@ public class ImportUtilityService : IImportUtilityService
         }
 
         _logger.LogWarning("Could not resolve parent path '{Path}', using root folder", parent);
-        return Constants.System.Root;
+        return UmbracoConstants.System.Root;
     }
 }
