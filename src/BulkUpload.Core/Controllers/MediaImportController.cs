@@ -156,6 +156,13 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                     case Models.MediaSourceType.FilePath:
                                         var filePath = importObject.ExternalSource.Value;
 
+                                        // Resolve relative paths against temp directory (for ZIP extractions)
+                                        if (!Path.IsPathRooted(filePath) && !string.IsNullOrEmpty(tempDirectory))
+                                        {
+                                            filePath = Path.Combine(tempDirectory, filePath);
+                                            _logger.LogInformation("Bulk Upload Media: Resolved relative path to: {FilePath}", filePath);
+                                        }
+
                                         // Security validation
                                         if (!IsAllowedFilePath(filePath))
                                         {

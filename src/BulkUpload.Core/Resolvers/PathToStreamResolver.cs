@@ -64,12 +64,8 @@ public class PathToStreamResolver : IResolver
                 return string.Empty;
             }
 
-            // Validate file exists
-            if (!File.Exists(filePath))
-            {
-                _logger.LogError("PathToStreamResolver: File not found: {FilePath}", filePath);
-                return string.Empty;
-            }
+            // Note: File existence validation is handled in the controller where temp directory context is available
+            // This allows relative paths from ZIP extractions to be resolved correctly
 
             // Return MediaSource object with file path information
             return new MediaSource
