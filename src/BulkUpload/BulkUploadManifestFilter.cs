@@ -14,8 +14,19 @@ internal class BulkUploadManifestFilter : IManifestFilter
             Version = assembly.GetName()?.Version?.ToString(3) ?? "0.1.0",
             AllowPackageTelemetry = true,
             Scripts = new string[] {
-                "/App_Plugins/BulkUpload/bulkUpload.controller.js",
-                "/App_Plugins/BulkUpload/bulkUploadImportApiService.js"
+                // Utilities (no dependencies)
+                "/App_Plugins/BulkUpload/utils/fileUtils.js",
+                "/App_Plugins/BulkUpload/utils/resultUtils.js",
+                // HTTP Adapters (no dependencies)
+                "/App_Plugins/BulkUpload/services/httpAdapters.js",
+                // API Client (depends on httpAdapters)
+                "/App_Plugins/BulkUpload/services/BulkUploadApiClient.js",
+                // Service (depends on resultUtils)
+                "/App_Plugins/BulkUpload/services/BulkUploadService.js",
+                // AngularJS service wrapper (depends on BulkUploadApiClient)
+                "/App_Plugins/BulkUpload/bulkUploadImportApiService.js",
+                // AngularJS controller (depends on all of the above)
+                "/App_Plugins/BulkUpload/bulkUpload.Controller.js"
             },
             Stylesheets = new string[]
             {

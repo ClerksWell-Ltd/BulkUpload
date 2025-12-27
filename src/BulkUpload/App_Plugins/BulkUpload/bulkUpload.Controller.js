@@ -5,14 +5,10 @@
  * This controller acts as a bridge between AngularJS and the business logic.
  * In Umbraco 17, this file will be replaced by a Lit component that uses
  * the same BulkUploadService directly.
+ *
+ * NOTE: This file is written in ES5/IIFE format for Umbraco 13 compatibility.
+ * In v17, this will be replaced with a Lit component using Vite.
  */
-
-// Import framework-agnostic modules (works in both v13 and v17)
-import { formatFileSize, getFileTypeDescription } from './utils/fileUtils.js';
-import { getFailedResults, downloadBlob, createCsvBlob } from './utils/resultUtils.js';
-import { BulkUploadApiClient } from './services/BulkUploadApiClient.js';
-import { AngularHttpAdapter } from './services/httpAdapters.js';
-import { BulkUploadService } from './services/BulkUploadService.js';
 
 angular
   .module("umbraco")
@@ -21,14 +17,14 @@ angular
     function ($scope, $http, Upload, notificationsService, angularHelper) {
 
       // Create HTTP adapter for AngularJS environment
-      const httpAdapter = new AngularHttpAdapter($http, Upload);
+      var httpAdapter = new window.BulkUpload.AngularHttpAdapter($http, Upload);
 
       // Create API client with AngularJS adapter
-      const apiClient = new BulkUploadApiClient(httpAdapter);
+      var apiClient = new window.BulkUpload.BulkUploadApiClient(httpAdapter);
 
       // Create notification handler for AngularJS
-      const notificationHandler = (notification) => {
-        const notif = {
+      var notificationHandler = function(notification) {
+        var notif = {
           type: notification.type,
           headline: notification.headline,
           message: notification.message,
@@ -37,13 +33,13 @@ angular
         notificationsService.add(notif);
 
         // Auto-remove after 10 seconds
-        setTimeout(() => {
+        setTimeout(function() {
           notificationsService.remove(notif);
         }, 10000);
       };
 
       // Create state change handler to trigger AngularJS digest
-      const stateChangeHandler = (state) => {
+      var stateChangeHandler = function(state) {
         // Update scope with new state
         $scope.state = state;
         // Trigger AngularJS digest cycle if not already in one
@@ -53,7 +49,7 @@ angular
       };
 
       // Create service instance with all dependencies
-      const service = new BulkUploadService(
+      var service = new window.BulkUpload.BulkUploadService(
         apiClient,
         notificationHandler,
         stateChangeHandler
@@ -63,29 +59,29 @@ angular
       $scope.state = service.state;
 
       // Expose utility functions to the view
-      $scope.formatFileSize = formatFileSize;
-      $scope.getFailedResults = getFailedResults;
-      $scope.getFileTypeDescription = getFileTypeDescription;
+      $scope.formatFileSize = window.BulkUploadUtils.formatFileSize;
+      $scope.getFailedResults = window.BulkUploadUtils.getFailedResults;
+      $scope.getFileTypeDescription = window.BulkUploadUtils.getFileTypeDescription;
 
       // Tab management
-      $scope.setActiveTab = (tab) => {
+      $scope.setActiveTab = function(tab) {
         service.setActiveTab(tab);
       };
 
       // Content import handlers
-      $scope.onFileSelected = (file, evt) => {
+      $scope.onFileSelected = function(file, evt) {
         service.setContentFile(file, evt ? evt.target : null);
       };
 
-      $scope.clearContentFile = () => {
+      $scope.clearContentFile = function() {
         service.clearContentFile();
       };
 
-      $scope.clearContentResults = () => {
+      $scope.clearContentResults = function() {
         service.clearContentResults();
       };
 
-      $scope.onUploadClicked = async () => {
+      $scope.onUploadClicked = async function() {
         try {
           await service.importContent();
           angularHelper.getCurrentForm($scope).$setPristine();
@@ -95,12 +91,12 @@ angular
         }
       };
 
-      $scope.onExportContentResultsClicked = async () => {
+      $scope.onExportContentResultsClicked = async function() {
         try {
-          const response = await service.exportContentResults();
+          var response = await service.exportContentResults();
           if (response) {
-            const blob = createCsvBlob(response.data);
-            downloadBlob(blob, 'content-import-results.csv');
+            var blob = window.BulkUploadUtils.createCsvBlob(response.data);
+            window.BulkUploadUtils.downloadBlob(blob, 'content-import-results.csv');
           }
         } catch (error) {
           // Error already handled by service
@@ -109,19 +105,19 @@ angular
       };
 
       // Media import handlers
-      $scope.onMediaFileSelected = (file, evt) => {
+      $scope.onMediaFileSelected = function(file, evt) {
         service.setMediaFile(file, evt ? evt.target : null);
       };
 
-      $scope.clearMediaFile = () => {
+      $scope.clearMediaFile = function() {
         service.clearMediaFile();
       };
 
-      $scope.clearMediaResults = () => {
+      $scope.clearMediaResults = function() {
         service.clearMediaResults();
       };
 
-      $scope.onMediaUploadClicked = async () => {
+      $scope.onMediaUploadClicked = async function() {
         try {
           await service.importMedia();
           angularHelper.getCurrentForm($scope).$setPristine();
@@ -131,12 +127,12 @@ angular
         }
       };
 
-      $scope.onExportResultsClicked = async () => {
+      $scope.onExportResultsClicked = async function() {
         try {
-          const response = await service.exportMediaResults();
+          var response = await service.exportMediaResults();
           if (response) {
-            const blob = createCsvBlob(response.data);
-            downloadBlob(blob, 'media-import-results.csv');
+            var blob = window.BulkUploadUtils.createCsvBlob(response.data);
+            window.BulkUploadUtils.downloadBlob(blob, 'media-import-results.csv');
           }
         } catch (error) {
           // Error already handled by service
