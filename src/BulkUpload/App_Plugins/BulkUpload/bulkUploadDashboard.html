@@ -10,13 +10,13 @@
             <uui-tab
                 label="Content Import"
                 ng-click="setActiveTab('content')"
-                active="{{state.activeTab === 'content'}}">
+                ng-attr-active="{{state.activeTab === 'content' ? 'true' : undefined}}">
                 Content Import
             </uui-tab>
             <uui-tab
                 label="Media Import"
                 ng-click="setActiveTab('media')"
-                active="{{state.activeTab === 'media'}}">
+                ng-attr-active="{{state.activeTab === 'media' ? 'true' : undefined}}">
                 Media Import
             </uui-tab>
         </uui-tab-group>
