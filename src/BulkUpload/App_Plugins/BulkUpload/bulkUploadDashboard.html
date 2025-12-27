@@ -71,6 +71,7 @@
 
                     <div style="display: flex; gap: 10px;">
                         <uui-button
+                            label="Import Content"
                             look="primary"
                             color="positive"
                             ng-click="onUploadClicked()"
@@ -80,6 +81,7 @@
                             <span ng-if="state.content.loading">Processing...</span>
                         </uui-button>
                         <uui-button
+                            label="Clear File"
                             look="outline"
                             ng-if="state.content.file && !state.content.loading"
                             ng-click="clearContentFile()"
@@ -138,6 +140,7 @@
 
                     <div style="display: flex; gap: 10px;">
                         <uui-button
+                            label="Download Results CSV"
                             look="outline"
                             ng-click="onExportContentResultsClicked()"
                             ng-if="state.content.results.results && state.content.results.results.length > 0"
@@ -145,6 +148,7 @@
                             ⬇ Download Results CSV
                         </uui-button>
                         <uui-button
+                            label="Clear Results"
                             look="outline"
                             ng-click="clearContentResults()"
                             style="--uui-button-padding: 10px 20px;">
@@ -206,6 +210,7 @@
 
                     <div style="display: flex; gap: 10px;">
                         <uui-button
+                            label="Import Media"
                             look="primary"
                             color="positive"
                             ng-click="onMediaUploadClicked()"
@@ -215,6 +220,7 @@
                             <span ng-if="state.media.loading">Processing...</span>
                         </uui-button>
                         <uui-button
+                            label="Clear File"
                             look="outline"
                             ng-if="state.media.file && !state.media.loading"
                             ng-click="clearMediaFile()"
@@ -273,6 +279,7 @@
 
                     <div style="display: flex; gap: 10px;">
                         <uui-button
+                            label="Download Results CSV"
                             look="outline"
                             ng-click="onExportResultsClicked()"
                             ng-if="state.media.results.results && state.media.results.results.length > 0"
@@ -280,6 +287,7 @@
                             ⬇ Download Results CSV
                         </uui-button>
                         <uui-button
+                            label="Clear Results"
                             look="outline"
                             ng-click="clearMediaResults()"
                             style="--uui-button-padding: 10px 20px;">
