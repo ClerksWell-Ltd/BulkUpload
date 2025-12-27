@@ -358,3 +358,5 @@ src/.idea
 
 # Ignore BulkUpload App_Plugins in TestSite13
 /src/BulkUpload.TestSite13/App_Plugins/BulkUpload/
+/src/BulkUpload.TestSite/App_Plugins/BulkUpload
+/src/BulkUpload.TestSite/wwwroot/media
