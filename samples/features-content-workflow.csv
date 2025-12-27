@@ -1,0 +1,33 @@
+name,docTypeAlias,parent,title,subtitle,mainImage|guidToMediaUdi,isIndexable|boolean,isFollowable|boolean,hideFromTopNavigation|boolean,hideFromXMLSitemap|boolean,umbracoNaviHide|boolean,metaName,metaDescription,metaKeywords,contentRows|multiBlockList
+Features Demo,content,/Home,Features in this starter kit,Explore the powerful content blocks,REPLACE-WITH-FEATURE-HERO-GUID,0,0,0,0,0,Features Demo,Demonstration of content features and blocks,features blocks content,"richtext::<h2>Rich Text Row</h2>
+<p>There is a simple rich text row for writing your usual formatted content in a WYSIWIG style with the usual settings including but not limited to: </p>
+<p><strong>Bold</strong></p>
+<p><em>Italic</em></p>
+<p style=""text-align: left;"">Left align</p>
+<p style=""text-align: right;"">Right align</p>
+<ul>
+<li>Bulleted List</li>
+</ul>
+<ol>
+<li>Ordered List</li>
+</ol>;;richtext::<h2>Image Row</h2>
+<p>You can use the image row to render a full width image.</p>;;image::REPLACE-WITH-IMAGE-ROW-EXAMPLE-GUID|Image Row Example;;richtext::<h2>Video Row</h2>
+<p>This lets you embed a YouTube video by just entering the normal URL of the video, and it just renders the preview image of it at first. Then when you click on it, it loads it in as the iframe, which is better for the end user as it doesn't download all of the YouTube assets until it is needed.</p>;;video::https://www.youtube.com/watch?v=Dn2tI1--LOs|What's next in C# - Mads Torgersen @ Umbraco Codegarden 2022;;richtext::<h2>Code Snippet Row</h2>
+<p>There is a code snippet row to enable you to easily share code snippets in your website.</p>;;code::@inherits UmbracoViewPage<BlockListItem>
+@using Umbraco.Cms.Core.Models.Blocks
+
+@{
+    var row = Model.Content as CodeSnippetRow;
+    var settings = Model.Settings as CodeSnippetRowSettings;
+    if (settings?.Hide ?? false) { return; }
+
+    SmidgeHelper.RequiresJs(""~/clean-assets/js/highlight.default.min.css"");
+    SmidgeHelper.RequiresJs(""~/clean-assets/js/highlight.min.js"");
+}
+
+<div class=""row clearfix"">
+    <div class=""col-md-12 column"">
+        <pre><code>@row.Code</code></pre>
+    </div>
+</div>|Code from the codeSnippetRow.cshtml file;;richtext::<h2>Image Carousel Row</h2>
+<p>You can add a simple image carousel to a page by using the Image Carousel Row. In this row you have a multi image picker and you just choose the images you want to display.</p>;;carousel::REPLACE-WITH-CAROUSEL-1-GUID,REPLACE-WITH-CAROUSEL-2-GUID,REPLACE-WITH-CAROUSEL-3-GUID,REPLACE-WITH-CAROUSEL-4-GUID,REPLACE-WITH-CAROUSEL-5-GUID,REPLACE-WITH-CAROUSEL-6-GUID"

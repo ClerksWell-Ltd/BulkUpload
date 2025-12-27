@@ -117,6 +117,70 @@ C:/Assets/Headers/tech-post.jpg,a1b2c3d4-e5f6-7890-abcd-ef1234567890,Tech Blog H
 C:/Assets/Headers/news-post.jpg,a1b2c3d4-e5f6-7890-abcd-ef1234567890,News Blog Header,News article header
 ```
 
+## Workflow Example: Media from URLs → Content Import
+
+This demonstrates a real-world workflow where you import media from URLs first, then use those media items in content.
+
+### Files Involved
+
+1. **features-media-from-urls.csv** - Media import with image URLs
+2. **features-content-workflow.csv** - Content CSV with placeholder GUIDs
+
+### Step-by-Step Workflow
+
+#### Step 1: Import Media from URLs
+
+1. Create a ZIP file containing **only** `features-media-from-urls.csv` (no media files needed since we're using URLs)
+2. Go to Bulk Upload dashboard → **Media Import** tab
+3. Upload the ZIP file
+4. Wait for import to complete
+5. Download the results CSV
+
+#### Step 2: Extract Media GUIDs
+
+Open the results CSV and note the `bulkUploadMediaGuid` values:
+
+```csv
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,...
+feature-hero.jpg,true,abc123-...,umb://media/abc123...,...
+image-row-example.jpg,true,def456-...,umb://media/def456...,...
+carousel-image-1.jpg,true,ghi789-...,umb://media/ghi789...,...
+...
+```
+
+#### Step 3: Update Content CSV with Real GUIDs
+
+Edit `features-content-workflow.csv` and replace the placeholders:
+
+- `REPLACE-WITH-FEATURE-HERO-GUID` → `abc123-...` (from feature-hero.jpg)
+- `REPLACE-WITH-IMAGE-ROW-EXAMPLE-GUID` → `def456-...` (from image-row-example.jpg)
+- `REPLACE-WITH-CAROUSEL-1-GUID` → `ghi789-...` (from carousel-image-1.jpg)
+- And so on for all carousel images...
+
+#### Step 4: Import Content
+
+1. Create a ZIP file containing your updated content CSV
+2. Go to Bulk Upload dashboard → **Bulk Upload** tab
+3. Upload the ZIP file
+4. Your content will be created with all the imported images properly linked!
+
+### Why This Approach?
+
+This two-step process is useful when:
+- Media files are hosted on external CDNs or URLs
+- You want to organize media into folders using path syntax (`/Features/Images/`)
+- You need the media GUIDs to reference in content imports
+- You're migrating from another CMS and have media URLs
+
+### Quick Test
+
+Want to test immediately? Use these placeholder image services that don't require downloads:
+- **picsum.photos** - Random placeholder images (used in the sample)
+- **via.placeholder.com** - Customizable placeholders
+- **placehold.co** - Simple placeholder generator
+
+The sample uses `picsum.photos` URLs which will download real images during import!
+
 ## Tips
 
 1. **Empty ZIP Files**: When using only external sources (paths or URLs), you can upload a ZIP containing just the CSV file.
