@@ -344,13 +344,14 @@ public class MediaImportController : UmbracoAuthorizedApiController
 
                 var successCount = results.Count(r => r.BulkUploadSuccess);
                 var failureCount = results.Count(r => !r.BulkUploadSuccess);
+                var totalCount = records?.Count ?? 0;
 
                 _logger.LogInformation("Bulk Upload Media: Imported {SuccessCount} of {TotalCount} media items ({FailureCount} failed)",
-                    successCount, records.Count, failureCount);
+                    successCount, totalCount, failureCount);
 
                 return Ok(new
                 {
-                    totalCount = records.Count,
+                    totalCount = totalCount,
                     successCount = successCount,
                     failureCount = failureCount,
                     results = results

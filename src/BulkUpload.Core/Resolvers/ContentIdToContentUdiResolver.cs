@@ -19,11 +19,11 @@ public class ContentIdToContentUdiResolver : IResolver
         if (value is not string || !int.TryParse(value.ToString(), out var id))
             return string.Empty;
 
-        var contentItem = contextReference.UmbracoContext.Content.GetById(id);
+        var contentItem = contextReference.UmbracoContext.Content?.GetById(id);
         if (contentItem is null)
             return string.Empty;
 
         var udi = Udi.Create("document", contentItem.Key);
-        return udi.UriValue.ToString();
+        return udi.UriValue?.ToString() ?? string.Empty;
     }
 }
