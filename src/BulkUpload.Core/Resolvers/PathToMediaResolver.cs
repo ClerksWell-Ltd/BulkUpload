@@ -1,5 +1,3 @@
-using Umbraco.Community.BulkUpload.Core.Services;
-
 using Microsoft.Extensions.Logging;
 
 using Umbraco.Cms.Core;

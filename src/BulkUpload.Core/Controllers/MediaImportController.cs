@@ -2,8 +2,6 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Text;
 
-using Umbraco.Community.BulkUpload.Core.Services;
-
 using CsvHelper;
 using CsvHelper.Configuration;
 

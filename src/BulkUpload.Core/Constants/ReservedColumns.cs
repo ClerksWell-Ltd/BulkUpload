@@ -1,4 +1,4 @@
-namespace BulkUpload.Constants;
+namespace Umbraco.Community.BulkUpload.Core.Constants;
 
 /// <summary>
 /// Defines reserved column names that are used for import metadata
