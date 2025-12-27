@@ -1,0 +1,11 @@
+fileName,parent,name,mediaTypeAlias,altText,caption,mediaSource|urlToStream
+feature-hero.jpg,/Features/Images/,Features Hero Image,Image,Features showcase header,Hero image for features page,https://picsum.photos/1200/600?random=1
+rich-text-example.jpg,/Features/Images/,Rich Text Example,Image,Rich text editor example,Example of rich text formatting,https://picsum.photos/800/400?random=2
+image-row-example.jpg,/Features/Images/,Image Row Example,Image,Full width image row,Example of full-width image display,https://picsum.photos/1200/400?random=3
+video-thumbnail.jpg,/Features/Images/,Video Row Thumbnail,Image,Video player thumbnail,YouTube embed example thumbnail,https://picsum.photos/800/450?random=4
+carousel-image-1.jpg,/Features/Images/Carousel/,Carousel Image 1,Image,First carousel slide,Product showcase slide 1,https://picsum.photos/600/400?random=5
+carousel-image-2.jpg,/Features/Images/Carousel/,Carousel Image 2,Image,Second carousel slide,Product showcase slide 2,https://picsum.photos/600/400?random=6
+carousel-image-3.jpg,/Features/Images/Carousel/,Carousel Image 3,Image,Third carousel slide,Product showcase slide 3,https://picsum.photos/600/400?random=7
+carousel-image-4.jpg,/Features/Images/Carousel/,Carousel Image 4,Image,Fourth carousel slide,Team photo slide,https://picsum.photos/600/400?random=8
+carousel-image-5.jpg,/Features/Images/Carousel/,Carousel Image 5,Image,Fifth carousel slide,Office environment,https://picsum.photos/600/400?random=9
+carousel-image-6.jpg,/Features/Images/Carousel/,Carousel Image 6,Image,Sixth carousel slide,Product detail view,https://picsum.photos/600/400?random=10
