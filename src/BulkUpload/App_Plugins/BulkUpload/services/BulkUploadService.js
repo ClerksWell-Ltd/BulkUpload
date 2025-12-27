@@ -188,9 +188,24 @@
       // Store results
       this.state.content.results = response.data;
 
-      // Calculate stats and notify
-      var stats = window.BulkUploadUtils.calculateResultStats(response.data.results);
-      var message = window.BulkUploadUtils.getResultSummaryMessage(response.data.results, 'content items');
+      // Use pre-calculated stats from API response
+      var stats = {
+        total: response.data.totalCount || 0,
+        success: response.data.successCount || 0,
+        failed: response.data.failureCount || 0
+      };
+
+      // Create summary message
+      var message;
+      if (stats.total === 0) {
+        message = 'No content items to import.';
+      } else if (stats.failed === 0) {
+        message = 'All ' + stats.total + ' content items imported successfully.';
+      } else if (stats.success === 0) {
+        message = 'All ' + stats.total + ' content items failed to import.';
+      } else {
+        message = stats.success + ' of ' + stats.total + ' content items imported successfully. ' + stats.failed + ' failed.';
+      }
 
       this.notify({
         type: stats.failed > 0 ? 'warning' : 'success',
@@ -260,9 +275,24 @@
       // Store results
       this.state.media.results = response.data;
 
-      // Calculate stats and notify
-      var stats = window.BulkUploadUtils.calculateResultStats(response.data.results);
-      var message = window.BulkUploadUtils.getResultSummaryMessage(response.data.results, 'media items');
+      // Use pre-calculated stats from API response
+      var stats = {
+        total: response.data.totalCount || 0,
+        success: response.data.successCount || 0,
+        failed: response.data.failureCount || 0
+      };
+
+      // Create summary message
+      var message;
+      if (stats.total === 0) {
+        message = 'No media items to import.';
+      } else if (stats.failed === 0) {
+        message = 'All ' + stats.total + ' media items imported successfully.';
+      } else if (stats.success === 0) {
+        message = 'All ' + stats.total + ' media items failed to import.';
+      } else {
+        message = stats.success + ' of ' + stats.total + ' media items imported successfully. ' + stats.failed + ' failed.';
+      }
 
       this.notify({
         type: stats.failed > 0 ? 'warning' : 'success',
