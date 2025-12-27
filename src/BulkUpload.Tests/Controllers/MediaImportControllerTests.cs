@@ -1,13 +1,12 @@
 using System.IO.Compression;
 using System.Text;
-using BulkUpload.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Umbraco.Community.BulkUpload.Controllers;
-using Umbraco.Community.BulkUpload.Models;
-using Umbraco.Community.BulkUpload.Services;
+using BulkUpload.Core.Controllers;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Services;
 
 namespace Umbraco.Community.BulkUpload.Tests.Controllers;
 

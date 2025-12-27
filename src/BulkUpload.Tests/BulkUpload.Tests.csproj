@@ -21,6 +21,6 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\BulkUpload\BulkUpload.csproj" />
+    <ProjectReference Include="..\BulkUpload.Core\BulkUpload.Core.csproj" />
   </ItemGroup>
 </Project>

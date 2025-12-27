@@ -1,4 +1,4 @@
-using Umbraco.Community.BulkUpload.Resolvers;
+using BulkUpload.Core.Resolvers;
 
 namespace Umbraco.Community.BulkUpload.Tests.Resolvers;
 

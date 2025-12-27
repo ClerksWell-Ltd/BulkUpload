@@ -1,15 +1,13 @@
-using BulkUpload.Services;
-
 using Microsoft.Extensions.DependencyInjection;
 
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Cms.Core.Sections;
-using Umbraco.Community.BulkUpload.Resolvers;
-using Umbraco.Community.BulkUpload.Sections;
-using Umbraco.Community.BulkUpload.Services;
+using BulkUpload.Core.Resolvers;
+using BulkUpload.Core.Services;
+using BulkUpload.Sections;
 
-namespace Umbraco.Community.BulkUpload;
+namespace BulkUpload;
 
 internal class BulkUploadComposer : IComposer
 {

@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Multi-targeting: Currently targets net8.0 only (Umbraco 13)
+         When Umbraco 17 is released, change to: <TargetFrameworks>net8.0;net10.0</TargetFrameworks> -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Umbraco.Community.BulkUpload.Core</PackageId>
+    <Product>Umbraco.Community.BulkUpload.Core</Product>
+    <Title>BulkUpload Core</Title>
+    <Description>Core business logic for BulkUpload package - designed to be shared between Umbraco 13 and future Umbraco 17. Contains services, resolvers, models, and API controllers for bulk content and media import.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;core</PackageTags>
+    <RootNamespace>BulkUpload.Core</RootNamespace>
+    <Version>2.0.0</Version>
+    <Authors>ClerksWell,Paul Seal</Authors>
+    <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
+    <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ClerksWell-Ltd/BulkUpload</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>icon.png</PackageIcon>
+
+    <!-- Modern Build Best Practices -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <!-- Shared dependencies (both versions) -->
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Umbraco dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.13.0" />
+    <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.13.0" />
+  </ItemGroup>
+
+  <!-- FUTURE: Umbraco 17 dependencies (uncomment when Umbraco 17 is released on NuGet)
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.0.0" />
+    <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="17.0.0" />
+  </ItemGroup>
+  -->
+
+  <ItemGroup>
+    <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
+  </ItemGroup>
+
+</Project>

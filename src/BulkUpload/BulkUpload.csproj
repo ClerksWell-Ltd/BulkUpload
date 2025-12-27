@@ -8,11 +8,11 @@
     <Product>Umbraco.Community.BulkUpload</Product>
     <PackageId>Umbraco.Community.BulkUpload</PackageId>
     <Title>BulkUpload</Title>
-    <Description>BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.</Description>
-    <PackageTags>umbraco;umbraco-marketplace</PackageTags>
-    <RootNamespace>Umbraco.Community.BulkUpload</RootNamespace>
+    <Description>BulkUpload is an Umbraco 13 package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;umbraco13</PackageTags>
+    <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
     <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
@@ -33,8 +33,13 @@
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
+  <!-- Reference to Core package containing shared business logic -->
   <ItemGroup>
-    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <ProjectReference Include="..\BulkUpload.Core\BulkUpload.Core.csproj" />
+  </ItemGroup>
+
+  <!-- v13-specific dependencies -->
+  <ItemGroup>
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.13.0" />
     <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.13.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />

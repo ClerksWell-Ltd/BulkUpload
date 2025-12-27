@@ -1,6 +1,6 @@
 ﻿using Umbraco.Cms.Core.Sections;
 
-namespace Umbraco.Community.BulkUpload.Sections;
+namespace BulkUpload.Sections;
 
 public class BulkUploadSection : ISection
 {
