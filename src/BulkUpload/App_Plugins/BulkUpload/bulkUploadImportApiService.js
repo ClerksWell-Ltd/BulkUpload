@@ -1,26 +1,26 @@
 /**
  * Bulk Upload Import API Service (AngularJS)
- * Refactored to use framework-agnostic BulkUploadApiClient
+ * Thin wrapper around framework-agnostic BulkUploadApiClient
  *
- * This service now acts as a thin wrapper around BulkUploadApiClient,
+ * This service acts as a thin wrapper around BulkUploadApiClient,
  * making it easy to migrate to v17 by simply removing this wrapper.
+ *
+ * NOTE: This file is written in ES5/IIFE format for Umbraco 13 compatibility.
+ * In v17, this will be replaced with native Fetch API calls from Lit components.
  */
-
-import { BulkUploadApiClient } from './services/BulkUploadApiClient.js';
-import { AngularHttpAdapter } from './services/httpAdapters.js';
 
 angular
   .module("umbraco")
   .factory("bulkUploadImportApiService", function ($http, Upload) {
 
     // Create HTTP adapter for AngularJS environment
-    const httpAdapter = new AngularHttpAdapter($http, Upload);
+    var httpAdapter = new window.BulkUpload.AngularHttpAdapter($http, Upload);
 
     // Create API client with AngularJS adapter
-    const apiClient = new BulkUploadApiClient(httpAdapter);
+    var apiClient = new window.BulkUpload.BulkUploadApiClient(httpAdapter);
 
     // Expose API client methods through AngularJS service interface
-    const bulkUploadImportApi = {
+    var bulkUploadImportApi = {
       /**
        * Imports content from a CSV or ZIP file
        * @param {File} fileToUpload - The file to import
