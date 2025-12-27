@@ -115,7 +115,7 @@ public class UrlToMediaResolver : IResolver
 
             // Download the media file from the URL
             var httpClient = _httpClientFactory.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
+            httpClient.Timeout = TimeSpan.FromSeconds(120);
 
             var response = httpClient.GetAsync(uri).GetAwaiter().GetResult();
             if (!response.IsSuccessStatusCode)

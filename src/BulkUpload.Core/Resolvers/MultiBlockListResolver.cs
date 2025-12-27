@@ -400,7 +400,7 @@ public class MultiBlockListResolver : IResolver
         {
             var uri = new Uri(urlString);
             var httpClient = _httpClientFactory.CreateClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
+            httpClient.Timeout = TimeSpan.FromSeconds(120);
 
             var response = httpClient.GetAsync(uri).GetAwaiter().GetResult();
             if (!response.IsSuccessStatusCode)
