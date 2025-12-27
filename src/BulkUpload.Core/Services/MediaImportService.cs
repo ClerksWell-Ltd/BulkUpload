@@ -175,7 +175,10 @@ public class MediaImportService : IMediaImportService
                 propertyValue = normalResolver.Resolve(property.Value);
             }
 
-            propertiesToCreate.Add(columnName, propertyValue);
+            if (propertyValue != null)
+            {
+                propertiesToCreate.Add(columnName, propertyValue);
+            }
         }
 
         importObject.Properties = propertiesToCreate;

@@ -26,7 +26,7 @@ public class SampleCategoryNamesResolver : IResolver
         if (homePage is null)
             return string.Empty;
 
-        var categories = homePage.ChildrenOfType("categoryList").FirstOrDefault();
+        var categories = homePage.ChildrenOfType("categoryList")?.FirstOrDefault();
 
         if (categories is null)
             return string.Empty;

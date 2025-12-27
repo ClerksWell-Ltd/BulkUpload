@@ -289,6 +289,19 @@ public class MediaImportController : UmbracoAuthorizedApiController
                             }
 
                             // Import the media item
+                            if (fileStream == null)
+                            {
+                                results.Add(new MediaImportResult
+                                {
+                                    BulkUploadFileName = importObject.FileName,
+                                    BulkUploadSuccess = false,
+                                    BulkUploadErrorMessage = "No file stream available for import",
+                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                    OriginalCsvData = ConvertCsvRecordToDictionary(item)
+                                });
+                                continue;
+                            }
+
                             var result = _mediaImportService.ImportSingleMediaItem(importObject, fileStream);
                             result.OriginalCsvData = ConvertCsvRecordToDictionary(item);
                             results.Add(result);

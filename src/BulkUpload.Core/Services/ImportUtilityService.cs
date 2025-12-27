@@ -158,7 +158,10 @@ public class ImportUtilityService : IImportUtilityService
                 propertyValue = resolver.Resolve(property.Value);
             }
 
-            propertiesToCreate.Add(columnName, propertyValue);
+            if (propertyValue != null)
+            {
+                propertiesToCreate.Add(columnName, propertyValue);
+            }
         }
 
 

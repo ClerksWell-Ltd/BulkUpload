@@ -24,7 +24,7 @@ public class SampleAuthorNameResolver : IResolver
             if (homePage is null)
                 return string.Empty;
 
-            var authors = homePage.ChildrenOfType("authorList").FirstOrDefault();
+            var authors = homePage.ChildrenOfType("authorList")?.FirstOrDefault();
 
             if (authors is null)
                 return string.Empty;
