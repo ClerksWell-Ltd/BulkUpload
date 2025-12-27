@@ -1,6 +1,6 @@
-using Umbraco.Community.BulkUpload.Core.Models;
+using BulkUpload.Core.Models;
 
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 /// <summary>
 /// Validates and resolves import hierarchy based on legacy parent-child relationships.

@@ -1,6 +1,6 @@
 using Umbraco.Cms.Core.Manifest;
 
-namespace Umbraco.Community.BulkUpload;
+namespace BulkUpload;
 
 internal class BulkUploadManifestFilter : IManifestFilter
 {

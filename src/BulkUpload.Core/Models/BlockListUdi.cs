@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Umbraco.Community.BulkUpload.Core.Models;
+namespace BulkUpload.Core.Models;
 
 public class BlockListUdi //this is a subclass which corresponds to the "Umbraco.BlockList" section in JSON
 {

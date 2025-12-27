@@ -1,4 +1,4 @@
-namespace Umbraco.Community.BulkUpload.Core.Models;
+namespace BulkUpload.Core.Models;
 
 /// <summary>
 /// Represents the result of preprocessing a media item during bulk content upload.

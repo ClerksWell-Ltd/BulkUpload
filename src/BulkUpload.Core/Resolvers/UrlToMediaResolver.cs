@@ -6,10 +6,10 @@ using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
-using Umbraco.Community.BulkUpload.Core.Models;
-using Umbraco.Community.BulkUpload.Core.Services;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Services;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 /// <summary>
 /// Resolver that downloads media from a URL and uploads it to Umbraco,

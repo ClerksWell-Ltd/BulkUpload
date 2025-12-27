@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 
-using Umbraco.Community.BulkUpload.Core.Models;
+using BulkUpload.Core.Models;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 /// <summary>
 /// Resolver that extracts URL information for streaming (does not create media).

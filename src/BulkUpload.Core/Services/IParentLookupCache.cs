@@ -1,4 +1,4 @@
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 /// <summary>
 /// Provides caching for parent lookups by path to improve performance

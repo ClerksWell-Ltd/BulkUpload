@@ -1,7 +1,7 @@
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Web;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 public class ContentIdToContentUdiResolver : IResolver
 {

@@ -2,7 +2,7 @@ using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Web;
 using Umbraco.Extensions;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 public class SampleAuthorNameResolver : IResolver
 {

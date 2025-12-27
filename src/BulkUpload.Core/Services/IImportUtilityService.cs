@@ -1,6 +1,6 @@
-using Umbraco.Community.BulkUpload.Core.Models;
+using BulkUpload.Core.Models;
 
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 public interface IImportUtilityService
 {

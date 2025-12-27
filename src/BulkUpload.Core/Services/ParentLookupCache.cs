@@ -6,7 +6,7 @@ using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
 
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 /// <summary>
 /// Provides in-memory caching for parent lookups to optimize bulk operations.

@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 public class ObjectToJsonResolver : IResolver
 {

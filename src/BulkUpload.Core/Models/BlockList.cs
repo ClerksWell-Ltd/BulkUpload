@@ -1,4 +1,4 @@
-namespace Umbraco.Community.BulkUpload.Core.Models;
+namespace BulkUpload.Core.Models;
 
 public class BlockList //this class is to mock the correct JSON structure when the object is serialized
 {

@@ -16,11 +16,11 @@ using Umbraco.Cms.Core.Serialization;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Web;
 using Umbraco.Cms.Web.BackOffice.Controllers;
-using Umbraco.Community.BulkUpload.Core.Models;
-using Umbraco.Community.BulkUpload.Core.Services;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Services;
 
 
-namespace Umbraco.Community.BulkUpload.Core.Controllers;
+namespace BulkUpload.Core.Controllers;
 
 public class BulkUploadController : UmbracoAuthorizedApiController
 {

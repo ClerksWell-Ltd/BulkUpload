@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Umbraco.Cms.Core;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 /// <summary>
 /// Resolver for creating BlockList structures with multiple block types from CSV data.

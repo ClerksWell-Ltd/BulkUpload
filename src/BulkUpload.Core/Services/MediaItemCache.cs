@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 /// <summary>
 /// Thread-safe cache for storing media item references to avoid duplicate creation.

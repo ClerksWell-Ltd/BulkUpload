@@ -1,7 +1,7 @@
 ﻿using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.Dashboards;
 
-namespace Umbraco.Community.BulkUpload.Dashboards;
+namespace BulkUpload.Dashboards;
 
 [Weight(0)]
 public class BulkUploadDashboard : IDashboard

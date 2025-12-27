@@ -1,4 +1,4 @@
-namespace Umbraco.Community.BulkUpload.Core.Models;
+namespace BulkUpload.Core.Models;
 
 public class ImportObject
 {

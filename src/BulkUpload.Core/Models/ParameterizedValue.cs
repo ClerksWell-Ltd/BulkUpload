@@ -1,4 +1,4 @@
-namespace Umbraco.Community.BulkUpload.Core.Models;
+namespace BulkUpload.Core.Models;
 
 /// <summary>
 /// Wraps a value with an optional parameter from the resolver alias.

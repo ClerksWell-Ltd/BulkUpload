@@ -1,4 +1,4 @@
-using Umbraco.Community.BulkUpload.Core.Constants;
+using BulkUpload.Core.Constants;
 
 using Microsoft.Extensions.Logging;
 
@@ -11,11 +11,11 @@ using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.PropertyEditors.ValueConverters;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
-using Umbraco.Community.BulkUpload.Core.Models;
-using Umbraco.Community.BulkUpload.Core.Resolvers;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Resolvers;
 using Umbraco.Extensions;
 
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 public class MediaImportService : IMediaImportService
 {

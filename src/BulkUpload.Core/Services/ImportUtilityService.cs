@@ -1,14 +1,14 @@
-using Umbraco.Community.BulkUpload.Core.Constants;
+using BulkUpload.Core.Constants;
 
 using Microsoft.Extensions.Logging;
 
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Services;
-using Umbraco.Community.BulkUpload.Core.Models;
-using Umbraco.Community.BulkUpload.Core.Resolvers;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Resolvers;
 
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 public class ImportUtilityService : IImportUtilityService
 {

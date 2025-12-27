@@ -6,12 +6,12 @@ using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
-using Umbraco.Community.BulkUpload.Core.Models;
-using Umbraco.Community.BulkUpload.Core.Services;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Services;
 
 using IOFile = System.IO.File;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 /// <summary>
 /// Resolver that reads a media file from a local or network file path and uploads it to Umbraco,

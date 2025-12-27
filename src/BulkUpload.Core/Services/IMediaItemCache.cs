@@ -1,4 +1,4 @@
-namespace Umbraco.Community.BulkUpload.Core.Services;
+namespace BulkUpload.Core.Services;
 
 /// <summary>
 /// Interface for caching media item references to avoid duplicate creation.

@@ -10,10 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 using Umbraco.Cms.Web.BackOffice.Controllers;
-using Umbraco.Community.BulkUpload.Core.Models;
-using Umbraco.Community.BulkUpload.Core.Services;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Services;
 
-namespace Umbraco.Community.BulkUpload.Core.Controllers;
+namespace BulkUpload.Core.Controllers;
 
 public class MediaImportController : UmbracoAuthorizedApiController
 {

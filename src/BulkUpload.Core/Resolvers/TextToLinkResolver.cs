@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 using Umbraco.Cms.Core.Models;
 
-namespace Umbraco.Community.BulkUpload.Core.Resolvers;
+namespace BulkUpload.Core.Resolvers;
 
 public class TextToLinkResolver : IResolver
 {

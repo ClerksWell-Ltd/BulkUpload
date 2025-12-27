@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using Umbraco.Community.BulkUpload.Core.Models;
-using Umbraco.Community.BulkUpload.Core.Resolvers;
-using Umbraco.Community.BulkUpload.Core.Services;
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Resolvers;
+using BulkUpload.Core.Services;
 
 namespace Umbraco.Community.BulkUpload.Tests.Services;
 
