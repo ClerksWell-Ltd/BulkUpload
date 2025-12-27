@@ -174,12 +174,14 @@ This two-step process is useful when:
 
 ### Quick Test
 
-Want to test immediately? Use these placeholder image services that don't require downloads:
-- **picsum.photos** - Random placeholder images (used in the sample)
-- **via.placeholder.com** - Customizable placeholders
+Want to test immediately? The sample uses **via.placeholder.com** which provides reliable, simple placeholder images without query parameters.
+
+Other placeholder image services you can use:
+- **via.placeholder.com** - Simple, reliable placeholders (used in the sample)
+- **placeholder.com** - Customizable placeholders
 - **placehold.co** - Simple placeholder generator
 
-The sample uses `picsum.photos` URLs which will download real images during import!
+The sample URLs will download real placeholder images during import!
 
 ## Tips
 
