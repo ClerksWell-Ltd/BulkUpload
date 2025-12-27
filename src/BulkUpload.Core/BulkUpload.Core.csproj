@@ -10,7 +10,7 @@
     <Title>BulkUpload Core</Title>
     <Description>Core business logic for BulkUpload package - designed to be shared between Umbraco 13 and future Umbraco 17. Contains services, resolvers, models, and API controllers for bulk content and media import.</Description>
     <PackageTags>umbraco;umbraco-marketplace;core</PackageTags>
-    <RootNamespace>Umbraco.Community.BulkUpload.Core</RootNamespace>
+    <RootNamespace>BulkUpload.Core</RootNamespace>
     <Version>2.0.0</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>

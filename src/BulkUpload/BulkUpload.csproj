@@ -10,7 +10,7 @@
     <Title>BulkUpload</Title>
     <Description>BulkUpload is an Umbraco 13 package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.</Description>
     <PackageTags>umbraco;umbraco-marketplace;umbraco13</PackageTags>
-    <RootNamespace>Umbraco.Community.BulkUpload</RootNamespace>
+    <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Version>2.0.0</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
