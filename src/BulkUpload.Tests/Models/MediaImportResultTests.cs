@@ -1,4 +1,4 @@
-using Umbraco.Community.BulkUpload.Models;
+using Umbraco.Community.BulkUpload.Core.Models;
 
 namespace Umbraco.Community.BulkUpload.Tests.Models;
 
