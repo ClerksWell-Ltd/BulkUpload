@@ -12,16 +12,6 @@
   window.BulkUploadUtils = window.BulkUploadUtils || {};
 
   /**
-   * Filters results to return only failed imports
-   * @param {Array} results - Array of import results
-   * @returns {Array} Array of failed results
-   */
-  function getFailedResults(results) {
-    if (!Array.isArray(results)) return [];
-    return results.filter(result => result.success === false);
-  }
-
-/**
    * Filters results to return only successful imports
    * @param {Array} results - Array of import results
    * @returns {Array} Array of successful results
@@ -116,7 +106,8 @@
    * @returns {Array} Array of unique error messages
    */
   function getUniqueErrorMessages(results) {
-    const failed = getFailedResults(results);
+    if (!Array.isArray(results)) return [];
+    const failed = results.filter(result => result.success === false);
     const errorMessages = failed
       .map(r => r.errorMessage || 'Unknown error')
       .filter(msg => msg);
@@ -151,7 +142,6 @@
   }
 
   // Expose functions
-  window.BulkUploadUtils.getFailedResults = getFailedResults;
   window.BulkUploadUtils.getSuccessResults = getSuccessResults;
   window.BulkUploadUtils.calculateResultStats = calculateResultStats;
   window.BulkUploadUtils.getResultSummaryMessage = getResultSummaryMessage;

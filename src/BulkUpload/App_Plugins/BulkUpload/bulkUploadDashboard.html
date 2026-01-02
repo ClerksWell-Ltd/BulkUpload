@@ -110,29 +110,6 @@
                         </div>
                     </div>
 
-                    <!-- Failed items detail -->
-                    <details ng-if="state.content.results.failureCount > 0" style="margin-bottom: 1em; padding: 1em; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
-                        <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5em;">
-                            View Failed Items ({{state.content.results.failureCount}})
-                        </summary>
-                        <div style="margin-top: 1em; overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                                <thead>
-                                    <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">
-                                        <th style="text-align: left; padding: 8px; font-weight: 600;">File Name</th>
-                                        <th style="text-align: left; padding: 8px; font-weight: 600;">Error Message</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr ng-repeat="result in getFailedResults(state.content.results.results)" style="border-bottom: 1px solid #eee;">
-                                        <td style="padding: 8px;">{{result.fileName}}</td>
-                                        <td style="padding: 8px; color: #dc3545;">{{result.errorMessage}}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </details>
-
                     <div style="display: flex; gap: 10px;">
                         <uui-button label="Download Results CSV"
                                     look="outline"
@@ -265,29 +242,6 @@
                             <strong>✗ Failed:</strong> {{state.media.results.failureCount}}
                         </div>
                     </div>
-
-                    <!-- Failed items detail -->
-                    <details ng-if="state.media.results.failureCount > 0" style="margin-bottom: 1em; padding: 1em; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
-                        <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5em;">
-                            View Failed Items ({{state.media.results.failureCount}})
-                        </summary>
-                        <div style="margin-top: 1em; overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                                <thead>
-                                    <tr style="background-color: #f5f5f5; border-bottom: 2px solid #ddd;">
-                                        <th style="text-align: left; padding: 8px; font-weight: 600;">File Name</th>
-                                        <th style="text-align: left; padding: 8px; font-weight: 600;">Error Message</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr ng-repeat="result in getFailedResults(state.media.results.results)" style="border-bottom: 1px solid #eee;">
-                                        <td style="padding: 8px;">{{result.fileName}}</td>
-                                        <td style="padding: 8px; color: #dc3545;">{{result.errorMessage}}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </details>
 
                     <div style="display: flex; gap: 10px;">
                         <uui-button label="Download Results CSV"

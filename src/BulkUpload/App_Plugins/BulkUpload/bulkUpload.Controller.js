@@ -60,7 +60,6 @@ angular
 
       // Expose utility functions to the view
       $scope.formatFileSize = window.BulkUploadUtils.formatFileSize;
-      $scope.getFailedResults = window.BulkUploadUtils.getFailedResults;
       $scope.getFileTypeDescription = window.BulkUploadUtils.getFileTypeDescription;
 
       // Tab management
