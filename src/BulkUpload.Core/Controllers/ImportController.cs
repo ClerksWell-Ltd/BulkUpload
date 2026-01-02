@@ -155,21 +155,52 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 return Ok(new { totalCount = 0, successCount = 0, failureCount = 0, results = new List<ContentImportResult>() });
             }
 
+            // Detect if this import supports update mode (per-file detection)
+            if (allRecordsWithSource != null && allRecordsWithSource.Any())
+            {
+                var firstRecord = (IDictionary<string, object>)allRecordsWithSource.First().record;
+                var hasUpdateColumn = firstRecord.Keys.Any(k =>
+                    k.Split('|')[0].Equals("bulkUploadShouldUpdate", StringComparison.OrdinalIgnoreCase));
+                if (hasUpdateColumn)
+                {
+                    _logger.LogInformation("Bulk Upload: Import file contains 'bulkUploadShouldUpdate' column - update mode is available. Each row's value will determine update vs create.");
+                }
+                else
+                {
+                    _logger.LogInformation("Bulk Upload: Import file does not contain 'bulkUploadShouldUpdate' column - all items will be created.");
+                }
+            }
+
             // Step 2: Preprocess media items from all CSV files to avoid duplicates
             _logger.LogDebug("Preprocessing media items from all CSV records across {CsvCount} file(s)", csvFilePaths.Count);
             var allMediaPreprocessingResults = _mediaPreprocessorService.PreprocessMediaItems(allRecordsWithSource, tempDirectory);
 
             // Step 3: Create all ImportObjects from all CSV records with source tracking
             var allImportObjects = new List<ImportObject>();
+            var skippedCount = 0;
             foreach (var (record, sourceFileName) in allRecordsWithSource)
             {
                 ImportObject importObject = _importUtilityService.CreateImportObject(record);
                 importObject.OriginalCsvData = ConvertCsvRecordToDictionary(record);
                 importObject.SourceCsvFileName = sourceFileName;
+
+                // In UPDATE MODE, skip rows where bulkUploadShouldUpdate = false
+                if (importObject.BulkUploadShouldUpdateColumnExisted && !importObject.BulkUploadShouldUpdate)
+                {
+                    skippedCount++;
+                    _logger.LogDebug("Skipping row '{Name}' - bulkUploadShouldUpdate is false", importObject.Name);
+                    continue;
+                }
+
                 if (importObject.CanImport)
                 {
                     allImportObjects.Add(importObject);
                 }
+            }
+
+            if (skippedCount > 0)
+            {
+                _logger.LogInformation("Bulk Upload: Skipped {SkippedCount} row(s) where bulkUploadShouldUpdate was false", skippedCount);
             }
 
             // Step 4: Validate and sort ALL import objects across all CSV files based on legacy hierarchy
@@ -182,7 +213,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
             var allResults = new List<ContentImportResult>();
             foreach (var importObject in sortedImportObjects)
             {
-                var result = _importUtilityService.ImportSingleItem(importObject, importObject.ShouldPublish);
+                var result = _importUtilityService.ImportSingleItem(importObject, importObject.BulkUploadShouldPublish);
                 allResults.Add(result);
             }
 
@@ -297,18 +328,41 @@ public class BulkUploadController : UmbracoAuthorizedApiController
             }
         }
 
+        // Determine which optional columns to include
+        bool hasAnyErrors = results.Any(r => !string.IsNullOrWhiteSpace(r.BulkUploadErrorMessage));
+        bool hadLegacyIdColumn = results.Any(r => r.OriginalCsvData != null &&
+            r.OriginalCsvData.Keys.Any(k => k.Split('|')[0].Equals("bulkUploadLegacyId", StringComparison.OrdinalIgnoreCase)));
+
+        bool hadShouldPublishColumn = results.Any(r => r.OriginalCsvData != null &&
+            r.OriginalCsvData.Keys.Any(k => k.Split('|')[0].Equals("bulkUploadShouldPublish", StringComparison.OrdinalIgnoreCase)));
+
         var csv = new StringBuilder();
 
         // Build header: BulkUpload columns + original columns
         var headerParts = new List<string>
         {
-            "bulkUploadContentName",
             "bulkUploadSuccess",
             "bulkUploadContentGuid",
-            "bulkUploadParentGuid",
-            "bulkUploadErrorMessage",
-            "bulkUploadLegacyId"
+            "bulkUploadParentGuid"
         };
+
+        if (hasAnyErrors)
+        {
+            headerParts.Add("bulkUploadErrorMessage");
+        }
+
+        if (hadLegacyIdColumn)
+        {
+            headerParts.Add("bulkUploadLegacyId");
+        }
+
+        if (hadShouldPublishColumn)
+        {
+            headerParts.Add("bulkUploadShouldPublish");
+        }
+
+        headerParts.Add("bulkUploadShouldUpdate");
+
         headerParts.AddRange(originalColumns);
         csv.AppendLine(string.Join(",", headerParts));
 
@@ -318,12 +372,32 @@ public class BulkUploadController : UmbracoAuthorizedApiController
             var rowParts = new List<string>();
 
             // BulkUpload columns
-            rowParts.Add($"\"{result.BulkUploadContentName}\"");
             rowParts.Add(result.BulkUploadSuccess.ToString());
             rowParts.Add($"\"{result.BulkUploadContentGuid}\"");
             rowParts.Add($"\"{result.BulkUploadParentGuid}\"");
-            rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
-            rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
+
+            // Optional BulkUpload columns (only if needed)
+            if (hasAnyErrors)
+            {
+                rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
+            }
+
+            if (hadLegacyIdColumn)
+            {
+                rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
+            }
+
+            // If column existed in original upload, use the value; otherwise use false
+            var shouldPublishValue = result.BulkUploadShouldPublishColumnExisted
+                ? result.BulkUploadShouldPublish.ToString()
+                : "false";
+            rowParts.Add(shouldPublishValue);
+
+            // If column existed in original upload, use the value; otherwise use false
+            var shouldUpdateValue = result.BulkUploadShouldUpdateColumnExisted
+                ? result.BulkUploadShouldUpdate.ToString()
+                : "false";
+            rowParts.Add(shouldUpdateValue);
 
             // Original CSV columns
             foreach (var columnName in originalColumns)

@@ -1,4 +1,4 @@
-mediaSource|pathToStream,parent,name,altText|text
+mediaSource,parent,name,altText|text
 C:/Assets/Products/bike-mountain.jpg,/Products/Bikes/,Mountain Bike,High-quality mountain bike
 C:/Assets/Products/bike-road.jpg,/Products/Bikes/,Road Bike,Lightweight road bike
 C:/Assets/Products/helmet.jpg,/Products/Accessories/,Safety Helmet,Professional cycling helmet

@@ -52,6 +52,38 @@ public class ImportObject
     public bool ShouldPublish { get; set; } = false;
 
     /// <summary>
+    /// Per-row flag indicating whether to update this specific content item.
+    /// When false, creates new content (default behavior).
+    /// When true with BulkUploadContentGuid, updates the existing content item.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public bool BulkUploadShouldPublish { get; set; } = false;
+
+    /// <summary>
+    /// Per-file flag tracking whether the bulkUploadShouldUpdate column existed in the CSV.
+    /// When true, the import file supports update mode (column is present).
+    /// Individual rows still use BulkUploadShouldUpdate value to determine update vs create.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public bool BulkUploadShouldPublishColumnExisted { get; set; } = false;
+
+    /// <summary>
+    /// Per-row flag indicating whether to update this specific content item.
+    /// When false, creates new content (default behavior).
+    /// When true with BulkUploadContentGuid, updates the existing content item.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public bool BulkUploadShouldUpdate { get; set; } = false;
+
+    /// <summary>
+    /// Per-file flag tracking whether the bulkUploadShouldUpdate column existed in the CSV.
+    /// When true, the import file supports update mode (column is present).
+    /// Individual rows still use BulkUploadShouldUpdate value to determine update vs create.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public bool BulkUploadShouldUpdateColumnExisted { get; set; } = false;
+
+    /// <summary>
     /// Original CSV row data with column names including resolver syntax (e.g., "tags|stringArray")
     /// </summary>
     public Dictionary<string, string>? OriginalCsvData { get; set; }
@@ -62,6 +94,8 @@ public class ImportObject
     /// </summary>
     public string? SourceCsvFileName { get; set; }
 
-    public bool CanImport => !string.IsNullOrWhiteSpace(Name)
-        && !string.IsNullOrWhiteSpace(ContentTypeAlais);
+
+    // Updated: allow import when updating by GUID and update flag even if Name or ContentTypeAlais are missing
+    public bool CanImport => (BulkUploadContentGuid.HasValue && BulkUploadShouldUpdate)
+        || (!string.IsNullOrWhiteSpace(Name) && !string.IsNullOrWhiteSpace(ContentTypeAlais));
 }

@@ -91,13 +91,21 @@ public class ImportUtilityService : IImportUtilityService
             legacyParentId = legacyParentIdValue?.ToString();
         }
 
-        // Extract bulkUploadShouldPublish flag (defaults to false if not present)
-        bool shouldPublish = false;
-        if (dynamicProperties.TryGetValue(ReservedColumns.BulkUploadShouldPublish, out object? shouldPublishValue))
+        // Extract bulkUploadShouldPublish flag
+        // Column presence indicates UPDATE MODE (file-level)
+        // Row value determines whether to update this specific row (row-level)
+        bool bulkUploadShouldPublish = false;
+        bool bulkUploadShouldPublishColumnExisted = false;
+        var shouldPublishKey = dynamicProperties.Keys.FirstOrDefault(k =>
+            k.Split('|')[0].Equals(ReservedColumns.BulkUploadShouldPublish, StringComparison.OrdinalIgnoreCase));
+        if (shouldPublishKey != null)
         {
-            var shouldPublishStr = shouldPublishValue?.ToString()?.Trim().ToLowerInvariant();
-            // Support various true values: "true", "yes", "1"
-            shouldPublish = shouldPublishStr == "true" || shouldPublishStr == "yes" || shouldPublishStr == "1";
+            bulkUploadShouldPublishColumnExisted = true;
+            if (dynamicProperties.TryGetValue(shouldPublishKey, out object? shouldPublishValue))
+            {
+                var shouldPublishStr = shouldPublishValue?.ToString()?.Trim().ToLowerInvariant();
+                bulkUploadShouldPublish = shouldPublishStr == "true" || shouldPublishStr == "yes" || shouldPublishStr == "1";
+            }
         }
 
         // Extract bulkUploadContentGuid for updating existing content
@@ -122,6 +130,23 @@ public class ImportUtilityService : IImportUtilityService
             }
         }
 
+        // Extract bulkUploadShouldUpdate flag
+        // Column presence indicates UPDATE MODE (file-level)
+        // Row value determines whether to update this specific row (row-level)
+        bool bulkUploadShouldUpdate = false;
+        bool bulkUploadShouldUpdateColumnExisted = false;
+        var shouldUpdateKey = dynamicProperties.Keys.FirstOrDefault(k =>
+            k.Split('|')[0].Equals(ReservedColumns.BulkUploadShouldUpdate, StringComparison.OrdinalIgnoreCase));
+        if (shouldUpdateKey != null)
+        {
+            bulkUploadShouldUpdateColumnExisted = true; // Column exists = UPDATE MODE
+            if (dynamicProperties.TryGetValue(shouldUpdateKey, out object? shouldUpdateValue))
+            {
+                var shouldUpdateStr = shouldUpdateValue?.ToString()?.Trim().ToLowerInvariant();
+                bulkUploadShouldUpdate = shouldUpdateStr == "true" || shouldUpdateStr == "yes" || shouldUpdateStr == "1";
+            }
+        }
+
         ImportObject importObject = new ImportObject()
         {
             ContentTypeAlais = docTypeAlias,
@@ -131,7 +156,10 @@ public class ImportUtilityService : IImportUtilityService
             LegacyParentId = legacyParentId,
             BulkUploadContentGuid = bulkUploadContentGuid,
             BulkUploadParentGuid = bulkUploadParentGuid,
-            ShouldPublish = shouldPublish
+            BulkUploadShouldUpdate = bulkUploadShouldUpdate,
+            BulkUploadShouldUpdateColumnExisted = bulkUploadShouldUpdateColumnExisted,
+            BulkUploadShouldPublish = bulkUploadShouldPublish,
+            BulkUploadShouldPublishColumnExisted = bulkUploadShouldPublishColumnExisted
         };
 
         foreach (var property in dynamicProperties)
@@ -174,6 +202,7 @@ public class ImportUtilityService : IImportUtilityService
         try
         {
             IContent? contentItem;
+            var parentContentGuid = importObject.BulkUploadParentGuid;
 
             // Check if this is an update operation (bulkUploadContentGuid is present)
             if (importObject.BulkUploadContentGuid.HasValue)
@@ -184,10 +213,15 @@ public class ImportUtilityService : IImportUtilityService
                 {
                     return new ContentImportResult
                     {
-                        BulkUploadContentName = importObject.Name,
                         BulkUploadSuccess = false,
+                        BulkUploadContentGuid = importObject.BulkUploadContentGuid,
+                        BulkUploadParentGuid = importObject.BulkUploadParentGuid,
                         BulkUploadErrorMessage = $"Content with GUID {importObject.BulkUploadContentGuid.Value} not found",
                         BulkUploadLegacyId = importObject.LegacyId,
+                        BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                        BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                        BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
+                        BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
                         OriginalCsvData = importObject.OriginalCsvData,
                         SourceCsvFileName = importObject.SourceCsvFileName
                     };
@@ -218,15 +252,20 @@ public class ImportUtilityService : IImportUtilityService
                         {
                             return new ContentImportResult
                             {
-                                BulkUploadContentName = importObject.Name,
                                 BulkUploadSuccess = false,
                                 BulkUploadErrorMessage = $"Parent with GUID {newParentGuid} not found",
+                                BulkUploadParentGuid = importObject.BulkUploadParentGuid,
                                 BulkUploadLegacyId = importObject.LegacyId,
+                                BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                                BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                                BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
+                                BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
                                 OriginalCsvData = importObject.OriginalCsvData,
                                 SourceCsvFileName = importObject.SourceCsvFileName
                             };
                         }
                         newParentId = newParentContent.Id;
+                        parentContentGuid = newParentContent.Key;
                     }
 
                     // Move content to new parent if different
@@ -252,15 +291,20 @@ public class ImportUtilityService : IImportUtilityService
                         parent = legacyParentGuid;
                         _logger.LogDebug("Resolved legacy parent ID '{LegacyParentId}' to GUID {Guid}",
                             importObject.LegacyParentId, legacyParentGuid);
+                        parentContentGuid = legacyParentGuid;
                     }
                     else
                     {
                         return new ContentImportResult
                         {
-                            BulkUploadContentName = importObject.Name,
                             BulkUploadSuccess = false,
+                            BulkUploadParentGuid = importObject.BulkUploadParentGuid,
                             BulkUploadErrorMessage = $"Legacy parent ID '{importObject.LegacyParentId}' not found in cache. The parent must be created before this item.",
                             BulkUploadLegacyId = importObject.LegacyId,
+                            BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                            BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                            BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
+                            BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
                             OriginalCsvData = importObject.OriginalCsvData,
                             SourceCsvFileName = importObject.SourceCsvFileName
                         };
@@ -274,151 +318,111 @@ public class ImportUtilityService : IImportUtilityService
                         importObject.Parent, parent.GetType().Name, parent);
                 }
 
-                // Try to find an existing item under the same parent with the same name
-                // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
-                int queryParentId;
-                if (parent is Guid parentGuid)
+
+                // Use GUID-based or int-based Create depending on parent type
+                if (parent is Guid guid)
                 {
-                    if (parentGuid == Guid.Empty)
-                    {
-                        queryParentId = UmbracoConstants.System.Root;
-                    }
-                    else
-                    {
-                        var parentContent = _contentService.GetById(parentGuid);
-                        if (parentContent == null)
-                        {
-                            return new ContentImportResult
-                            {
-                                BulkUploadContentName = importObject.Name,
-                                BulkUploadSuccess = false,
-                                BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found",
-                                BulkUploadLegacyId = importObject.LegacyId,
-                                OriginalCsvData = importObject.OriginalCsvData,
-                                SourceCsvFileName = importObject.SourceCsvFileName
-                            };
-                        }
-                        queryParentId = parentContent.Id;
-                    }
+                    contentItem = guid == Guid.Empty
+                        ? _contentService.Create(importObject!.Name, UmbracoConstants.System.Root, importObject.ContentTypeAlais)
+                        : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
                 }
-                else if (parent is int parentId)
+                else if (parent is int id)
                 {
-                    queryParentId = parentId;
+                    contentItem = _contentService.Create(importObject!.Name, id, importObject.ContentTypeAlais);
                 }
                 else
                 {
                     return new ContentImportResult
                     {
-                        BulkUploadContentName = importObject.Name,
                         BulkUploadSuccess = false,
-                        BulkUploadErrorMessage = "Invalid parent type resolved",
+                        BulkUploadParentGuid = importObject.BulkUploadParentGuid,
+                        BulkUploadErrorMessage = "Invalid parent type for content creation",
                         BulkUploadLegacyId = importObject.LegacyId,
+                        BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                        BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                        BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
+                        BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
                         OriginalCsvData = importObject.OriginalCsvData,
                         SourceCsvFileName = importObject.SourceCsvFileName
                     };
                 }
+            }
 
-                var existingItem = _contentService
-                    .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
-                    .FirstOrDefault(x => string.Equals(x.Name, importObject.Name, StringComparison.InvariantCultureIgnoreCase));
-
-                // Create or reuse existing item
-                if (existingItem != null)
+                // Update properties (same for both new and existing)
+                if (importObject.Properties != null && importObject.Properties.Any())
                 {
-                    contentItem = existingItem;
+                    foreach (var property in importObject.Properties)
+                    {
+                        contentItem.SetValue(property.Key, property.Value);
+                    }
+                }
+
+                // Save or publish
+                if (publish)
+                {
+                    _contentService.SaveAndPublish(contentItem);
                 }
                 else
                 {
-                    // Use GUID-based or int-based Create depending on parent type
-                    if (parent is Guid guid)
+                    var published = contentItem.Published;
+                    _contentService.Save(contentItem);
+                    if (published)
                     {
-                        contentItem = guid == Guid.Empty
-                            ? _contentService.Create(importObject!.Name, UmbracoConstants.System.Root, importObject.ContentTypeAlais)
-                            : _contentService.Create(importObject!.Name, guid, importObject.ContentTypeAlais);
+                        _contentService.Unpublish(contentItem);
                     }
-                    else if (parent is int id)
+                }
+
+                // Cache the created content GUID for legacy hierarchy resolution
+                if (!string.IsNullOrWhiteSpace(importObject.LegacyId))
+                {
+                    var bulkUploadContentGuid = contentItem.Key;
+                    if (_legacyIdCache.TryAdd(importObject.LegacyId, bulkUploadContentGuid))
                     {
-                        contentItem = _contentService.Create(importObject!.Name, id, importObject.ContentTypeAlais);
+                        _logger.LogDebug("Cached legacy ID '{LegacyId}' → Umbraco GUID {Guid}",
+                            importObject.LegacyId, bulkUploadContentGuid);
                     }
                     else
                     {
-                        return new ContentImportResult
-                        {
-                            BulkUploadContentName = importObject.Name,
-                            BulkUploadSuccess = false,
-                            BulkUploadErrorMessage = "Invalid parent type for content creation",
-                            BulkUploadLegacyId = importObject.LegacyId,
-                            OriginalCsvData = importObject.OriginalCsvData,
-                            SourceCsvFileName = importObject.SourceCsvFileName
-                        };
+                        _logger.LogWarning("Failed to cache legacy ID '{LegacyId}' - may already exist in cache",
+                            importObject.LegacyId);
                     }
                 }
-            }
 
-            // Update properties (same for both new and existing)
-            if (importObject.Properties != null && importObject.Properties.Any())
-            {
-                foreach (var property in importObject.Properties)
+                // Get parent GUID if content has a parent
+                Guid? bulkUploadParentGuid = null;
+                if (contentItem.ParentId != UmbracoConstants.System.Root)
                 {
-                    contentItem.SetValue(property.Key, property.Value);
+                    var parentContent = _contentService.GetById(contentItem.ParentId);
+                    bulkUploadParentGuid = parentContent?.Key;
                 }
-            }
 
-            // Save or publish
-            if (publish)
-            {
-                _contentService.SaveAndPublish(contentItem);
-            }
-            else
-            {
-                _contentService.Save(contentItem);
-            }
-
-            // Cache the created content GUID for legacy hierarchy resolution
-            if (!string.IsNullOrWhiteSpace(importObject.LegacyId))
-            {
-                var bulkUploadContentGuid = contentItem.Key;
-                if (_legacyIdCache.TryAdd(importObject.LegacyId, bulkUploadContentGuid))
+                // Return success result
+                return new ContentImportResult
                 {
-                    _logger.LogDebug("Cached legacy ID '{LegacyId}' → Umbraco GUID {Guid}",
-                        importObject.LegacyId, bulkUploadContentGuid);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to cache legacy ID '{LegacyId}' - may already exist in cache",
-                        importObject.LegacyId);
-                }
+                    BulkUploadSuccess = true,
+                    BulkUploadContentGuid = contentItem.Key,
+                    BulkUploadParentGuid = bulkUploadParentGuid,
+                    BulkUploadLegacyId = importObject.LegacyId,
+                    BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                    BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                    BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
+                    BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
+                    OriginalCsvData = importObject.OriginalCsvData,
+                    SourceCsvFileName = importObject.SourceCsvFileName
+                };
             }
-
-            // Get parent GUID if content has a parent
-            Guid? bulkUploadParentGuid = null;
-            if (contentItem.ParentId != UmbracoConstants.System.Root)
-            {
-                var parentContent = _contentService.GetById(contentItem.ParentId);
-                bulkUploadParentGuid = parentContent?.Key;
-            }
-
-            // Return success result
-            return new ContentImportResult
-            {
-                BulkUploadContentName = importObject.Name,
-                BulkUploadSuccess = true,
-                BulkUploadContentGuid = contentItem.Key,
-                BulkUploadParentGuid = bulkUploadParentGuid,
-                BulkUploadLegacyId = importObject.LegacyId,
-                OriginalCsvData = importObject.OriginalCsvData,
-                SourceCsvFileName = importObject.SourceCsvFileName
-            };
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error importing content item '{Name}'", importObject.Name);
             return new ContentImportResult
             {
-                BulkUploadContentName = importObject.Name,
                 BulkUploadSuccess = false,
                 BulkUploadErrorMessage = ex.Message,
                 BulkUploadLegacyId = importObject.LegacyId,
+                BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
+                BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
                 OriginalCsvData = importObject.OriginalCsvData,
                 SourceCsvFileName = importObject.SourceCsvFileName
             };

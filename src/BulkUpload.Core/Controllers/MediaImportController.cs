@@ -164,6 +164,18 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                 continue;
                             }
 
+                            // Auto-detect ZIP file source when fileName is provided but no explicit mediaSource
+                            // This handles the common case where users only specify fileName in the CSV for ZIP uploads
+                            if (isZipUpload && importObject.ExternalSource == null && !string.IsNullOrWhiteSpace(importObject.FileName))
+                            {
+                                importObject.ExternalSource = new MediaSource
+                                {
+                                    Type = MediaSourceType.ZipFile,
+                                    Value = importObject.FileName
+                                };
+                                _logger.LogDebug("Auto-detected fileName '{FileName}' as ZipFile source", importObject.FileName);
+                            }
+
                             string actualFileName = importObject.FileName;
 
                             // Handle external media sources
