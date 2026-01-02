@@ -162,6 +162,9 @@ public class ImportUtilityService : IImportUtilityService
             BulkUploadShouldPublishColumnExisted = bulkUploadShouldPublishColumnExisted
         };
 
+        var contentPickerDependencies = new List<string>();
+        var deferredProperties = new Dictionary<string, (object value, string resolverAlias)>();
+
         foreach (var property in dynamicProperties)
         {
             var columnDetails = property.Key.Split('|');
@@ -180,20 +183,46 @@ public class ImportUtilityService : IImportUtilityService
             var resolverAlias = aliasValue ?? "text";
 
             var resolver = _resolverFactory.GetByAlias(resolverAlias);
-            object? propertyValue = null;
+
             if (resolver != null)
             {
-                propertyValue = resolver.Resolve(property.Value);
-            }
+                // Check if this is a deferred resolver (e.g., content picker by legacy ID)
+                if (resolver is IDeferredResolver deferredResolver)
+                {
+                    // Extract dependencies for topological sorting
+                    var dependencies = deferredResolver.ExtractDependencies(property.Value);
+                    contentPickerDependencies.AddRange(dependencies);
 
-            if (propertyValue != null)
-            {
-                propertiesToCreate.Add(columnName, propertyValue);
+                    // Store the raw value and resolver alias for later resolution
+                    deferredProperties[columnName] = (property.Value, resolverAlias);
+                }
+                else
+                {
+                    // Standard resolver - resolve immediately
+                    object? propertyValue = resolver.Resolve(property.Value);
+
+                    if (propertyValue != null)
+                    {
+                        propertiesToCreate.Add(columnName, propertyValue);
+                    }
+                }
             }
         }
 
-
         importObject.Properties = propertiesToCreate;
+
+        // Store content picker dependencies for topological sorting
+        if (contentPickerDependencies.Count > 0)
+        {
+            importObject.ContentPickerDependencies = contentPickerDependencies;
+        }
+
+        // Store deferred properties for resolution after dependencies are created
+        if (deferredProperties.Count > 0)
+        {
+            importObject.DeferredProperties = deferredProperties;
+        }
+
         return importObject;
     }
 
@@ -354,6 +383,30 @@ public class ImportUtilityService : IImportUtilityService
                     foreach (var property in importObject.Properties)
                     {
                         contentItem.SetValue(property.Key, property.Value);
+                    }
+                }
+
+                // Resolve and set deferred properties (e.g., content pickers by legacy ID)
+                if (importObject.DeferredProperties != null && importObject.DeferredProperties.Any())
+                {
+                    foreach (var deferredProperty in importObject.DeferredProperties)
+                    {
+                        var propertyAlias = deferredProperty.Key;
+                        var (rawValue, resolverAlias) = deferredProperty.Value;
+
+                        // Get the deferred resolver
+                        var resolver = _resolverFactory.GetByAlias(resolverAlias);
+
+                        if (resolver is IDeferredResolver deferredResolver)
+                        {
+                            // Resolve using the LegacyIdCache
+                            var resolvedValue = deferredResolver.ResolveDeferred(rawValue, _legacyIdCache);
+
+                            if (resolvedValue != null)
+                            {
+                                contentItem.SetValue(propertyAlias, resolvedValue);
+                            }
+                        }
                     }
                 }
 
