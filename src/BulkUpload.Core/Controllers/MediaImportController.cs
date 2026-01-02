@@ -261,6 +261,90 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                             }
                                             break;
                                         }
+
+                                    case Models.MediaSourceType.ZipFile:
+                                        {
+                                            // Get the relative path from the mediaSource value
+                                            var zipFileName = importObject.ExternalSource.Value;
+
+                                            if (string.IsNullOrWhiteSpace(tempDirectory))
+                                            {
+                                                results.Add(new MediaImportResult
+                                                {
+                                                    BulkUploadFileName = zipFileName,
+                                                    BulkUploadSuccess = false,
+                                                    BulkUploadErrorMessage = "ZipFile media source requires a ZIP upload, but no ZIP file was provided",
+                                                    BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                                    OriginalCsvData = ConvertCsvRecordToDictionary(item)
+                                                });
+                                                _logger.LogWarning("Bulk Upload Media: ZipFile source specified but no ZIP uploaded");
+                                                continue;
+                                            }
+
+                                            string[]? mediaFiles = null;
+
+                                            // Check if fileName contains a folder path (/ or \)
+                                            if (zipFileName.Contains('/') || zipFileName.Contains('\\'))
+                                            {
+                                                // Normalize path separators to system separator
+                                                var normalizedFileName = zipFileName.Replace('/', Path.DirectorySeparatorChar)
+                                                                                     .Replace('\\', Path.DirectorySeparatorChar);
+
+                                                // Try to find file at specific relative path first
+                                                var specificPath = Path.Combine(tempDirectory, normalizedFileName);
+                                                if (System.IO.File.Exists(specificPath))
+                                                {
+                                                    mediaFiles = new[] { specificPath };
+                                                    _logger.LogDebug("Bulk Upload Media: Found file at specific path: {Path}", specificPath);
+                                                }
+                                                else
+                                                {
+                                                    // Fall back to searching by just the filename anywhere in the ZIP
+                                                    var fileNameOnly = Path.GetFileName(normalizedFileName);
+                                                    mediaFiles = Directory.GetFiles(tempDirectory, fileNameOnly, SearchOption.AllDirectories);
+                                                    if (mediaFiles.Length > 0)
+                                                    {
+                                                        _logger.LogWarning("Bulk Upload Media: File '{FileName}' not found at specified path, but found '{FileNameOnly}' elsewhere in ZIP",
+                                                            zipFileName, fileNameOnly);
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                // No folder path specified - search anywhere in ZIP
+                                                mediaFiles = Directory.GetFiles(tempDirectory, zipFileName, SearchOption.AllDirectories);
+                                            }
+
+                                            if (mediaFiles == null || mediaFiles.Length == 0)
+                                            {
+                                                // Only error if NOT in update mode (update mode allows property-only updates)
+                                                if (!importObject.BulkUploadShouldUpdate)
+                                                {
+                                                    results.Add(new MediaImportResult
+                                                    {
+                                                        BulkUploadFileName = zipFileName,
+                                                        BulkUploadSuccess = false,
+                                                        BulkUploadErrorMessage = $"File not found in ZIP archive: {zipFileName}",
+                                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                                        BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                                                        BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                                                        OriginalCsvData = ConvertCsvRecordToDictionary(item)
+                                                    });
+                                                    _logger.LogWarning("Bulk Upload Media: File not found in ZIP: {FileName}", zipFileName);
+                                                    continue;
+                                                }
+                                                // For update mode, null fileStream is OK (property-only update)
+                                                _logger.LogDebug("Bulk Upload Media: File not found in ZIP but in update mode, proceeding with property-only update: {FileName}", zipFileName);
+                                            }
+                                            else
+                                            {
+                                                var mediaFilePath = mediaFiles[0];
+                                                fileStream = new FileStream(mediaFilePath, FileMode.Open, FileAccess.Read);
+                                                actualFileName = zipFileName;
+                                                _logger.LogInformation("Bulk Upload Media: Reading from ZIP file: {FilePath}", zipFileName);
+                                            }
+                                            break;
+                                        }
                                 }
                             }
                             else if (!string.IsNullOrWhiteSpace(importObject.FileName))

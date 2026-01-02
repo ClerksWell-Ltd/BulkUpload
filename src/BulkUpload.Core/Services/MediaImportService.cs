@@ -185,6 +185,24 @@ public class MediaImportService : IMediaImportService
 
             var resolverAlias = aliasValue ?? "text";
 
+            // Auto-detect mediaSource type if no resolver alias is specified
+            if (columnName.Equals("mediaSource", StringComparison.OrdinalIgnoreCase) && aliasValue == null)
+            {
+                var mediaSourceValue = property.Value?.ToString();
+                if (!string.IsNullOrWhiteSpace(mediaSourceValue))
+                {
+                    var detectedSourceType = DetectMediaSourceType(mediaSourceValue);
+                    externalSource = new MediaSource
+                    {
+                        Type = detectedSourceType,
+                        Value = mediaSourceValue
+                    };
+                    _logger.LogInformation("Auto-detected media source: {Type} - {Value}",
+                        detectedSourceType, mediaSourceValue);
+                }
+                continue; // Don't add to properties
+            }
+
             // Check for external source resolvers (pathToStream, urlToStream)
             // These resolvers return MediaSource objects instead of property values
             if (resolverAlias.Contains("pathToStream") || resolverAlias.Contains("urlToStream"))
@@ -549,5 +567,39 @@ public class MediaImportService : IMediaImportService
             ".mp3" or ".wav" or ".ogg" or ".wma" => "Audio",
             _ => "File" // Default to File type for unknown extensions
         };
+    }
+
+    /// <summary>
+    /// Auto-detects the MediaSourceType from the value pattern.
+    /// URLs (http:// or https://) are detected as Url.
+    /// Absolute paths (contains : for Windows or starts with / for Unix) are detected as FilePath.
+    /// Everything else (relative paths) is detected as ZipFile.
+    /// </summary>
+    private MediaSourceType DetectMediaSourceType(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return MediaSourceType.ZipFile;
+        }
+
+        var trimmedValue = value.Trim();
+
+        // Check for URL (http:// or https://)
+        if (trimmedValue.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            trimmedValue.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return MediaSourceType.Url;
+        }
+
+        // Check for absolute file path
+        // Windows: Contains colon (e.g., C:\, D:\)
+        // Unix/Linux: Starts with forward slash (e.g., /home/user/)
+        if (trimmedValue.Contains(':') || trimmedValue.StartsWith('/'))
+        {
+            return MediaSourceType.FilePath;
+        }
+
+        // Default to ZipFile for relative paths (e.g., "image.jpg", "folder/image.jpg")
+        return MediaSourceType.ZipFile;
     }
 }
