@@ -302,7 +302,8 @@ public class MediaImportControllerTests
         // Assert
         var fileResult = Assert.IsType<FileContentResult>(result);
         var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
-        Assert.Contains("bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId", csvContent);
+        // bulkUploadErrorMessage and bulkUploadLegacyId are not included when there are no errors and no legacy IDs
+        Assert.Contains("bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadShouldUpdate", csvContent);
     }
 
     [Fact]
@@ -405,7 +406,11 @@ public class MediaImportControllerTests
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",
                 BulkUploadErrorMessage = null,
-                BulkUploadLegacyId = "legacy-999"
+                BulkUploadLegacyId = "legacy-999",
+                OriginalCsvData = new Dictionary<string, string>
+                {
+                    { "bulkUploadLegacyId", "legacy-999" }
+                }
             }
         };
 
@@ -416,6 +421,7 @@ public class MediaImportControllerTests
         var fileResult = Assert.IsType<FileContentResult>(result);
         var csvContent = Encoding.UTF8.GetString(fileResult.FileContents);
         Assert.Contains("legacy-999", csvContent);
+        Assert.Contains("bulkUploadLegacyId", csvContent); // Column header should be present
     }
 
     [Fact]
@@ -456,7 +462,11 @@ public class MediaImportControllerTests
                 BulkUploadMediaGuid = Guid.NewGuid(),
                 BulkUploadMediaUdi = "umb://media/123",
                 BulkUploadErrorMessage = null,
-                BulkUploadLegacyId = "legacy\"with\"quotes"
+                BulkUploadLegacyId = "legacy\"with\"quotes",
+                OriginalCsvData = new Dictionary<string, string>
+                {
+                    { "bulkUploadLegacyId", "legacy\"with\"quotes" }
+                }
             }
         };
 

@@ -360,3 +360,4 @@ src/.idea
 /src/BulkUpload.TestSite13/App_Plugins/BulkUpload/
 /src/BulkUpload.TestSite/App_Plugins/BulkUpload
 /src/BulkUpload.TestSite/wwwroot/media
+/.claude

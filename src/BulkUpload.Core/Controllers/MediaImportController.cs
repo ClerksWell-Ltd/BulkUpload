@@ -125,7 +125,6 @@ public class MediaImportController : UmbracoAuthorizedApiController
                 }
 
                 // Detect if this import supports update mode (per-file detection)
-                bool importSupportsUpdateMode = false;
                 if (records != null && records.Any())
                 {
                     var firstRecord = (IDictionary<string, object>)records.First();
@@ -133,7 +132,6 @@ public class MediaImportController : UmbracoAuthorizedApiController
                         k.Split('|')[0].Equals("bulkUploadShouldUpdate", StringComparison.OrdinalIgnoreCase));
                     if (hasUpdateColumn)
                     {
-                        importSupportsUpdateMode = true;
                         _logger.LogInformation("Bulk Upload Media: Import file contains 'bulkUploadShouldUpdate' column - update mode is available. Each row's value will determine update vs create.");
                     }
                     else
@@ -341,7 +339,9 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                 continue;
                             }
 
-                            var result = _mediaImportService.ImportSingleMediaItem(importObject, fileStream);
+                            var result = fileStream != null
+                                ? _mediaImportService.ImportSingleMediaItem(importObject, fileStream)
+                                : _mediaImportService.ImportSingleMediaItem(importObject, Stream.Null);
                             result.OriginalCsvData = ConvertCsvRecordToDictionary(item);
                             results.Add(result);
                         }
@@ -390,10 +390,10 @@ public class MediaImportController : UmbracoAuthorizedApiController
 
                 return Ok(new
                 {
-                    totalCount = totalCount,
-                    successCount = successCount,
-                    failureCount = failureCount,
-                    results = results
+                    totalCount,
+                    successCount,
+                    failureCount,
+                    results
                 });
             }
         }
@@ -481,13 +481,14 @@ public class MediaImportController : UmbracoAuthorizedApiController
             // Build each row: BulkUpload values + original values
             foreach (var result in results)
             {
-                var rowParts = new List<string>();
-
-                // BulkUpload columns (always included)
-                rowParts.Add($"\"{result.BulkUploadFileName}\"");
-                rowParts.Add(result.BulkUploadSuccess.ToString());
-                rowParts.Add($"\"{result.BulkUploadMediaGuid}\"");
-                rowParts.Add($"\"{result.BulkUploadMediaUdi}\"");
+                var rowParts = new List<string>
+                {
+                    // BulkUpload columns (always included)
+                    $"\"{result.BulkUploadFileName}\"",
+                    result.BulkUploadSuccess.ToString(),
+                    $"\"{result.BulkUploadMediaGuid}\"",
+                    $"\"{result.BulkUploadMediaUdi}\""
+                };
 
                 // Optional BulkUpload columns (only if needed)
                 if (hasAnyErrors)

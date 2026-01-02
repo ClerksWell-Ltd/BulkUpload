@@ -179,7 +179,9 @@ public class MediaImportService : IMediaImportService
             // Skip standard columns and reserved columns
             var standardColumns = new string[] { "fileName", "name", "parent", "parentId", "mediaTypeAlias" };
             if (standardColumns.Contains(property.Key.Split('|')[0]) || ReservedColumns.IsReserved(property.Key.Split('|')[0]))
+            {
                 continue;
+            }
 
             var resolverAlias = aliasValue ?? "text";
 
@@ -238,7 +240,7 @@ public class MediaImportService : IMediaImportService
                 return result;
             }
 
-            IMedia mediaItem;
+            IMedia? mediaItem;
 
             // Determine operation mode based on row values
             // If bulkUploadShouldUpdate column existed in CSV (per-file), then update mode is available
