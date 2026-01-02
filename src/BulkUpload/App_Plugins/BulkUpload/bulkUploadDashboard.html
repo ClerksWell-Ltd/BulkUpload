@@ -164,23 +164,28 @@
                             <p style="margin: 0.5em 0;"><strong>Upload either:</strong></p>
                             <ul style="margin: 0.5em 0; padding-left: 1.5em;">
                                 <li><strong>ZIP file:</strong> Contains a CSV file and the media files referenced in it</li>
-                                <li><strong>CSV file only:</strong> If all media files are from URLs (use <code>mediaSource|urlToStream</code> column) or file paths</li>
+                                <li><strong>CSV file only:</strong> If all media files are from URLs or file paths</li>
                             </ul>
                             <p style="margin: 0.5em 0;">
                                 <strong>Required CSV columns:</strong>
                                 <ul>
                                     <li>
-                                        <code>parent</code>
-                                        <p>This is so we know where to save the media item. This can be an integer for the id in Umbraco e.g 1144, a guid for the id in Umbraco e.g. 71332aa7-8bea-44f1-9aa6-00de961b66e8, or a folder path e.g. /Social Icons/.</p>
+                                        <strong>parent</strong><br />
+                                        <p>This is so we know where to save the media item. This can be an integer for the id in Umbraco e.g <code>1144</code>, a guid for the id in Umbraco e.g. <code>71332aa7-8bea-44f1-9aa6-00de961b66e8</code>, or a folder path e.g. <code>/Social Icons/</code>.</p>
                                     </li>
 
                                     <li>
-                                        <code>fileName</code> or <code>mediaSource|urlToStream</code> or <code>mediaSource|urlToStream</code> or <code>mediaSource|pathToStream</code>
-                                            <p>
-                                                If you are using a zip file to upload the images with the CSV file then the fileName is required.<br />
-                                                If the image is coming from a URL then the mediaSource|urlToStream is required
-                                                If the image is from the local file system of the server, or network path then the mediaSource|pathToStream is required
-                                            </p>
+                                        <p>
+                                            <strong>mediaSource</strong><br />
+                                            You can provide either a URL of an image, a path to a file on the machine or network, or a zip file path here.
+                                            If using a zip file, ensure the media file is included in the zip and reference it by its relative path within the zip.
+                                            Allowed values:
+                                            <ul>
+                                                <li>URL e.g. <code>https://example.com/image.jpg</code></li>
+                                                <li>File path e.g. <code>C:\Images\image.jpg</code> or <code>\\NetworkShare\Images\image.jpg</code></li>
+                                                <li>Zip file path e.g. <code>my-image.jpg</code> or <code>images/image.jpg</code> (if uploading a zip file)</li>
+                                            </ul>
+                                        </p>
                                     </li>
                                 </ul>
                             <p style="margin: 0.5em 0;"><strong>Optional CSV columns:</strong> <code>name</code>, <code>mediaTypeAlias</code>, plus any custom media properties e.g. <code>altText</code></p>

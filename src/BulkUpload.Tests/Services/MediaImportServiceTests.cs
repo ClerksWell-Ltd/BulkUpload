@@ -261,6 +261,99 @@ public class MediaImportServiceTests
         Assert.DoesNotContain("bulkUploadLegacyId", result.Properties.Keys);
     }
 
+    [Fact]
+    public void CreateMediaImportObject_InfersFileName_FromMediaSourceUrl()
+    {
+        // Arrange
+        var record = new Dictionary<string, object>
+        {
+            { "parentId", "123" },
+            { "mediaSource", "https://example.com/images/photo.jpg" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.Equal("photo.jpg", result.FileName);
+        Assert.NotNull(result.ExternalSource);
+        Assert.Equal(MediaSourceType.Url, result.ExternalSource.Type);
+    }
+
+    [Fact]
+    public void CreateMediaImportObject_InfersFileName_FromMediaSourceFilePath()
+    {
+        // Arrange
+        var record = new Dictionary<string, object>
+        {
+            { "parentId", "123" },
+            { "mediaSource", "C:\\temp\\images\\photo.png" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.Equal("photo.png", result.FileName);
+        Assert.NotNull(result.ExternalSource);
+        Assert.Equal(MediaSourceType.FilePath, result.ExternalSource.Type);
+    }
+
+    [Fact]
+    public void CreateMediaImportObject_InfersFileName_FromMediaSourceZipFile()
+    {
+        // Arrange
+        var record = new Dictionary<string, object>
+        {
+            { "parentId", "123" },
+            { "mediaSource", "folder/image.jpg" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.Equal("image.jpg", result.FileName);
+        Assert.NotNull(result.ExternalSource);
+        Assert.Equal(MediaSourceType.ZipFile, result.ExternalSource.Type);
+    }
+
+    [Fact]
+    public void CreateMediaImportObject_PrefersExplicitFileName_OverInferredFromMediaSource()
+    {
+        // Arrange
+        var record = new Dictionary<string, object>
+        {
+            { "fileName", "custom-name.jpg" },
+            { "parentId", "123" },
+            { "mediaSource", "https://example.com/images/original.jpg" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.Equal("custom-name.jpg", result.FileName); // Should keep explicit fileName
+        Assert.NotNull(result.ExternalSource);
+    }
+
+    [Fact]
+    public void CreateMediaImportObject_AllowsMissingFileNameColumn()
+    {
+        // Arrange - fileName column is completely absent
+        var record = new Dictionary<string, object>
+        {
+            { "parentId", "123" },
+            { "mediaSource", "photo.jpg" }
+        };
+
+        // Act
+        var result = _service.CreateMediaImportObject(record);
+
+        // Assert
+        Assert.Equal("photo.jpg", result.FileName);
+    }
+
     #endregion
 
     // Note: ImportSingleMediaItem tests are omitted because they require mocking MediaFileManager,

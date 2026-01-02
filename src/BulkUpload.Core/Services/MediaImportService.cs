@@ -236,6 +236,14 @@ public class MediaImportService : IMediaImportService
 
         importObject.Properties = propertiesToCreate;
         importObject.ExternalSource = externalSource;
+
+        // Infer fileName from mediaSource if not provided in CSV
+        if (string.IsNullOrWhiteSpace(importObject.FileName) && externalSource != null)
+        {
+            importObject.FileName = InferFileNameFromMediaSource(externalSource);
+            _logger.LogDebug("Inferred fileName '{FileName}' from mediaSource", importObject.FileName);
+        }
+
         return importObject;
     }
 
@@ -601,5 +609,45 @@ public class MediaImportService : IMediaImportService
 
         // Default to ZipFile for relative paths (e.g., "image.jpg", "folder/image.jpg")
         return MediaSourceType.ZipFile;
+    }
+
+    /// <summary>
+    /// Infers the fileName from a MediaSource value.
+    /// For URLs: extracts the filename from the URL path.
+    /// For FilePaths: extracts the filename from the path.
+    /// For ZipFile: uses the value directly as it's already the filename/relative path.
+    /// </summary>
+    private string InferFileNameFromMediaSource(MediaSource mediaSource)
+    {
+        if (mediaSource == null || string.IsNullOrWhiteSpace(mediaSource.Value))
+        {
+            return "";
+        }
+
+        switch (mediaSource.Type)
+        {
+            case MediaSourceType.Url:
+                try
+                {
+                    var uri = new Uri(mediaSource.Value);
+                    var fileName = Path.GetFileName(Uri.UnescapeDataString(uri.LocalPath));
+                    return !string.IsNullOrWhiteSpace(fileName) ? fileName : "download.jpg";
+                }
+                catch
+                {
+                    return "download.jpg";
+                }
+
+            case MediaSourceType.FilePath:
+                return Path.GetFileName(mediaSource.Value);
+
+            case MediaSourceType.ZipFile:
+                // For zip files, the value is already the filename or relative path
+                // Extract just the filename if it contains path separators
+                return Path.GetFileName(mediaSource.Value);
+
+            default:
+                return "";
+        }
     }
 }
