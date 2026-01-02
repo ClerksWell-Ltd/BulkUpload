@@ -79,7 +79,7 @@ public class LegacyContentPickersResolver : IDeferredResolver
             if (legacyIdCache.TryGetGuid(legacyId, out var contentGuid))
             {
                 // Convert GUID to content UDI
-                var udi = Udi.Create(Constants.UdiEntityType.Document, contentGuid);
+                var udi = Udi.Create("document", contentGuid);
                 udis.Add(udi.ToString());
             }
             // If a legacy ID is not found, skip it
