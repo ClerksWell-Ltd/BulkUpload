@@ -41,11 +41,14 @@ public class ParentLookupCache : IParentLookupCache
             return null;
         }
 
-        // Normalize path for cache key consistency
+        // Normalize path (preserves casing for folder creation)
         var normalizedPath = NormalizePath(path);
 
+        // Use lowercase for cache key (case-insensitive lookups)
+        var cacheKey = normalizedPath.ToLowerInvariant();
+
         // Check cache first
-        if (_mediaPathCache.TryGetValue(normalizedPath, out var cachedGuid))
+        if (_mediaPathCache.TryGetValue(cacheKey, out var cachedGuid))
         {
             _logger.LogDebug("Cache hit: Media path '{Path}' -> GUID {Guid}", normalizedPath, cachedGuid);
             return cachedGuid;
@@ -55,7 +58,7 @@ public class ParentLookupCache : IParentLookupCache
         var folderGuid = ResolveOrCreateMediaFolderPath(normalizedPath);
         if (folderGuid.HasValue)
         {
-            _mediaPathCache.TryAdd(normalizedPath, folderGuid.Value);
+            _mediaPathCache.TryAdd(cacheKey, folderGuid.Value);
             _logger.LogDebug("Cache miss: Media path '{Path}' -> GUID {Guid} (cached)", normalizedPath, folderGuid.Value);
         }
 
@@ -69,11 +72,14 @@ public class ParentLookupCache : IParentLookupCache
             return null;
         }
 
-        // Normalize path for cache key consistency
+        // Normalize path (preserves casing)
         var normalizedPath = NormalizePath(path);
 
+        // Use lowercase for cache key (case-insensitive lookups)
+        var cacheKey = normalizedPath.ToLowerInvariant();
+
         // Check cache first
-        if (_contentPathCache.TryGetValue(normalizedPath, out var cachedGuid))
+        if (_contentPathCache.TryGetValue(cacheKey, out var cachedGuid))
         {
             _logger.LogDebug("Cache hit: Content path '{Path}' -> GUID {Guid}", normalizedPath, cachedGuid);
             return cachedGuid;
@@ -83,7 +89,7 @@ public class ParentLookupCache : IParentLookupCache
         var folderGuid = ResolveOrCreateContentFolderPath(normalizedPath);
         if (folderGuid.HasValue)
         {
-            _contentPathCache.TryAdd(normalizedPath, folderGuid.Value);
+            _contentPathCache.TryAdd(cacheKey, folderGuid.Value);
             _logger.LogDebug("Cache miss: Content path '{Path}' -> GUID {Guid} (cached)", normalizedPath, folderGuid.Value);
         }
 
@@ -98,11 +104,12 @@ public class ParentLookupCache : IParentLookupCache
     }
 
     /// <summary>
-    /// Normalizes a path for consistent cache key usage.
+    /// Normalizes a path by trimming whitespace and slashes.
+    /// Preserves original casing for folder creation.
     /// </summary>
     private string NormalizePath(string path)
     {
-        return path.Trim().Trim('/').ToLowerInvariant();
+        return path.Trim().Trim('/');
     }
 
     /// <summary>

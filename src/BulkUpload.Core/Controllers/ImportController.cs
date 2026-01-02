@@ -281,6 +281,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
     private string GenerateCsvForResults(List<ContentImportResult> results)
     {
         // Collect all unique original column names from results (preserving order from first occurrence)
+        // Exclude any columns that start with "bulkUpload" prefix to avoid duplicates with system columns
         var originalColumns = new List<string>();
         foreach (var result in results)
         {
@@ -288,7 +289,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
             {
                 foreach (var key in result.OriginalCsvData.Keys)
                 {
-                    if (!originalColumns.Contains(key))
+                    if (!originalColumns.Contains(key) && !key.StartsWith("bulkUpload", StringComparison.OrdinalIgnoreCase))
                     {
                         originalColumns.Add(key);
                     }
