@@ -639,15 +639,42 @@ public class MediaImportService : IMediaImportService
                 }
 
             case MediaSourceType.FilePath:
-                return Path.GetFileName(mediaSource.Value);
+                // Handle both Windows (\) and Unix (/) path separators
+                return GetFileNameFromPath(mediaSource.Value);
 
             case MediaSourceType.ZipFile:
                 // For zip files, the value is already the filename or relative path
                 // Extract just the filename if it contains path separators
-                return Path.GetFileName(mediaSource.Value);
+                return GetFileNameFromPath(mediaSource.Value);
 
             default:
                 return "";
         }
+    }
+
+    /// <summary>
+    /// Extracts the filename from a path, handling both Windows (\) and Unix (/) path separators.
+    /// This is needed because Path.GetFileName() only recognizes the OS-specific separator.
+    /// </summary>
+    private string GetFileNameFromPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "";
+        }
+
+        // Find the last occurrence of either path separator
+        var lastBackslash = path.LastIndexOf('\\');
+        var lastForwardSlash = path.LastIndexOf('/');
+        var lastSeparator = Math.Max(lastBackslash, lastForwardSlash);
+
+        // If no separator found, the entire string is the filename
+        if (lastSeparator == -1)
+        {
+            return path;
+        }
+
+        // Return everything after the last separator
+        return path.Substring(lastSeparator + 1);
     }
 }
