@@ -376,35 +376,23 @@ public class MediaImportService : IMediaImportService
                     return result;
                 }
 
-                var existingMedia = _mediaService
-                    .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
-                    .FirstOrDefault(x => string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
-
-                if (existingMedia != null)
+                // Use GUID-based or int-based Create depending on parent type
+                if (parent is Guid guid)
                 {
-                    mediaItem = existingMedia;
-                    _logger.LogInformation("Updating existing media: {Name}", importObject.DisplayName);
+                    mediaItem = guid == Guid.Empty
+                        ? _mediaService.CreateMedia(importObject.DisplayName, UmbracoConstants.System.Root, mediaTypeAlias)
+                        : _mediaService.CreateMedia(importObject.DisplayName, guid, mediaTypeAlias);
+                }
+                else if (parent is int id)
+                {
+                    mediaItem = _mediaService.CreateMedia(importObject.DisplayName, id, mediaTypeAlias);
                 }
                 else
                 {
-                    // Use GUID-based or int-based Create depending on parent type
-                    if (parent is Guid guid)
-                    {
-                        mediaItem = guid == Guid.Empty
-                            ? _mediaService.CreateMedia(importObject.DisplayName, UmbracoConstants.System.Root, mediaTypeAlias)
-                            : _mediaService.CreateMedia(importObject.DisplayName, guid, mediaTypeAlias);
-                    }
-                    else if (parent is int id)
-                    {
-                        mediaItem = _mediaService.CreateMedia(importObject.DisplayName, id, mediaTypeAlias);
-                    }
-                    else
-                    {
-                        result.BulkUploadErrorMessage = "Invalid parent type for media creation";
-                        return result;
-                    }
-                    _logger.LogInformation("Creating new media: {Name}", importObject.DisplayName);
+                    result.BulkUploadErrorMessage = "Invalid parent type for media creation";
+                    return result;
                 }
+                _logger.LogInformation("Creating new media: {Name}", importObject.DisplayName);
 
                 // Upload the file (required for create mode)
                 if (fileStream != null && fileStream.Length > 0)
@@ -448,7 +436,7 @@ public class MediaImportService : IMediaImportService
                 result.BulkUploadSuccess = true;
                 result.BulkUploadMediaGuid = mediaItem.Key;
                 result.BulkUploadMediaUdi = Udi.Create(UmbracoConstants.UdiEntityType.Media, mediaItem.Key).ToString();
-                _logger.LogInformation("Successfully imported media: {Name} (ID: {Id})", importObject.DisplayName, mediaItem.Id);
+                _logger.LogInformation("Successfully imported media: {Name} (ID: {Id}), Umbraco Media Name: {SavedName}", importObject.DisplayName, mediaItem.Id, mediaItem.Name);
             }
             else
             {

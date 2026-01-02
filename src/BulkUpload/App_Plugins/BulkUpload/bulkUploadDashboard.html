@@ -7,16 +7,14 @@
 
         <!-- Tab navigation -->
         <uui-tab-group style="margin-bottom: 20px;">
-            <uui-tab
-                label="Content Import"
-                ng-click="setActiveTab('content')"
-                ng-attr-active="{{state.activeTab === 'content' ? 'true' : undefined}}">
+            <uui-tab label="Content Import"
+                     ng-click="setActiveTab('content')"
+                     ng-attr-active="{{state.activeTab === 'content' ? 'true' : undefined}}">
                 Content Import
             </uui-tab>
-            <uui-tab
-                label="Media Import"
-                ng-click="setActiveTab('media')"
-                ng-attr-active="{{state.activeTab === 'media' ? 'true' : undefined}}">
+            <uui-tab label="Media Import"
+                     ng-click="setActiveTab('media')"
+                     ng-attr-active="{{state.activeTab === 'media' ? 'true' : undefined}}">
                 Media Import
             </uui-tab>
         </uui-tab-group>
@@ -47,15 +45,14 @@
                         <label for="content-file-input" style="display: block; font-weight: 600; margin-bottom: 0.5em;">
                             Select CSV or ZIP file
                         </label>
-                        <input
-                            type="file"
-                            id="content-file-input"
-                            ngf-select
-                            ng-model="bulkUploadImportFile"
-                            ng-change="onFileSelected(bulkUploadImportFile, $event)"
-                            ng-disabled="state.content.loading"
-                            accept=".csv,.zip"
-                            style="margin-bottom: 1em;" />
+                        <input type="file"
+                               id="content-file-input"
+                               ngf-select
+                               ng-model="bulkUploadImportFile"
+                               ng-change="onFileSelected(bulkUploadImportFile, $event)"
+                               ng-disabled="state.content.loading"
+                               accept=".csv,.zip"
+                               style="margin-bottom: 1em;" />
                     </div>
 
                     <!-- File preview -->
@@ -70,22 +67,20 @@
                     </div>
 
                     <div style="display: flex; gap: 10px;">
-                        <uui-button
-                            label="Import Content"
-                            look="primary"
-                            color="positive"
-                            ng-click="onUploadClicked()"
-                            ng-disabled="!state.content.file || state.content.loading"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Import Content"
+                                    look="primary"
+                                    color="positive"
+                                    ng-click="onUploadClicked()"
+                                    ng-disabled="!state.content.file || state.content.loading"
+                                    style="--uui-button-padding: 10px 20px;">
                             <span ng-if="!state.content.loading">▲ Import Content</span>
                             <span ng-if="state.content.loading">Processing...</span>
                         </uui-button>
-                        <uui-button
-                            label="Clear File"
-                            look="outline"
-                            ng-if="state.content.file && !state.content.loading"
-                            ng-click="clearContentFile()"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Clear File"
+                                    look="outline"
+                                    ng-if="state.content.file && !state.content.loading"
+                                    ng-click="clearContentFile()"
+                                    style="--uui-button-padding: 10px 20px;">
                             Clear
                         </uui-button>
                     </div>
@@ -139,19 +134,17 @@
                     </details>
 
                     <div style="display: flex; gap: 10px;">
-                        <uui-button
-                            label="Download Results CSV"
-                            look="outline"
-                            ng-click="onExportContentResultsClicked()"
-                            ng-if="state.content.results.results && state.content.results.results.length > 0"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Download Results CSV"
+                                    look="outline"
+                                    ng-click="onExportContentResultsClicked()"
+                                    ng-if="state.content.results.results && state.content.results.results.length > 0"
+                                    style="--uui-button-padding: 10px 20px;">
                             ⬇ Download Results CSV
                         </uui-button>
-                        <uui-button
-                            label="Clear Results"
-                            look="outline"
-                            ng-click="clearContentResults()"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Clear Results"
+                                    look="outline"
+                                    ng-click="clearContentResults()"
+                                    style="--uui-button-padding: 10px 20px;">
                             Clear Results
                         </uui-button>
                     </div>
@@ -173,7 +166,24 @@
                                 <li><strong>ZIP file:</strong> Contains a CSV file and the media files referenced in it</li>
                                 <li><strong>CSV file only:</strong> If all media files are from URLs (use <code>mediaSource|urlToStream</code> column) or file paths</li>
                             </ul>
-                            <p style="margin: 0.5em 0;"><strong>Required CSV columns:</strong> <code>fileName</code>, <code>parentId</code>, and optional <code>name</code>, <code>mediaTypeAlias</code>, plus any media properties</p>
+                            <p style="margin: 0.5em 0;">
+                                <strong>Required CSV columns:</strong>
+                                <ul>
+                                    <li>
+                                        <code>parent</code>
+                                        <p>This is so we know where to save the media item. This can be an integer for the id in Umbraco e.g 1144, a guid for the id in Umbraco e.g. 71332aa7-8bea-44f1-9aa6-00de961b66e8, or a folder path e.g. /Social Icons/.</p>
+                                    </li>
+
+                                    <li>
+                                        <code>fileName</code> or <code>mediaSource|urlToStream</code> or <code>mediaSource|urlToStream</code> or <code>mediaSource|pathToStream</code>
+                                            <p>
+                                                If you are using a zip file to upload the images with the CSV file then the fileName is required.<br />
+                                                If the image is coming from a URL then the mediaSource|urlToStream is required
+                                                If the image is from the local file system of the server, or network path then the mediaSource|pathToStream is required
+                                            </p>
+                                    </li>
+                                </ul>
+                            <p style="margin: 0.5em 0;"><strong>Optional CSV columns:</strong> <code>name</code>, <code>mediaTypeAlias</code>, plus any custom media properties e.g. <code>altText</code></p>
                         </div>
                     </div>
                 </div>
@@ -186,15 +196,14 @@
                         <label for="media-file-input" style="display: block; font-weight: 600; margin-bottom: 0.5em;">
                             Select ZIP or CSV file
                         </label>
-                        <input
-                            type="file"
-                            id="media-file-input"
-                            ngf-select
-                            ng-model="mediaUploadFile"
-                            ng-change="onMediaFileSelected(mediaUploadFile, $event)"
-                            ng-disabled="state.media.loading"
-                            accept=".zip,.csv"
-                            style="margin-bottom: 1em;" />
+                        <input type="file"
+                               id="media-file-input"
+                               ngf-select
+                               ng-model="mediaUploadFile"
+                               ng-change="onMediaFileSelected(mediaUploadFile, $event)"
+                               ng-disabled="state.media.loading"
+                               accept=".zip,.csv"
+                               style="margin-bottom: 1em;" />
                     </div>
 
                     <!-- File preview -->
@@ -209,22 +218,20 @@
                     </div>
 
                     <div style="display: flex; gap: 10px;">
-                        <uui-button
-                            label="Import Media"
-                            look="primary"
-                            color="positive"
-                            ng-click="onMediaUploadClicked()"
-                            ng-disabled="!state.media.file || state.media.loading"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Import Media"
+                                    look="primary"
+                                    color="positive"
+                                    ng-click="onMediaUploadClicked()"
+                                    ng-disabled="!state.media.file || state.media.loading"
+                                    style="--uui-button-padding: 10px 20px;">
                             <span ng-if="!state.media.loading">▲ Import Media</span>
                             <span ng-if="state.media.loading">Processing...</span>
                         </uui-button>
-                        <uui-button
-                            label="Clear File"
-                            look="outline"
-                            ng-if="state.media.file && !state.media.loading"
-                            ng-click="clearMediaFile()"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Clear File"
+                                    look="outline"
+                                    ng-if="state.media.file && !state.media.loading"
+                                    ng-click="clearMediaFile()"
+                                    style="--uui-button-padding: 10px 20px;">
                             Clear
                         </uui-button>
                     </div>
@@ -278,19 +285,17 @@
                     </details>
 
                     <div style="display: flex; gap: 10px;">
-                        <uui-button
-                            label="Download Results CSV"
-                            look="outline"
-                            ng-click="onExportResultsClicked()"
-                            ng-if="state.media.results.results && state.media.results.results.length > 0"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Download Results CSV"
+                                    look="outline"
+                                    ng-click="onExportResultsClicked()"
+                                    ng-if="state.media.results.results && state.media.results.results.length > 0"
+                                    style="--uui-button-padding: 10px 20px;">
                             ⬇ Download Results CSV
                         </uui-button>
-                        <uui-button
-                            label="Clear Results"
-                            look="outline"
-                            ng-click="clearMediaResults()"
-                            style="--uui-button-padding: 10px 20px;">
+                        <uui-button label="Clear Results"
+                                    look="outline"
+                                    ng-click="clearMediaResults()"
+                                    style="--uui-button-padding: 10px 20px;">
                             Clear Results
                         </uui-button>
                     </div>
