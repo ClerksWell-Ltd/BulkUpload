@@ -124,6 +124,24 @@ public class MediaImportController : UmbracoAuthorizedApiController
                     records.Add(record);
                 }
 
+                // Detect if this import supports update mode (per-file detection)
+                bool importSupportsUpdateMode = false;
+                if (records != null && records.Any())
+                {
+                    var firstRecord = (IDictionary<string, object>)records.First();
+                    var hasUpdateColumn = firstRecord.Keys.Any(k =>
+                        k.Split('|')[0].Equals("bulkUploadShouldUpdate", StringComparison.OrdinalIgnoreCase));
+                    if (hasUpdateColumn)
+                    {
+                        importSupportsUpdateMode = true;
+                        _logger.LogInformation("Bulk Upload Media: Import file contains 'bulkUploadShouldUpdate' column - update mode is available. Each row's value will determine update vs create.");
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Bulk Upload Media: Import file does not contain 'bulkUploadShouldUpdate' column - all items will be created.");
+                    }
+                }
+
                 if (records != null && records.Any())
                 {
                     foreach (var item in records)
@@ -141,6 +159,8 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                     BulkUploadSuccess = false,
                                     BulkUploadErrorMessage = "Invalid import object: Missing required fields",
                                     BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                    BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                                    BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                                     OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                 });
                                 continue;
@@ -245,10 +265,11 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                         }
                                 }
                             }
-                            else
+                            else if (!string.IsNullOrWhiteSpace(importObject.FileName))
                             {
                                 // Find the media file in extracted ZIP contents (only for ZIP uploads)
-                                if (!isZipUpload)
+                                // Skip this for property-only updates (update mode with no fileName or no file available)
+                                if (!isZipUpload && !importObject.BulkUploadShouldUpdate)
                                 {
                                     results.Add(new MediaImportResult
                                     {
@@ -256,30 +277,45 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                         BulkUploadSuccess = false,
                                         BulkUploadErrorMessage = $"Media file '{importObject.FileName}' requires a source. For CSV-only uploads, use mediaSource|urlToStream (for URLs) or mediaSource|pathToStream (for file paths).",
                                         BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                        BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                                        BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                                         OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                     });
                                     _logger.LogWarning("Bulk Upload Media: CSV-only upload requires external source for file: {FileName}", importObject.FileName);
                                     continue;
                                 }
 
-                                var mediaFiles = Directory.GetFiles(tempDirectory!, importObject.FileName, SearchOption.AllDirectories);
-
-                                if (mediaFiles.Length == 0)
+                                if (isZipUpload)
                                 {
-                                    results.Add(new MediaImportResult
-                                    {
-                                        BulkUploadFileName = importObject.FileName,
-                                        BulkUploadSuccess = false,
-                                        BulkUploadErrorMessage = $"File not found in ZIP archive: {importObject.FileName}",
-                                        BulkUploadLegacyId = importObject.BulkUploadLegacyId,
-                                        OriginalCsvData = ConvertCsvRecordToDictionary(item)
-                                    });
-                                    _logger.LogWarning("Bulk Upload Media: File not found in ZIP: {FileName}", importObject.FileName);
-                                    continue;
-                                }
+                                    var mediaFiles = Directory.GetFiles(tempDirectory!, importObject.FileName, SearchOption.AllDirectories);
 
-                                var mediaFilePath = mediaFiles[0];
-                                fileStream = new FileStream(mediaFilePath, FileMode.Open, FileAccess.Read);
+                                    if (mediaFiles.Length == 0)
+                                    {
+                                        // Only error if NOT in update mode (update mode allows property-only updates)
+                                        if (!importObject.BulkUploadShouldUpdate)
+                                        {
+                                            results.Add(new MediaImportResult
+                                            {
+                                                BulkUploadFileName = importObject.FileName,
+                                                BulkUploadSuccess = false,
+                                                BulkUploadErrorMessage = $"File not found in ZIP archive: {importObject.FileName}",
+                                                BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                                BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                                                BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
+                                                OriginalCsvData = ConvertCsvRecordToDictionary(item)
+                                            });
+                                            _logger.LogWarning("Bulk Upload Media: File not found in ZIP: {FileName}", importObject.FileName);
+                                            continue;
+                                        }
+                                        // For update mode, null fileStream is OK (property-only update)
+                                        _logger.LogDebug("Bulk Upload Media: File not found in ZIP but in update mode, proceeding with property-only update: {FileName}", importObject.FileName);
+                                    }
+                                    else
+                                    {
+                                        var mediaFilePath = mediaFiles[0];
+                                        fileStream = new FileStream(mediaFilePath, FileMode.Open, FileAccess.Read);
+                                    }
+                                }
                             }
 
                             // Update fileName if it came from external source
@@ -288,15 +324,18 @@ public class MediaImportController : UmbracoAuthorizedApiController
                                 importObject.FileName = actualFileName;
                             }
 
-                            // Import the media item
-                            if (fileStream == null)
+                            // Import the media item (fileStream can be null for property-only updates)
+                            if (fileStream == null && !importObject.BulkUploadShouldUpdate)
                             {
+                                // Only error if NOT in update mode
                                 results.Add(new MediaImportResult
                                 {
                                     BulkUploadFileName = importObject.FileName,
                                     BulkUploadSuccess = false,
                                     BulkUploadErrorMessage = "No file stream available for import",
                                     BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+                                    BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+                                    BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                                     OriginalCsvData = ConvertCsvRecordToDictionary(item)
                                 });
                                 continue;
@@ -407,18 +446,35 @@ public class MediaImportController : UmbracoAuthorizedApiController
                 }
             }
 
+            // Determine which optional columns to include
+            bool hasAnyErrors = results.Any(r => !string.IsNullOrWhiteSpace(r.BulkUploadErrorMessage));
+            bool hadLegacyIdColumn = results.Any(r => r.OriginalCsvData != null &&
+                r.OriginalCsvData.Keys.Any(k => k.Split('|')[0].Equals("bulkUploadLegacyId", StringComparison.OrdinalIgnoreCase)));
+
             var csv = new StringBuilder();
 
             // Build header: BulkUpload columns + original columns
+            // Only include optional columns if they have data or existed in original CSV
             var headerParts = new List<string>
             {
                 "bulkUploadFileName",
                 "bulkUploadSuccess",
                 "bulkUploadMediaGuid",
-                "bulkUploadMediaUdi",
-                "bulkUploadErrorMessage",
-                "bulkUploadLegacyId"
+                "bulkUploadMediaUdi"
             };
+
+            if (hasAnyErrors)
+            {
+                headerParts.Add("bulkUploadErrorMessage");
+            }
+
+            if (hadLegacyIdColumn)
+            {
+                headerParts.Add("bulkUploadLegacyId");
+            }
+
+            headerParts.Add("bulkUploadShouldUpdate");
+
             headerParts.AddRange(originalColumns);
             csv.AppendLine(string.Join(",", headerParts));
 
@@ -427,13 +483,28 @@ public class MediaImportController : UmbracoAuthorizedApiController
             {
                 var rowParts = new List<string>();
 
-                // BulkUpload columns
+                // BulkUpload columns (always included)
                 rowParts.Add($"\"{result.BulkUploadFileName}\"");
                 rowParts.Add(result.BulkUploadSuccess.ToString());
                 rowParts.Add($"\"{result.BulkUploadMediaGuid}\"");
                 rowParts.Add($"\"{result.BulkUploadMediaUdi}\"");
-                rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
-                rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
+
+                // Optional BulkUpload columns (only if needed)
+                if (hasAnyErrors)
+                {
+                    rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
+                }
+
+                if (hadLegacyIdColumn)
+                {
+                    rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
+                }
+
+                // If column existed in original upload, use the value; otherwise use false
+                var shouldUpdateValue = result.BulkUploadShouldUpdateColumnExisted
+                    ? result.BulkUploadShouldUpdate.ToString()
+                    : "false";
+                rowParts.Add(shouldUpdateValue);
 
                 // Original CSV columns
                 foreach (var columnName in originalColumns)
