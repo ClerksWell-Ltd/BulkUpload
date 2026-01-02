@@ -37,6 +37,21 @@ public static class ReservedColumns
     public const string BulkUploadParentGuid = "bulkUploadParentGuid";
 
     /// <summary>
+    /// Column containing the Umbraco media GUID for updating existing media.
+    /// When present with bulkUploadShouldUpdate=true, the import will update the existing media item.
+    /// </summary>
+    public const string BulkUploadMediaGuid = "bulkUploadMediaGuid";
+
+    /// <summary>
+    /// Column indicating whether to update the media item (per-row decision).
+    /// PRESENCE OF THIS COLUMN: Indicates the import file supports update mode (per-file).
+    /// VALUE ON EACH ROW: Determines if that specific row should update (true) or create (false).
+    /// When true with bulkUploadMediaGuid, updates the existing media item.
+    /// When false or missing bulkUploadMediaGuid, creates new media.
+    /// </summary>
+    public const string BulkUploadShouldUpdate = "bulkUploadShouldUpdate";
+
+    /// <summary>
     /// Gets all reserved column names that should be excluded from property mapping.
     /// </summary>
     public static readonly HashSet<string> All = new(StringComparer.OrdinalIgnoreCase)
@@ -45,7 +60,9 @@ public static class ReservedColumns
         BulkUploadLegacyParentId,
         BulkUploadShouldPublish,
         BulkUploadContentGuid,
-        BulkUploadParentGuid
+        BulkUploadParentGuid,
+        BulkUploadMediaGuid,
+        BulkUploadShouldUpdate
     };
 
     /// <summary>

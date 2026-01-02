@@ -122,13 +122,46 @@ public class MediaImportService : IMediaImportService
             }
         }
 
+        // Extract bulkUploadShouldUpdate flag
+        // PER-FILE: Check if the column exists in the CSV (indicates update mode is supported)
+        // PER-ROW: Get the value for this specific row (determines if this row should update or create)
+        bool bulkUploadShouldUpdate = false;
+        bool bulkUploadShouldUpdateColumnExisted = false;
+        var shouldUpdateKey = dynamicProperties.Keys.FirstOrDefault(k =>
+            k.Split('|')[0].Equals(ReservedColumns.BulkUploadShouldUpdate, StringComparison.OrdinalIgnoreCase));
+        if (shouldUpdateKey != null)
+        {
+            bulkUploadShouldUpdateColumnExisted = true; // Column exists in CSV (per-file indicator)
+            if (dynamicProperties.TryGetValue(shouldUpdateKey, out object? shouldUpdateValue))
+            {
+                var shouldUpdateStr = shouldUpdateValue?.ToString()?.Trim().ToLowerInvariant();
+                bulkUploadShouldUpdate = shouldUpdateStr == "true" || shouldUpdateStr == "yes" || shouldUpdateStr == "1";
+            }
+        }
+
+        // Extract bulkUploadMediaGuid for updating existing media
+        Guid? bulkUploadMediaGuid = null;
+        var mediaGuidKey = dynamicProperties.Keys.FirstOrDefault(k =>
+            k.Split('|')[0].Equals(ReservedColumns.BulkUploadMediaGuid, StringComparison.OrdinalIgnoreCase));
+        if (mediaGuidKey != null && dynamicProperties.TryGetValue(mediaGuidKey, out object? mediaGuidValue))
+        {
+            var mediaGuidStr = mediaGuidValue?.ToString();
+            if (!string.IsNullOrWhiteSpace(mediaGuidStr) && Guid.TryParse(mediaGuidStr, out var parsedMediaGuid))
+            {
+                bulkUploadMediaGuid = parsedMediaGuid;
+            }
+        }
+
         MediaImportObject importObject = new MediaImportObject()
         {
             FileName = fileName,
             Name = name,
             Parent = parent,
             MediaTypeAlias = mediaTypeAlias,
-            BulkUploadLegacyId = bulkUploadLegacyId
+            BulkUploadLegacyId = bulkUploadLegacyId,
+            BulkUploadMediaGuid = bulkUploadMediaGuid,
+            BulkUploadShouldUpdate = bulkUploadShouldUpdate,
+            BulkUploadShouldUpdateColumnExisted = bulkUploadShouldUpdateColumnExisted
         };
 
         MediaSource? externalSource = null;
@@ -192,113 +225,201 @@ public class MediaImportService : IMediaImportService
         {
             BulkUploadFileName = importObject.FileName,
             BulkUploadSuccess = false,
-            BulkUploadLegacyId = importObject.BulkUploadLegacyId
+            BulkUploadLegacyId = importObject.BulkUploadLegacyId,
+            BulkUploadShouldUpdate = importObject.BulkUploadShouldUpdate,
+            BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted
         };
 
         try
         {
             if (!importObject.CanImport)
             {
-                result.BulkUploadErrorMessage = "Invalid import object: Missing required fields (fileName or parent)";
+                result.BulkUploadErrorMessage = "Invalid import object: Missing required fields";
                 return result;
             }
-
-            // Resolve parent specification to media parent (GUID or int)
-            var parent = ResolveParent(importObject.Parent);
-            _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
-                importObject.Parent, parent.GetType().Name, parent);
-
-            // Determine media type alias if not provided
-            var mediaTypeAlias = importObject.MediaTypeAlias;
-            if (string.IsNullOrWhiteSpace(mediaTypeAlias))
-            {
-                mediaTypeAlias = DetermineMediaTypeFromExtension(importObject.FileName);
-            }
-
-            // Verify media type exists
-            var mediaType = _mediaTypeService.Get(mediaTypeAlias);
-            if (mediaType == null)
-            {
-                result.BulkUploadErrorMessage = $"Media type '{mediaTypeAlias}' not found";
-                return result;
-            }
-
-            // Check if media already exists with same name under parent
-            // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
-            int queryParentId;
-            if (parent is Guid parentGuid)
-            {
-                if (parentGuid == Guid.Empty)
-                {
-                    queryParentId = UmbracoConstants.System.Root;
-                }
-                else
-                {
-                    var parentMedia = _mediaService.GetById(parentGuid);
-                    if (parentMedia == null)
-                    {
-                        result.BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found";
-                        return result;
-                    }
-                    queryParentId = parentMedia.Id;
-                }
-            }
-            else if (parent is int parentId)
-            {
-                queryParentId = parentId;
-            }
-            else
-            {
-                result.BulkUploadErrorMessage = "Invalid parent type resolved";
-                return result;
-            }
-
-            var existingMedia = _mediaService
-                .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
-                .FirstOrDefault(x => string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
 
             IMedia mediaItem;
-            if (existingMedia != null)
+
+            // Determine operation mode based on row values
+            // If bulkUploadShouldUpdate column existed in CSV (per-file), then update mode is available
+            // The row's bulkUploadShouldUpdate value (per-row) determines if THIS row should update
+            if (importObject.BulkUploadShouldUpdate && importObject.BulkUploadMediaGuid.HasValue)
             {
-                mediaItem = existingMedia;
-                _logger.LogInformation("Updating existing media: {Name}", importObject.DisplayName);
-            }
-            else
-            {
-                // Use GUID-based or int-based Create depending on parent type
-                if (parent is Guid guid)
+                // ===== UPDATE MODE (for this row) =====
+                mediaItem = _mediaService.GetById(importObject.BulkUploadMediaGuid.Value);
+                if (mediaItem == null)
                 {
-                    mediaItem = guid == Guid.Empty
-                        ? _mediaService.CreateMedia(importObject.DisplayName, UmbracoConstants.System.Root, mediaTypeAlias)
-                        : _mediaService.CreateMedia(importObject.DisplayName, guid, mediaTypeAlias);
+                    result.BulkUploadErrorMessage = $"Media with GUID {importObject.BulkUploadMediaGuid.Value} not found";
+                    return result;
                 }
-                else if (parent is int id)
+
+                _logger.LogInformation("Updating existing media: {Name} (GUID: {Guid})",
+                    mediaItem.Name, importObject.BulkUploadMediaGuid.Value);
+
+                // Update name if provided and different
+                if (!string.IsNullOrWhiteSpace(importObject.Name) && mediaItem.Name != importObject.Name)
                 {
-                    mediaItem = _mediaService.CreateMedia(importObject.DisplayName, id, mediaTypeAlias);
+                    var oldName = mediaItem.Name;
+                    mediaItem.Name = importObject.Name;
+                    _logger.LogInformation("Updated media name from '{OldName}' to '{NewName}'",
+                        oldName, importObject.Name);
+                }
+
+                // Move to new parent if specified
+                if (!string.IsNullOrWhiteSpace(importObject.Parent))
+                {
+                    var newParent = ResolveParent(importObject.Parent);
+                    int newParentId;
+
+                    if (newParent is Guid parentGuid)
+                    {
+                        if (parentGuid == Guid.Empty)
+                        {
+                            newParentId = UmbracoConstants.System.Root;
+                        }
+                        else
+                        {
+                            var newParentMedia = _mediaService.GetById(parentGuid);
+                            if (newParentMedia == null)
+                            {
+                                result.BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found";
+                                return result;
+                            }
+                            newParentId = newParentMedia.Id;
+                        }
+                    }
+                    else if (newParent is int parentId)
+                    {
+                        newParentId = parentId;
+                    }
+                    else
+                    {
+                        result.BulkUploadErrorMessage = "Invalid parent type resolved";
+                        return result;
+                    }
+
+                    // Move media to new parent if different
+                    if (mediaItem.ParentId != newParentId)
+                    {
+                        _mediaService.Move(mediaItem, newParentId);
+                        _logger.LogInformation("Moved media '{Name}' to new parent {ParentId}",
+                            mediaItem.Name, newParentId);
+                    }
+                }
+
+                // Upload file if provided (optional for property-only updates)
+                if (fileStream != null && fileStream.Length > 0)
+                {
+                    fileStream.Position = 0;
+                    mediaItem.SetValue(_mediaFileManager, _mediaUrlGeneratorCollection, _shortStringHelper,
+                        _contentTypeBaseServiceProvider, UmbracoConstants.Conventions.Media.File,
+                        importObject.FileName, fileStream);
+                    _logger.LogDebug("Updated media file for '{Name}'", mediaItem.Name);
                 }
                 else
                 {
-                    result.BulkUploadErrorMessage = "Invalid parent type for media creation";
-                    return result;
+                    _logger.LogDebug("Skipping file upload for '{Name}' (property-only update)", mediaItem.Name);
                 }
-                _logger.LogInformation("Creating new media: {Name}", importObject.DisplayName);
-            }
-
-            // Upload the file
-            if (fileStream != null && fileStream.Length > 0)
-            {
-                fileStream.Position = 0;
-
-                // Use the proper Umbraco extension method for setting media files
-                // This handles file upload, path generation, and proper JSON structure creation
-                mediaItem.SetValue(_mediaFileManager, _mediaUrlGeneratorCollection, _shortStringHelper,
-                    _contentTypeBaseServiceProvider, UmbracoConstants.Conventions.Media.File,
-                    importObject.FileName, fileStream);
             }
             else
             {
-                result.BulkUploadErrorMessage = "File stream is null or empty";
-                return result;
+                // ===== CREATE MODE (for this row) =====
+                // Resolve parent specification to media parent (GUID or int)
+                var parent = ResolveParent(importObject.Parent);
+                _logger.LogDebug("Resolved parent '{Parent}' to {ParentType} {ParentValue}",
+                    importObject.Parent, parent.GetType().Name, parent);
+
+                // Determine media type alias if not provided
+                var mediaTypeAlias = importObject.MediaTypeAlias;
+                if (string.IsNullOrWhiteSpace(mediaTypeAlias))
+                {
+                    mediaTypeAlias = DetermineMediaTypeFromExtension(importObject.FileName);
+                }
+
+                // Verify media type exists
+                var mediaType = _mediaTypeService.Get(mediaTypeAlias);
+                if (mediaType == null)
+                {
+                    result.BulkUploadErrorMessage = $"Media type '{mediaTypeAlias}' not found";
+                    return result;
+                }
+
+                // Check if media already exists with same name under parent
+                // For querying, we need to use integer ID (GetPagedChildren doesn't support GUID in all versions)
+                int queryParentId;
+                if (parent is Guid parentGuid)
+                {
+                    if (parentGuid == Guid.Empty)
+                    {
+                        queryParentId = UmbracoConstants.System.Root;
+                    }
+                    else
+                    {
+                        var parentMedia = _mediaService.GetById(parentGuid);
+                        if (parentMedia == null)
+                        {
+                            result.BulkUploadErrorMessage = $"Parent with GUID {parentGuid} not found";
+                            return result;
+                        }
+                        queryParentId = parentMedia.Id;
+                    }
+                }
+                else if (parent is int parentId)
+                {
+                    queryParentId = parentId;
+                }
+                else
+                {
+                    result.BulkUploadErrorMessage = "Invalid parent type resolved";
+                    return result;
+                }
+
+                var existingMedia = _mediaService
+                    .GetPagedChildren(queryParentId, 0, int.MaxValue, out _)
+                    .FirstOrDefault(x => string.Equals(x.Name, importObject.DisplayName, StringComparison.InvariantCultureIgnoreCase));
+
+                if (existingMedia != null)
+                {
+                    mediaItem = existingMedia;
+                    _logger.LogInformation("Updating existing media: {Name}", importObject.DisplayName);
+                }
+                else
+                {
+                    // Use GUID-based or int-based Create depending on parent type
+                    if (parent is Guid guid)
+                    {
+                        mediaItem = guid == Guid.Empty
+                            ? _mediaService.CreateMedia(importObject.DisplayName, UmbracoConstants.System.Root, mediaTypeAlias)
+                            : _mediaService.CreateMedia(importObject.DisplayName, guid, mediaTypeAlias);
+                    }
+                    else if (parent is int id)
+                    {
+                        mediaItem = _mediaService.CreateMedia(importObject.DisplayName, id, mediaTypeAlias);
+                    }
+                    else
+                    {
+                        result.BulkUploadErrorMessage = "Invalid parent type for media creation";
+                        return result;
+                    }
+                    _logger.LogInformation("Creating new media: {Name}", importObject.DisplayName);
+                }
+
+                // Upload the file (required for create mode)
+                if (fileStream != null && fileStream.Length > 0)
+                {
+                    fileStream.Position = 0;
+
+                    // Use the proper Umbraco extension method for setting media files
+                    // This handles file upload, path generation, and proper JSON structure creation
+                    mediaItem.SetValue(_mediaFileManager, _mediaUrlGeneratorCollection, _shortStringHelper,
+                        _contentTypeBaseServiceProvider, UmbracoConstants.Conventions.Media.File,
+                        importObject.FileName, fileStream);
+                }
+                else
+                {
+                    result.BulkUploadErrorMessage = "File stream is null or empty (required for new media)";
+                    return result;
+                }
             }
 
             // Set additional properties
