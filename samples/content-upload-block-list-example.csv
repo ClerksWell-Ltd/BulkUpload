@@ -1,5 +1,5 @@
 name,docTypeAlias,parent,title,subtitle,mainImage|guidToMediaUdi,isIndexable|boolean,isFollowable|boolean,hideFromTopNavigation|boolean,hideFromXMLSitemap|boolean,umbracoNaviHide|boolean,metaName,metaDescription,metaKeywords,contentRows|multiBlockList
-Features,content,dcf18a51-6919-4cf8-89d1-36b94ce4d963,,in this starter kit,861ac5a3-aca5-4db8-85f2-a7ad05e0de30,0,0,0,0,0,,,,"richtext::<h2>Rich Text Row</h2>
+Full Content Page With Block List,content,dcf18a51-6919-4cf8-89d1-36b94ce4d963,,in this starter kit,861ac5a3-aca5-4db8-85f2-a7ad05e0de30,0,0,0,0,0,,,,"richtext::<h2>Rich Text Row</h2>
 <p>There is a simple rich text row for writing your usual formatted content in a WYSIWIG style with the usual settings including but not limited to: </p>
 <p><strong>Bold</strong></p>
 <p><em>Italic</em></p>
