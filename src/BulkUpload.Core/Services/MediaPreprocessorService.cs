@@ -339,10 +339,41 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     /// </summary>
     private Guid CreateMediaFromZipFile(MediaReference mediaRef, string zipExtractDirectory)
     {
-        // Search for the file in the ZIP extract directory
-        var filePaths = Directory.GetFiles(zipExtractDirectory, mediaRef.OriginalValue, SearchOption.AllDirectories);
+        string[]? filePaths = null;
 
-        if (filePaths.Length == 0)
+        // Check if fileName contains a folder path (/ or \)
+        if (mediaRef.OriginalValue.Contains('/') || mediaRef.OriginalValue.Contains('\\'))
+        {
+            // Normalize path separators to system separator
+            var normalizedFileName = mediaRef.OriginalValue.Replace('/', Path.DirectorySeparatorChar)
+                                                           .Replace('\\', Path.DirectorySeparatorChar);
+
+            // Try to find file at specific relative path first
+            var specificPath = Path.Combine(zipExtractDirectory, normalizedFileName);
+            if (System.IO.File.Exists(specificPath))
+            {
+                filePaths = new[] { specificPath };
+                _logger.LogDebug("Media Preprocessor: Found file at specific path: {Path}", specificPath);
+            }
+            else
+            {
+                // Fall back to searching by just the filename anywhere in the ZIP
+                var fileNameOnly = Path.GetFileName(normalizedFileName);
+                filePaths = Directory.GetFiles(zipExtractDirectory, fileNameOnly, SearchOption.AllDirectories);
+                if (filePaths.Length > 0)
+                {
+                    _logger.LogWarning("Media Preprocessor: File '{FileName}' not found at specified path, but found '{FileNameOnly}' elsewhere in ZIP",
+                        mediaRef.OriginalValue, fileNameOnly);
+                }
+            }
+        }
+        else
+        {
+            // No folder path specified - search anywhere in ZIP
+            filePaths = Directory.GetFiles(zipExtractDirectory, mediaRef.OriginalValue, SearchOption.AllDirectories);
+        }
+
+        if (filePaths == null || filePaths.Length == 0)
         {
             _logger.LogWarning("File not found in ZIP archive: {FileName}", mediaRef.OriginalValue);
             return Guid.Empty;

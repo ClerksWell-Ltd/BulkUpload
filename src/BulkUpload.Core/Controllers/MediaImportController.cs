@@ -285,9 +285,41 @@ public class MediaImportController : UmbracoAuthorizedApiController
 
                                 if (isZipUpload)
                                 {
-                                    var mediaFiles = Directory.GetFiles(tempDirectory!, importObject.FileName, SearchOption.AllDirectories);
+                                    string[]? mediaFiles = null;
 
-                                    if (mediaFiles.Length == 0)
+                                    // Check if fileName contains a folder path (/ or \)
+                                    if (importObject.FileName.Contains('/') || importObject.FileName.Contains('\\'))
+                                    {
+                                        // Normalize path separators to system separator
+                                        var normalizedFileName = importObject.FileName.Replace('/', Path.DirectorySeparatorChar)
+                                                                                      .Replace('\\', Path.DirectorySeparatorChar);
+
+                                        // Try to find file at specific relative path first
+                                        var specificPath = Path.Combine(tempDirectory!, normalizedFileName);
+                                        if (System.IO.File.Exists(specificPath))
+                                        {
+                                            mediaFiles = new[] { specificPath };
+                                            _logger.LogDebug("Bulk Upload Media: Found file at specific path: {Path}", specificPath);
+                                        }
+                                        else
+                                        {
+                                            // Fall back to searching by just the filename anywhere in the ZIP
+                                            var fileNameOnly = Path.GetFileName(normalizedFileName);
+                                            mediaFiles = Directory.GetFiles(tempDirectory!, fileNameOnly, SearchOption.AllDirectories);
+                                            if (mediaFiles.Length > 0)
+                                            {
+                                                _logger.LogWarning("Bulk Upload Media: File '{FileName}' not found at specified path, but found '{FileNameOnly}' elsewhere in ZIP",
+                                                    importObject.FileName, fileNameOnly);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // No folder path specified - search anywhere in ZIP
+                                        mediaFiles = Directory.GetFiles(tempDirectory!, importObject.FileName, SearchOption.AllDirectories);
+                                    }
+
+                                    if (mediaFiles == null || mediaFiles.Length == 0)
                                     {
                                         // Only error if NOT in update mode (update mode allows property-only updates)
                                         if (!importObject.BulkUploadShouldUpdate)

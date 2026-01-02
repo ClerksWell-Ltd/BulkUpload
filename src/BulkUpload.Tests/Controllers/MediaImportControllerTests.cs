@@ -480,6 +480,144 @@ public class MediaImportControllerTests
         Assert.Contains("legacy\"\"with\"\"quotes", csvContent);
     }
 
+    [Fact]
+    public async Task ImportMedia_FindsFileInSubfolder_WhenFileNameHasForwardSlash()
+    {
+        // Arrange
+        var csvContent = "fileName,parentId\nimages/test.jpg,123";
+        var zipStream = CreateZipWithCsvAndFile(csvContent, "images/test.jpg");
+        var mockFile = CreateMockFormFile("test.zip", zipStream);
+
+        var importObject = new MediaImportObject
+        {
+            FileName = "images/test.jpg",
+            Parent = "123"
+        };
+
+        var importResult = new MediaImportResult
+        {
+            BulkUploadFileName = "test.jpg",
+            BulkUploadSuccess = true,
+            BulkUploadMediaGuid = Guid.NewGuid(),
+            BulkUploadMediaUdi = "umb://media/test123"
+        };
+
+        _mockMediaImportService
+            .Setup(s => s.CreateMediaImportObject(It.IsAny<object>()))
+            .Returns(importObject);
+
+        _mockMediaImportService
+            .Setup(s => s.ImportSingleMediaItem(
+                It.IsAny<MediaImportObject>(),
+                It.IsAny<Stream>(),
+                It.IsAny<bool>()))
+            .Returns(importResult);
+
+        // Act
+        var result = await _controller.ImportMedia(mockFile.Object);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+
+        var value = okResult.Value;
+        var successCountProp = value.GetType().GetProperty("successCount");
+        var successCount = (int)successCountProp!.GetValue(value)!;
+        Assert.Equal(1, successCount);
+    }
+
+    [Fact]
+    public async Task ImportMedia_FindsFileInSubfolder_WhenFileNameHasBackslash()
+    {
+        // Arrange
+        var csvContent = "fileName,parentId\nimages\\test.jpg,123";
+        var zipStream = CreateZipWithCsvAndFile(csvContent, "images/test.jpg"); // ZIP always uses forward slash
+        var mockFile = CreateMockFormFile("test.zip", zipStream);
+
+        var importObject = new MediaImportObject
+        {
+            FileName = "images\\test.jpg",
+            Parent = "123"
+        };
+
+        var importResult = new MediaImportResult
+        {
+            BulkUploadFileName = "test.jpg",
+            BulkUploadSuccess = true,
+            BulkUploadMediaGuid = Guid.NewGuid(),
+            BulkUploadMediaUdi = "umb://media/test123"
+        };
+
+        _mockMediaImportService
+            .Setup(s => s.CreateMediaImportObject(It.IsAny<object>()))
+            .Returns(importObject);
+
+        _mockMediaImportService
+            .Setup(s => s.ImportSingleMediaItem(
+                It.IsAny<MediaImportObject>(),
+                It.IsAny<Stream>(),
+                It.IsAny<bool>()))
+            .Returns(importResult);
+
+        // Act
+        var result = await _controller.ImportMedia(mockFile.Object);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+
+        var value = okResult.Value;
+        var successCountProp = value.GetType().GetProperty("successCount");
+        var successCount = (int)successCountProp!.GetValue(value)!;
+        Assert.Equal(1, successCount);
+    }
+
+    [Fact]
+    public async Task ImportMedia_FindsFileInNestedSubfolders()
+    {
+        // Arrange
+        var csvContent = "fileName,parentId\npath/to/images/test.jpg,123";
+        var zipStream = CreateZipWithCsvAndFile(csvContent, "path/to/images/test.jpg");
+        var mockFile = CreateMockFormFile("test.zip", zipStream);
+
+        var importObject = new MediaImportObject
+        {
+            FileName = "path/to/images/test.jpg",
+            Parent = "123"
+        };
+
+        var importResult = new MediaImportResult
+        {
+            BulkUploadFileName = "test.jpg",
+            BulkUploadSuccess = true,
+            BulkUploadMediaGuid = Guid.NewGuid(),
+            BulkUploadMediaUdi = "umb://media/test123"
+        };
+
+        _mockMediaImportService
+            .Setup(s => s.CreateMediaImportObject(It.IsAny<object>()))
+            .Returns(importObject);
+
+        _mockMediaImportService
+            .Setup(s => s.ImportSingleMediaItem(
+                It.IsAny<MediaImportObject>(),
+                It.IsAny<Stream>(),
+                It.IsAny<bool>()))
+            .Returns(importResult);
+
+        // Act
+        var result = await _controller.ImportMedia(mockFile.Object);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+
+        var value = okResult.Value;
+        var successCountProp = value.GetType().GetProperty("successCount");
+        var successCount = (int)successCountProp!.GetValue(value)!;
+        Assert.Equal(1, successCount);
+    }
+
     #endregion
 
     #region Helper Methods
@@ -517,6 +655,32 @@ public class MediaImportControllerTests
             using var textStream = textEntry.Open();
             using var writer = new StreamWriter(textStream);
             writer.Write("This is a test file");
+        }
+        zipStream.Position = 0;
+        return zipStream;
+    }
+
+    private MemoryStream CreateZipWithCsvAndFile(string csvContent, string filePathInZip)
+    {
+        var zipStream = new MemoryStream();
+        using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+        {
+            // Add CSV file
+            var csvEntry = archive.CreateEntry("import.csv");
+            using (var csvStream = csvEntry.Open())
+            using (var writer = new StreamWriter(csvStream))
+            {
+                writer.Write(csvContent);
+            }
+
+            // Add media file at specified path
+            var mediaEntry = archive.CreateEntry(filePathInZip);
+            using (var mediaStream = mediaEntry.Open())
+            {
+                // Write some dummy image data
+                var dummyImageData = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }; // PNG header
+                mediaStream.Write(dummyImageData, 0, dummyImageData.Length);
+            }
         }
         zipStream.Position = 0;
         return zipStream;
