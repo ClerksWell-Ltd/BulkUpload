@@ -31,6 +31,21 @@ public class ImportObject
     public string? LegacyParentId { get; set; }
 
     /// <summary>
+    /// Optional: List of legacy IDs that this content item depends on via content picker properties.
+    /// Used to determine import order - all referenced content must be created before this item.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public List<string>? ContentPickerDependencies { get; set; }
+
+    /// <summary>
+    /// Optional: Properties that use deferred resolvers (e.g., content pickers by legacy ID).
+    /// These properties are resolved during ImportSingleItem after dependencies are satisfied.
+    /// Key: property alias, Value: tuple of (raw CSV value, resolver alias)
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public Dictionary<string, (object value, string resolverAlias)>? DeferredProperties { get; set; }
+
+    /// <summary>
     /// Optional: Umbraco content GUID for updating existing content.
     /// When present, the import will update the existing content item instead of creating new.
     /// This is NOT persisted as a content property.

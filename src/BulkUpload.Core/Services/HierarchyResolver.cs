@@ -116,6 +116,21 @@ public class HierarchyResolver : IHierarchyResolver
                 children[item.LegacyParentId!].Add(item.LegacyId!);
                 inDegree[item.LegacyId!]++;
             }
+
+            // Also add dependencies from content picker properties
+            if (item.ContentPickerDependencies != null && item.ContentPickerDependencies.Count > 0)
+            {
+                foreach (var dependencyLegacyId in item.ContentPickerDependencies)
+                {
+                    // Only add dependency if the referenced item is in this import batch
+                    if (children.ContainsKey(dependencyLegacyId))
+                    {
+                        children[dependencyLegacyId].Add(item.LegacyId!);
+                        inDegree[item.LegacyId!]++;
+                    }
+                    // If dependency is not in this batch, ignore it (may already exist in Umbraco)
+                }
+            }
         }
 
         // Find all root nodes (items with no legacy parent or parent outside this import)

@@ -1,0 +1,13 @@
+name,docTypeAlias,bulkUploadLegacyId,bulkUploadLegacyParentId,title|text,description|text,author|legacyContentPicker,categories|legacyContentPickers,bulkUploadShouldPublish
+Authors Container,authorsContainer,authors-container,,Authors,Container for all authors,,,true
+Categories Container,categoriesContainer,categories-container,,Categories,Container for all categories,,,true
+John Doe,author,author-john,,John Doe,Senior writer specializing in technology,,,true
+Jane Smith,author,author-jane,,Jane Smith,Expert in business and finance,,,true
+Technology,category,category-tech,,Technology,All things tech,,,true
+Business,category,category-business,,Business,Business news and insights,,,true
+Finance,category,category-finance,,Finance,Financial advice and analysis,,,true
+Blog,blogContainer,blog-container,,Blog,Main blog section,,,true
+Article 1,article,article-1,blog-container,Getting Started with Umbraco,Learn the basics of Umbraco CMS,author-john,category-tech,true
+Article 2,article,article-2,blog-container,Business Trends in 2025,Top business trends to watch,author-jane,"category-business,category-finance",true
+Article 3,article,article-3,blog-container,Financial Planning Tips,How to plan your finances,author-jane,category-finance,true
+Article 4,article,article-4,blog-container,Tech Innovation,Latest tech innovations,author-john,category-tech,true
