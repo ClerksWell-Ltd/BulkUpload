@@ -133,7 +133,7 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 var sourceFileName = Path.GetFileName(csvFilePath);
                 _logger.LogInformation("Bulk Upload: Reading CSV file: {CsvFile}", sourceFileName);
 
-                using (var reader = new StreamReader(csvFilePath))
+                using (var reader = new StreamReader(csvFilePath, Encoding.UTF8))
                 using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
                 {
                     HasHeaderRecord = true,
@@ -387,11 +387,14 @@ public class BulkUploadController : UmbracoAuthorizedApiController
                 rowParts.Add($"\"{(result.BulkUploadLegacyId?.Replace("\"", "\"\"") ?? "")}\"");
             }
 
-            // If column existed in original upload, use the value; otherwise use false
-            var shouldPublishValue = result.BulkUploadShouldPublishColumnExisted
-                ? result.BulkUploadShouldPublish.ToString()
-                : "false";
-            rowParts.Add(shouldPublishValue);
+            if (hadShouldPublishColumn)
+            {
+                // If column existed in original upload, use the value; otherwise use false
+                var shouldPublishValue = result.BulkUploadShouldPublishColumnExisted
+                    ? result.BulkUploadShouldPublish.ToString()
+                    : "false";
+                rowParts.Add(shouldPublishValue);
+            }
 
             // If column existed in original upload, use the value; otherwise use false
             var shouldUpdateValue = result.BulkUploadShouldUpdateColumnExisted
