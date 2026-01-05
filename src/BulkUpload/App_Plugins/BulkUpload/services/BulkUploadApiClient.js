@@ -68,9 +68,9 @@
   };
 
   /**
-   * Exports content import results to CSV
+   * Exports content import results to CSV or ZIP
    * @param {Array} results - Array of import result objects
-   * @returns {Promise<Object>} Promise resolving to CSV data
+   * @returns {Promise<Object>} Promise resolving to file data with headers
    */
   BulkUploadApiClient.prototype.exportContentResults = async function(results) {
     if (!results || !Array.isArray(results)) {
@@ -81,7 +81,7 @@
       var response = await this.http.post(
         '/Umbraco/backoffice/Api/BulkUpload/ExportResults',
         results,
-        { responseType: 'text' }
+        { responseType: 'blob' }
       );
       return response;
     } catch (error) {
@@ -92,7 +92,7 @@
   /**
    * Exports media import results to CSV
    * @param {Array} results - Array of import result objects
-   * @returns {Promise<Object>} Promise resolving to CSV data
+   * @returns {Promise<Object>} Promise resolving to file data with headers
    */
   BulkUploadApiClient.prototype.exportMediaResults = async function(results) {
     if (!results || !Array.isArray(results)) {
@@ -103,7 +103,7 @@
       var response = await this.http.post(
         '/Umbraco/backoffice/Api/MediaImport/ExportResults',
         results,
-        { responseType: 'text' }
+        { responseType: 'blob' }
       );
       return response;
     } catch (error) {

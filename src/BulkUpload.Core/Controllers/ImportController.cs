@@ -297,7 +297,9 @@ public class BulkUploadController : UmbracoAuthorizedApiController
             }
 
             memoryStream.Position = 0;
-            return File(memoryStream.ToArray(), "application/zip", "content-import-results.zip");
+            var zipBytes = memoryStream.ToArray();
+
+            return File(zipBytes, "application/zip", "content-import-results.zip");
         }
         catch (Exception ex)
         {

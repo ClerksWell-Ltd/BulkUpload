@@ -94,8 +94,8 @@ angular
         try {
           var response = await service.exportContentResults();
           if (response) {
-            var blob = window.BulkUploadUtils.createCsvBlob(response.data);
-            window.BulkUploadUtils.downloadBlob(blob, 'content-import-results.csv');
+            // Automatically detect and download ZIP or CSV based on Content-Type
+            window.BulkUploadUtils.downloadResponseFile(response, 'content-import-results.csv');
           }
         } catch (error) {
           // Error already handled by service
@@ -130,8 +130,8 @@ angular
         try {
           var response = await service.exportMediaResults();
           if (response) {
-            var blob = window.BulkUploadUtils.createCsvBlob(response.data);
-            window.BulkUploadUtils.downloadBlob(blob, 'media-import-results.csv');
+            // Automatically detect and download ZIP or CSV based on Content-Type
+            window.BulkUploadUtils.downloadResponseFile(response, 'media-import-results.csv');
           }
         } catch (error) {
           // Error already handled by service
