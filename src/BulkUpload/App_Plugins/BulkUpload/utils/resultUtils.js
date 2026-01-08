@@ -141,6 +141,40 @@
     return new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
   }
 
+  /**
+   * Downloads a file from an HTTP response, automatically detecting ZIP vs CSV
+   * @param {Object} response - HTTP response object with data (Blob) and headers
+   * @param {string} defaultFilename - Default filename if Content-Disposition not provided
+   */
+  function downloadResponseFile(response, defaultFilename) {
+    if (!response || !response.data) {
+      console.error('Invalid response for file download');
+      return;
+    }
+
+    var blob = response.data;
+    var filename = defaultFilename;
+    var contentType = response.headers ? response.headers('content-type') || response.headers('Content-Type') : null;
+
+    // Try to extract filename from Content-Disposition header
+    var contentDisposition = response.headers ? response.headers('content-disposition') || response.headers('Content-Disposition') : null;
+    if (contentDisposition) {
+      var matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, '');
+      }
+    }
+
+    // If no filename from header, determine from Content-Type
+    if (!filename || filename === defaultFilename) {
+      if (contentType && contentType.indexOf('application/zip') !== -1) {
+        filename = defaultFilename.replace(/\.csv$/, '.zip');
+      }
+    }
+
+    downloadBlob(blob, filename);
+  }
+
   // Expose functions
   window.BulkUploadUtils.getSuccessResults = getSuccessResults;
   window.BulkUploadUtils.calculateResultStats = calculateResultStats;
@@ -151,5 +185,6 @@
   window.BulkUploadUtils.getUniqueErrorMessages = getUniqueErrorMessages;
   window.BulkUploadUtils.downloadBlob = downloadBlob;
   window.BulkUploadUtils.createCsvBlob = createCsvBlob;
+  window.BulkUploadUtils.downloadResponseFile = downloadResponseFile;
 
 })(window);

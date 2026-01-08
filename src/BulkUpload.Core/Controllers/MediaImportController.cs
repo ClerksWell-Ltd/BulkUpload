@@ -111,7 +111,7 @@ public class MediaImportController : UmbracoAuthorizedApiController
             // Parse CSV and import media
             var results = new List<MediaImportResult>();
 
-            using (var reader = new StreamReader(csvFilePath))
+            using (var reader = new StreamReader(csvFilePath, Encoding.UTF8))
             using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 HasHeaderRecord = true,
