@@ -15,14 +15,29 @@ using Umbraco.Cms.Core.Scoping;
 using Umbraco.Cms.Core.Serialization;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Web;
-using Umbraco.Cms.Web.BackOffice.Controllers;
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Services;
 
+#if NET8_0
+using Umbraco.Cms.Web.BackOffice.Controllers;
+#else
+using Microsoft.AspNetCore.Authorization;
+using Asp.Versioning;
+using Umbraco.Cms.Api.Common.Attributes;
+using Umbraco.Cms.Api.Management.Controllers;
+using Umbraco.Cms.Web.Common.Authorization;
+#endif
 
 namespace BulkUpload.Core.Controllers;
 
+#if NET8_0
 public class BulkUploadController : UmbracoAuthorizedApiController
+#else
+[VersionedApiBackOfficeRoute("bulk-upload")]
+[ApiExplorerSettings(GroupName = "Bulk Upload")]
+[Authorize(Policy = AuthorizationPolicies.BackOfficeAccess)]
+public class BulkUploadController : ManagementApiControllerBase
+#endif
 {
     private readonly ILogger<BulkUploadController> _logger;
     private readonly IImportUtilityService _importUtilityService;
