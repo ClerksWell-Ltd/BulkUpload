@@ -44,6 +44,8 @@
   <!-- Umbraco 17 dependencies (net10.0) - Uses consolidated Umbraco.Cms package -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Umbraco.Cms" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.1.0" />
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
   </ItemGroup>
 
   <ItemGroup>
