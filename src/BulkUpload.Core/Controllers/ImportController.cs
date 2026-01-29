@@ -22,9 +22,8 @@ using BulkUpload.Core.Services;
 using Umbraco.Cms.Web.BackOffice.Controllers;
 #else
 using Microsoft.AspNetCore.Authorization;
-using Asp.Versioning;
-using Umbraco.Cms.Api.Common.Attributes;
 using Umbraco.Cms.Api.Management.Controllers;
+using Umbraco.Cms.Api.Management.Routing;
 using Umbraco.Cms.Web.Common.Authorization;
 #endif
 
