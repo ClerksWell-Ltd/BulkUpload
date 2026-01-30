@@ -1,4 +1,6 @@
-﻿using Umbraco.Cms.Core.Composing;
+﻿#if NET8_0
+// Umbraco 13 only - v17 uses umbraco-package.json for dashboard registration
+using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.Dashboards;
 
 namespace BulkUpload.Dashboards;
@@ -18,3 +20,4 @@ public class BulkUploadDashboard : IDashboard
     public IAccessRule[] AccessRules => Array.Empty<IAccessRule>();
 
 }
+#endif

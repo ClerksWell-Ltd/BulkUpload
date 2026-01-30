@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Multi-targeting: Supports both Umbraco 13 (net8.0) and Umbraco 17 (net10.0) -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StaticWebAssetBasePath>App_Plugins</StaticWebAssetBasePath>
@@ -8,8 +9,8 @@
     <Product>Umbraco.Community.BulkUpload</Product>
     <PackageId>Umbraco.Community.BulkUpload</PackageId>
     <Title>BulkUpload</Title>
-    <Description>BulkUpload is an Umbraco 13 package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.</Description>
-    <PackageTags>umbraco;umbraco-marketplace;umbraco13</PackageTags>
+    <Description>BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Supports Umbraco 13 and Umbraco 17. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;umbraco13;umbraco17</PackageTags>
     <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Version>2.0.0</Version>
@@ -38,11 +39,21 @@
     <ProjectReference Include="..\BulkUpload.Core\BulkUpload.Core.csproj" />
   </ItemGroup>
 
-  <!-- v13-specific dependencies -->
+  <!-- Shared dependencies (both versions) -->
   <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Umbraco 13 dependencies (net8.0) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.13.0" />
     <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.13.0" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Umbraco 17 dependencies (net10.0) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Umbraco.Cms" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.1.0" />
   </ItemGroup>
 
   <ItemGroup>

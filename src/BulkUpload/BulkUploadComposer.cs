@@ -1,12 +1,16 @@
 using BulkUpload.Core.Resolvers;
 using BulkUpload.Core.Services;
-using BulkUpload.Sections;
 
 using Microsoft.Extensions.DependencyInjection;
 
 using Umbraco.Cms.Core.Composing;
 using Umbraco.Cms.Core.DependencyInjection;
+
+#if NET8_0
+using BulkUpload.Sections;
+
 using Umbraco.Cms.Core.Sections;
+#endif
 
 namespace BulkUpload;
 
@@ -14,9 +18,12 @@ internal class BulkUploadComposer : IComposer
 {
     public void Compose(IUmbracoBuilder builder)
     {
+#if NET8_0
+        // Umbraco 13: Register sections and dashboards via C# API
         builder.ManifestFilters().Append<BulkUploadManifestFilter>();
-
         builder.Sections().InsertAfter<TranslationSection, BulkUploadSection>();
+#endif
+        // Note: Umbraco 17 uses umbraco-package.json for section/dashboard registration
 
         builder.Services.AddSingleton<IResolver, TextResolver>();
         builder.Services.AddSingleton<IResolver, BooleanResolver>();
