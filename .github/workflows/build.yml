@@ -48,21 +48,27 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore src/BulkUpload.sln --disable-parallel
 
-    # NPM commands for .NET 10+ (Umbraco 17+)
-    # Uncomment when ready to use
-    # - name: Setup Node.js
-    #   if: steps.dotnet-version.outputs.use_npm == 'true'
-    #   uses: actions/setup-node@v4
-    #   with:
-    #     node-version: '20.x'
-    #
-    # - name: Install npm dependencies
-    #   if: steps.dotnet-version.outputs.use_npm == 'true'
-    #   run: npm ci
-    #
-    # - name: Build npm package
-    #   if: steps.dotnet-version.outputs.use_npm == 'true'
-    #   run: npm run build
+    # Setup Node.js for BulkUpload.V17 frontend
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Cache npm packages
+      uses: actions/cache@v4
+      with:
+        path: src/BulkUpload.V17/Client/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('src/BulkUpload.V17/Client/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+
+    - name: Install V17 frontend dependencies
+      working-directory: src/BulkUpload.V17/Client
+      run: npm ci
+
+    - name: Build V17 frontend
+      working-directory: src/BulkUpload.V17/Client
+      run: npm run build
 
     - name: Build and test solution
       shell: bash
