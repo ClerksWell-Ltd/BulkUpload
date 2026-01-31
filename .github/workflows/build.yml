@@ -16,24 +16,37 @@ jobs:
     - name: Extract .NET version from csproj
       id: dotnet-version
       run: |
-        # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
-        DOTNET_VERSION=$(sed -n 's/.*<TargetFramework>net\([0-9]\+\).*/\1/p' src/BulkUpload/BulkUpload.csproj)
-        echo "version=$DOTNET_VERSION" >> $GITHUB_OUTPUT
-        echo "Detected .NET version: $DOTNET_VERSION"
+        # Extract TargetFramework(s) from csproj - handles both single and multi-targeting
+        # For multi-targeting: <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        # For single-targeting: <TargetFramework>net8.0</TargetFramework>
 
-        # Set flag for npm usage (>= 10 requires npm)
-        if [ "$DOTNET_VERSION" -ge 10 ]; then
-          echo "use_npm=true" >> $GITHUB_OUTPUT
-          echo "Will use npm for .NET $DOTNET_VERSION"
-        else
-          echo "use_npm=false" >> $GITHUB_OUTPUT
-          echo "Will NOT use npm for .NET $DOTNET_VERSION"
+        FRAMEWORKS=$(grep -oP '<TargetFrameworks?>net[^<]+' src/BulkUpload/BulkUpload.csproj | sed 's/.*>net//' | sed 's/<.*//')
+
+        if [ -z "$FRAMEWORKS" ]; then
+          echo "Error: Could not extract target framework(s)"
+          exit 1
         fi
 
-    - name: Setup .NET
+        # Get all unique versions (handles both net8.0 and net8.0;net10.0)
+        VERSIONS=$(echo "$FRAMEWORKS" | tr ';' '\n' | sed 's/\..*//' | sort -u | tr '\n' ' ')
+
+        # Get highest version for npm check
+        HIGHEST_VERSION=$(echo "$VERSIONS" | tr ' ' '\n' | sort -n | tail -1)
+
+        echo "Detected .NET versions: $VERSIONS"
+        echo "Highest version: $HIGHEST_VERSION"
+        echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
+        echo "highest=$HIGHEST_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ steps.dotnet-version.outputs.version }}.0.x
+        dotnet-version: 8.0.x
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
