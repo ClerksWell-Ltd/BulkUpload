@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <StaticWebAssetBasePath>/App_Plugins/BulkUpload</StaticWebAssetBasePath>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
     <PackageId>Umbraco.Community.BulkUpload.V17</PackageId>
     <Title>BulkUpload for Umbraco 17</Title>
     <Description>Bulk content and media import for Umbraco 17 using CSV files. Import hundreds or thousands of content nodes and media items from CSV files with support for resolvers, legacy content picker mapping, and multi-CSV imports.</Description>
@@ -36,6 +37,12 @@
   <ItemGroup>
     <None Include="..\..\docs\README_nuget.md" Pack="true" PackagePath="\" />
     <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
+  </ItemGroup>
+
+  <!-- Package wwwroot assets as content files for NuGet -->
+  <ItemGroup>
+    <!-- Include wwwroot files in NuGet package under App_Plugins/BulkUpload -->
+    <None Include="wwwroot\**\*" Pack="true" PackagePath="contentFiles\any\any\App_Plugins\BulkUpload\%(RecursiveDir)%(Filename)%(Extension);content\App_Plugins\BulkUpload\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Build frontend before .NET build -->
