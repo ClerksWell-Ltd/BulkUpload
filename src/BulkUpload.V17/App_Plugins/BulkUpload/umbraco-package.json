@@ -1,0 +1,13 @@
+{
+  "$schema": "../../umbraco-package-schema.json",
+  "name": "Bulk Upload",
+  "version": "2.0.0",
+  "extensions": [
+    {
+      "type": "backoffice",
+      "alias": "BulkUpload.Backoffice",
+      "name": "Bulk Upload Backoffice",
+      "js": "/App_Plugins/BulkUpload/dist/bundle.js"
+    }
+  ]
+}
