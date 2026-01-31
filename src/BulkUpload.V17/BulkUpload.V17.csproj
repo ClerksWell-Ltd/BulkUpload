@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>Umbraco.Community.BulkUpload.V17</PackageId>
+    <Title>BulkUpload for Umbraco 17</Title>
+    <Description>Bulk content and media import for Umbraco 17 using CSV files. Import hundreds or thousands of content nodes and media items from CSV files with support for resolvers, legacy content picker mapping, and multi-CSV imports.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;umbraco17;bulk;import;csv;content;media</PackageTags>
+    <Version>2.0.0</Version>
+    <Authors>ClerksWell Ltd</Authors>
+    <Company>ClerksWell Ltd</Company>
+    <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ClerksWell-Ltd/BulkUpload</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README_nuget.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <Copyright>Copyright © ClerksWell Ltd 2024-2026</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BulkUpload.Core\BulkUpload.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Umbraco 17 uses consolidated Umbraco.Cms package instead of separate Web packages -->
+    <PackageReference Include="Umbraco.Cms" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.1.0" />
+  </ItemGroup>
+
+  <!-- Include built frontend assets -->
+  <ItemGroup>
+    <Content Include="App_Plugins\BulkUpload\**\*"
+             Exclude="App_Plugins\BulkUpload\dist\.gitkeep"
+             ExcludeFromSingleFile="true"
+             CopyToPublishDirectory="Always"
+             CopyToOutputDirectory="Always">
+      <PackagePath>content\App_Plugins\BulkUpload</PackagePath>
+      <Pack>true</Pack>
+    </Content>
+  </ItemGroup>
+
+  <!-- Include README and icon -->
+  <ItemGroup>
+    <None Include="..\..\docs\README_nuget.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
+  </ItemGroup>
+
+  <!-- Build frontend before .NET build -->
+  <Target Name="BuildFrontend" BeforeTargets="BeforeBuild">
+    <Message Text="Installing frontend dependencies..." Importance="high" />
+    <Exec Command="npm install"
+          WorkingDirectory="Client"
+          Condition="!Exists('Client/node_modules')" />
+
+    <Message Text="Building frontend bundle..." Importance="high" />
+    <Exec Command="npm run build"
+          WorkingDirectory="Client" />
+  </Target>
+
+</Project>
