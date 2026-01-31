@@ -363,9 +363,3 @@ src/.idea
 /src/BulkUpload.TestSite/App_Plugins/BulkUpload
 /src/BulkUpload.TestSite/wwwroot/media
 /.claude
-
-# Node.js frontend build artifacts for BulkUpload.V17
-**/Client/node_modules/
-**/Client/dist/
-**/App_Plugins/**/dist/
-!**/App_Plugins/**/dist/.gitkeep

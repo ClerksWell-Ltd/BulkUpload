@@ -1,9 +1,8 @@
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Web;
 using Umbraco.Extensions;
-
 #if !NET8_0
-using Umbraco.Cms.Core.Services.Navigation;
+using Umbraco.Cms.Core.PublishedCache;
 #endif
 
 namespace BulkUpload.Core.Resolvers;
@@ -12,20 +11,16 @@ public class SampleCategoryNamesResolver : IResolver
 {
     private readonly IUmbracoContextFactory _contextFactory;
 #if !NET8_0
-    private readonly IDocumentNavigationQueryService _documentNavigationQueryService;
-#endif
+    private readonly IPublishedContentQuery _publishedContentQuery;
 
-#if NET8_0
-    public SampleCategoryNamesResolver(IUmbracoContextFactory contextFactory)
-        => _contextFactory = contextFactory;
-#else
-    public SampleCategoryNamesResolver(
-        IUmbracoContextFactory contextFactory,
-        IDocumentNavigationQueryService documentNavigationQueryService)
+    public SampleCategoryNamesResolver(IUmbracoContextFactory contextFactory, IPublishedContentQuery publishedContentQuery)
     {
         _contextFactory = contextFactory;
-        _documentNavigationQueryService = documentNavigationQueryService;
+        _publishedContentQuery = publishedContentQuery;
     }
+#else
+    public SampleCategoryNamesResolver(IUmbracoContextFactory contextFactory)
+        => _contextFactory = contextFactory;
 #endif
 
     public string Alias() => "sampleCategoryNames";
@@ -41,10 +36,8 @@ public class SampleCategoryNamesResolver : IResolver
 #if NET8_0
         var homePage = contextReference.UmbracoContext.Content?.GetAtRoot().FirstOrDefault();
 #else
-        // Umbraco 17: Use IDocumentNavigationQueryService to get root content
-        var homePage = _documentNavigationQueryService.TryGetRootKeys(out var rootKeys)
-            ? contextReference.UmbracoContext.Content?.GetById(rootKeys.FirstOrDefault())
-            : null;
+        // Umbraco 17: Use IPublishedContentQuery.ContentAtRoot()
+        var homePage = _publishedContentQuery.ContentAtRoot()?.FirstOrDefault();
 #endif
 
         if (homePage is null)

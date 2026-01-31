@@ -1,10 +1,35 @@
-import { LitElement as U, nothing as d, html as l, css as R } from "lit";
+import { css as U, LitElement as k, nothing as d, html as l } from "lit";
+const R = {
+  type: "section",
+  alias: "BulkUpload.Section",
+  name: "Bulk Upload",
+  meta: {
+    label: "Bulk Upload",
+    pathname: "bulk-upload"
+  }
+}, A = {
+  type: "dashboard",
+  alias: "BulkUpload.Dashboard",
+  name: "Bulk Upload Dashboard",
+  element: () => Promise.resolve().then(() => et),
+  weight: -10,
+  meta: {
+    label: "Bulk Upload",
+    pathname: "bulk-upload-dashboard"
+  },
+  conditions: [
+    {
+      alias: "Umb.Condition.SectionAlias",
+      match: "BulkUpload.Section"
+    }
+  ]
+}, T = [R, A];
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const A = (i) => (t, e) => {
+const I = (i) => (t, e) => {
   e !== void 0 ? e.addInitializer(() => {
     customElements.define(i, t);
   }) : customElements.define(i, t);
@@ -14,8 +39,8 @@ const A = (i) => (t, e) => {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const m = globalThis, $ = m.ShadowRoot && (m.ShadyCSS === void 0 || m.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, M = Symbol(), x = /* @__PURE__ */ new WeakMap();
-let T = class {
+const g = globalThis, $ = g.ShadowRoot && (g.ShadyCSS === void 0 || g.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, M = Symbol(), C = /* @__PURE__ */ new WeakMap();
+let O = class {
   constructor(t, e, s) {
     if (this._$cssResult$ = !0, s !== M) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = t, this.t = e;
@@ -25,7 +50,7 @@ let T = class {
     const e = this.t;
     if ($ && t === void 0) {
       const s = e !== void 0 && e.length === 1;
-      s && (t = x.get(e)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && x.set(e, t));
+      s && (t = C.get(e)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && C.set(e, t));
     }
     return t;
   }
@@ -33,26 +58,26 @@ let T = class {
     return this.cssText;
   }
 };
-const I = (i) => new T(typeof i == "string" ? i : i + "", void 0, M), k = (i, t) => {
+const F = (i) => new O(typeof i == "string" ? i : i + "", void 0, M), z = (i, t) => {
   if ($) i.adoptedStyleSheets = t.map((e) => e instanceof CSSStyleSheet ? e : e.styleSheet);
   else for (const e of t) {
-    const s = document.createElement("style"), o = m.litNonce;
+    const s = document.createElement("style"), o = g.litNonce;
     o !== void 0 && s.setAttribute("nonce", o), s.textContent = e.cssText, i.appendChild(s);
   }
-}, C = $ ? (i) => i : (i) => i instanceof CSSStyleSheet ? ((t) => {
+}, x = $ ? (i) => i : (i) => i instanceof CSSStyleSheet ? ((t) => {
   let e = "";
   for (const s of t.cssRules) e += s.cssText;
-  return I(e);
+  return F(e);
 })(i) : i;
 /**
  * @license
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: O, defineProperty: F, getOwnPropertyDescriptor: z, getOwnPropertyNames: B, getOwnPropertySymbols: N, getPrototypeOf: j } = Object, h = globalThis, E = h.trustedTypes, D = E ? E.emptyScript : "", v = h.reactiveElementPolyfillSupport, f = (i, t) => i, g = { toAttribute(i, t) {
+const { is: B, defineProperty: j, getOwnPropertyDescriptor: D, getOwnPropertyNames: N, getOwnPropertySymbols: q, getPrototypeOf: L } = Object, h = globalThis, S = h.trustedTypes, V = S ? S.emptyScript : "", v = h.reactiveElementPolyfillSupport, f = (i, t) => i, b = { toAttribute(i, t) {
   switch (t) {
     case Boolean:
-      i = i ? D : null;
+      i = i ? V : null;
       break;
     case Object:
     case Array:
@@ -77,7 +102,7 @@ const { is: O, defineProperty: F, getOwnPropertyDescriptor: z, getOwnPropertyNam
       }
   }
   return e;
-} }, w = (i, t) => !O(i, t), S = { attribute: !0, type: String, converter: g, reflect: !1, useDefault: !1, hasChanged: w };
+} }, w = (i, t) => !B(i, t), E = { attribute: !0, type: String, converter: b, reflect: !1, useDefault: !1, hasChanged: w };
 Symbol.metadata ?? (Symbol.metadata = Symbol("metadata")), h.litPropertyMetadata ?? (h.litPropertyMetadata = /* @__PURE__ */ new WeakMap());
 class p extends HTMLElement {
   static addInitializer(t) {
@@ -86,14 +111,14 @@ class p extends HTMLElement {
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(t, e = S) {
+  static createProperty(t, e = E) {
     if (e.state && (e.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(t) && ((e = Object.create(e)).wrapped = !0), this.elementProperties.set(t, e), !e.noAccessor) {
       const s = Symbol(), o = this.getPropertyDescriptor(t, s, e);
-      o !== void 0 && F(this.prototype, t, o);
+      o !== void 0 && j(this.prototype, t, o);
     }
   }
   static getPropertyDescriptor(t, e, s) {
-    const { get: o, set: a } = z(this.prototype, t) ?? { get() {
+    const { get: o, set: a } = D(this.prototype, t) ?? { get() {
       return this[e];
     }, set(n) {
       this[e] = n;
@@ -104,17 +129,17 @@ class p extends HTMLElement {
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(t) {
-    return this.elementProperties.get(t) ?? S;
+    return this.elementProperties.get(t) ?? E;
   }
   static _$Ei() {
     if (this.hasOwnProperty(f("elementProperties"))) return;
-    const t = j(this);
+    const t = L(this);
     t.finalize(), t.l !== void 0 && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
   }
   static finalize() {
     if (this.hasOwnProperty(f("finalized"))) return;
     if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(f("properties"))) {
-      const e = this.properties, s = [...B(e), ...N(e)];
+      const e = this.properties, s = [...N(e), ...q(e)];
       for (const o of s) this.createProperty(o, e[o]);
     }
     const t = this[Symbol.metadata];
@@ -133,8 +158,8 @@ class p extends HTMLElement {
     const e = [];
     if (Array.isArray(t)) {
       const s = new Set(t.flat(1 / 0).reverse());
-      for (const o of s) e.unshift(C(o));
-    } else t !== void 0 && e.push(C(t));
+      for (const o of s) e.unshift(x(o));
+    } else t !== void 0 && e.push(x(t));
     return e;
   }
   static _$Eu(t, e) {
@@ -163,7 +188,7 @@ class p extends HTMLElement {
   }
   createRenderRoot() {
     const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return k(t, this.constructor.elementStyles), t;
+    return z(t, this.constructor.elementStyles), t;
   }
   connectedCallback() {
     var t;
@@ -188,7 +213,7 @@ class p extends HTMLElement {
     var a;
     const s = this.constructor.elementProperties.get(t), o = this.constructor._$Eu(t, s);
     if (o !== void 0 && s.reflect === !0) {
-      const n = (((a = s.converter) == null ? void 0 : a.toAttribute) !== void 0 ? s.converter : g).toAttribute(e, s.type);
+      const n = (((a = s.converter) == null ? void 0 : a.toAttribute) !== void 0 ? s.converter : b).toAttribute(e, s.type);
       this._$Em = t, n == null ? this.removeAttribute(o) : this.setAttribute(o, n), this._$Em = null;
     }
   }
@@ -196,7 +221,7 @@ class p extends HTMLElement {
     var a, n;
     const s = this.constructor, o = s._$Eh.get(t);
     if (o !== void 0 && this._$Em !== o) {
-      const r = s.getPropertyOptions(o), c = typeof r.converter == "function" ? { fromAttribute: r.converter } : ((a = r.converter) == null ? void 0 : a.fromAttribute) !== void 0 ? r.converter : g;
+      const r = s.getPropertyOptions(o), c = typeof r.converter == "function" ? { fromAttribute: r.converter } : ((a = r.converter) == null ? void 0 : a.fromAttribute) !== void 0 ? r.converter : b;
       this._$Em = o;
       const u = c.fromAttribute(e, r.type);
       this[o] = u ?? ((n = this._$Ej) == null ? void 0 : n.get(o)) ?? u, this._$Em = null;
@@ -288,7 +313,7 @@ p.elementStyles = [], p.shadowRootOptions = { mode: "open" }, p[f("elementProper
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const q = { attribute: !0, type: String, converter: g, reflect: !1, hasChanged: w }, L = (i = q, t, e) => {
+const Z = { attribute: !0, type: String, converter: b, reflect: !1, hasChanged: w }, J = (i = Z, t, e) => {
   const { kind: s, metadata: o } = e;
   let a = globalThis.litPropertyMetadata.get(o);
   if (a === void 0 && globalThis.litPropertyMetadata.set(o, a = /* @__PURE__ */ new Map()), s === "setter" && ((i = Object.create(i)).wrapped = !0), a.set(e.name, i), s === "accessor") {
@@ -309,8 +334,8 @@ const q = { attribute: !0, type: String, converter: g, reflect: !1, hasChanged: 
   }
   throw Error("Unsupported decorator location: " + s);
 };
-function V(i) {
-  return (t, e) => typeof e == "object" ? L(i, t, e) : ((s, o, a) => {
+function K(i) {
+  return (t, e) => typeof e == "object" ? J(i, t, e) : ((s, o, a) => {
     const n = o.hasOwnProperty(a);
     return o.constructor.createProperty(a, s), n ? Object.getOwnPropertyDescriptor(o, a) : void 0;
   })(i, t, e);
@@ -320,10 +345,10 @@ function V(i) {
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-function Z(i) {
-  return V({ ...i, state: !0, attribute: !1 });
+function W(i) {
+  return K({ ...i, state: !0, attribute: !1 });
 }
-class J {
+class H {
   /**
    * Imports content from a CSV or ZIP file
    * @param file - The CSV or ZIP file to import
@@ -451,7 +476,7 @@ class J {
     return s;
   }
 }
-class K {
+class G {
   constructor(t, e, s) {
     if (!t)
       throw new Error("API client is required");
@@ -686,12 +711,12 @@ class K {
     this.state = this.createInitialState(), this.emitStateChange();
   }
 }
-function W(i) {
+function Q(i) {
   if (!i || i === 0) return "0 Bytes";
   const t = 1024, e = ["Bytes", "KB", "MB", "GB", "TB"], s = Math.floor(Math.log(i) / Math.log(t));
   return `${Math.round(i / Math.pow(t, s) * 100) / 100} ${e[s]}`;
 }
-function H(i, t) {
+function X(i, t) {
   const e = document.createElement("a");
   e.href = window.URL.createObjectURL(i), e.download = t, e.click(), setTimeout(() => {
     window.URL.revokeObjectURL(e.href);
@@ -709,18 +734,18 @@ async function _(i, t) {
     const n = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(a);
     n != null && n[1] && (s = n[1].replace(/['"]/g, ""));
   }
-  (!s || s === t) && o && o.indexOf("application/zip") !== -1 && (s = t.replace(/\.csv$/, ".zip")), H(e, s);
+  (!s || s === t) && o && o.indexOf("application/zip") !== -1 && (s = t.replace(/\.csv$/, ".zip")), X(e, s);
 }
-var G = Object.defineProperty, Q = Object.getOwnPropertyDescriptor, P = (i, t, e, s) => {
-  for (var o = s > 1 ? void 0 : s ? Q(t, e) : t, a = i.length - 1, n; a >= 0; a--)
+var Y = Object.defineProperty, tt = Object.getOwnPropertyDescriptor, P = (i, t, e, s) => {
+  for (var o = s > 1 ? void 0 : s ? tt(t, e) : t, a = i.length - 1, n; a >= 0; a--)
     (n = i[a]) && (o = (s ? n(t, e, o) : n(o)) || o);
-  return s && o && G(t, e, o), o;
+  return s && o && Y(t, e, o), o;
 };
-let b = class extends U {
+let m = class extends k {
   constructor() {
     super();
-    const i = new J();
-    this.service = new K(
+    const i = new H();
+    this.service = new G(
       i,
       this.handleNotification.bind(this),
       this.handleStateChange.bind(this)
@@ -859,7 +884,7 @@ let b = class extends U {
               <span class="file-icon">📄</span>
               <div class="file-details">
                 <strong>${t.file.name}</strong>
-                <span class="file-size">(${W(t.file.size)})</span>
+                <span class="file-size">(${Q(t.file.size)})</span>
               </div>
             </div>
           ` : d}
@@ -924,7 +949,7 @@ let b = class extends U {
             </div>
           </div>
 
-          <!-- Export Button -->
+          <!-- Action Buttons -->
           <div class="export-section">
             <uui-button
               label="Export Results"
@@ -932,6 +957,13 @@ let b = class extends U {
               color="default"
               @click=${i === "content" ? this.handleContentExport : this.handleMediaExport}>
               ⬇ Export Results
+            </uui-button>
+            <uui-button
+              label="Clear Results"
+              look="outline"
+              color="default"
+              @click=${() => i === "content" ? this.service.clearContentResults() : this.service.clearMediaResults()}>
+              Clear Results
             </uui-button>
           </div>
 
@@ -965,7 +997,7 @@ let b = class extends U {
     `;
   }
 };
-b.styles = R`
+m.styles = U`
     :host {
       display: block;
       padding: 20px;
@@ -1118,6 +1150,8 @@ b.styles = R`
     }
 
     .export-section {
+      display: flex;
+      gap: 10px;
       margin-bottom: 20px;
     }
 
@@ -1159,12 +1193,21 @@ b.styles = R`
     }
   `;
 P([
-  Z()
-], b.prototype, "dashboardState", 2);
-b = P([
-  A("bulk-upload-dashboard")
-], b);
-export {
-  b as BulkUploadDashboardElement
+  W()
+], m.prototype, "dashboardState", 2);
+m = P([
+  I("bulk-upload-dashboard")
+], m);
+const et = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
+  __proto__: null,
+  get BulkUploadDashboardElement() {
+    return m;
+  }
+}, Symbol.toStringTag, { value: "Module" })), at = (i, t) => {
+  t.registerMany(T);
 };
-//# sourceMappingURL=bulk-upload-dashboard.element-BBaLn02L.js.map
+export {
+  m as BulkUploadDashboardElement,
+  at as onInit
+};
+//# sourceMappingURL=bundle.js.map

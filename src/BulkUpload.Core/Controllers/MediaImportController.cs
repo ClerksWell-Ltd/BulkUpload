@@ -9,27 +9,22 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-using BulkUpload.Core.Models;
-using BulkUpload.Core.Services;
-
 #if NET8_0
 using Umbraco.Cms.Web.BackOffice.Controllers;
 #else
-using Microsoft.AspNetCore.Authorization;
-using Umbraco.Cms.Api.Management.Controllers;
-using Umbraco.Cms.Api.Management.Routing;
-using Umbraco.Cms.Web.Common.Authorization;
+using Umbraco.Cms.Api.Common.Attributes;
 #endif
+using BulkUpload.Core.Models;
+using BulkUpload.Core.Services;
 
 namespace BulkUpload.Core.Controllers;
 
 #if NET8_0
 public class MediaImportController : UmbracoAuthorizedApiController
 #else
-[VersionedApiBackOfficeRoute("media-import")]
-[ApiExplorerSettings(GroupName = "Bulk Upload")]
-[Authorize(Policy = AuthorizationPolicies.BackOfficeAccess)]
-public class MediaImportController : ManagementApiControllerBase
+[ApiController]
+[MapToApi("management")]
+public class MediaImportController : ControllerBase
 #endif
 {
     private readonly ILogger<MediaImportController> _logger;

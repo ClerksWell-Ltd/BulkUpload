@@ -257,7 +257,7 @@ export class BulkUploadDashboardElement extends LitElement {
             </div>
           </div>
 
-          <!-- Export Button -->
+          <!-- Action Buttons -->
           <div class="export-section">
             <uui-button
               label="Export Results"
@@ -265,6 +265,13 @@ export class BulkUploadDashboardElement extends LitElement {
               color="default"
               @click=${type === 'content' ? this.handleContentExport : this.handleMediaExport}>
               ⬇ Export Results
+            </uui-button>
+            <uui-button
+              label="Clear Results"
+              look="outline"
+              color="default"
+              @click=${() => type === 'content' ? this.service.clearContentResults() : this.service.clearMediaResults()}>
+              Clear Results
             </uui-button>
           </div>
 
@@ -451,6 +458,8 @@ export class BulkUploadDashboardElement extends LitElement {
     }
 
     .export-section {
+      display: flex;
+      gap: 10px;
       margin-bottom: 20px;
     }
 
