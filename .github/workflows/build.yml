@@ -236,38 +236,53 @@ jobs:
             echo "🔍 **Verifying v17 RCL assets...**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
 
-            # Check for App_Plugins/BulkUpload/dist directory
-            dist_found=false
-            if [ -d "$extract_dir/content/App_Plugins/BulkUpload/dist" ] || \
-               [ -d "$extract_dir/contentFiles/any/any/App_Plugins/BulkUpload/dist" ] || \
-               [ -d "$extract_dir/App_Plugins/BulkUpload/dist" ]; then
-              dist_found=true
+            # Check for App_Plugins/BulkUpload directory (assets are in base folder, not dist subfolder)
+            assets_found=false
+            assets_path=""
+
+            if [ -d "$extract_dir/content/App_Plugins/BulkUpload" ]; then
+              assets_found=true
+              assets_path="$extract_dir/content/App_Plugins/BulkUpload"
+            elif [ -d "$extract_dir/contentFiles/any/any/App_Plugins/BulkUpload" ]; then
+              assets_found=true
+              assets_path="$extract_dir/contentFiles/any/any/App_Plugins/BulkUpload"
+            elif [ -d "$extract_dir/App_Plugins/BulkUpload" ]; then
+              assets_found=true
+              assets_path="$extract_dir/App_Plugins/BulkUpload"
             fi
 
-            if [ "$dist_found" = true ]; then
-              echo "✅ v17 dist folder found" >> $GITHUB_STEP_SUMMARY
+            if [ "$assets_found" = true ]; then
+              echo "✅ v17 App_Plugins/BulkUpload folder found" >> $GITHUB_STEP_SUMMARY
+              echo "- Location: ${assets_path#$extract_dir/}" >> $GITHUB_STEP_SUMMARY
 
-              # List key files in dist
-              dist_files=$(find "$extract_dir" -path "*/App_Plugins/BulkUpload/dist/*" -type f 2>/dev/null | wc -l)
-              echo "- Found $dist_files built assets in dist folder" >> $GITHUB_STEP_SUMMARY
+              # Count files
+              total_files=$(find "$assets_path" -type f 2>/dev/null | wc -l)
+              js_files=$(find "$assets_path" -name "*.js" -not -name "*.map" -type f 2>/dev/null | wc -l)
 
-              # Check for specific expected files
-              js_files=$(find "$extract_dir" -path "*/App_Plugins/BulkUpload/dist/*.js" -type f 2>/dev/null | wc -l)
+              echo "- Total assets: $total_files files" >> $GITHUB_STEP_SUMMARY
+
               if [ "$js_files" -gt 0 ]; then
                 echo "- ✅ JavaScript bundles found ($js_files files)" >> $GITHUB_STEP_SUMMARY
               else
                 echo "- ⚠️ No JavaScript bundles found" >> $GITHUB_STEP_SUMMARY
               fi
 
-              # Check for umbraco-package.json or manifest
-              if find "$extract_dir" -name "umbraco-package.json" -o -name "manifest.json" 2>/dev/null | grep -q .; then
-                echo "- ✅ Extension manifest found" >> $GITHUB_STEP_SUMMARY
+              # Check for umbraco-package.json manifest
+              if find "$assets_path" -name "umbraco-package.json" -type f 2>/dev/null | grep -q .; then
+                echo "- ✅ Extension manifest (umbraco-package.json) found" >> $GITHUB_STEP_SUMMARY
               else
                 echo "- ⚠️ Extension manifest not found" >> $GITHUB_STEP_SUMMARY
               fi
+
+              # Check for entry point
+              if find "$assets_path" -name "bulkupload.js" -type f 2>/dev/null | grep -q .; then
+                echo "- ✅ Entry point (bulkupload.js) found" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- ⚠️ Entry point (bulkupload.js) not found" >> $GITHUB_STEP_SUMMARY
+              fi
             else
-              echo "❌ v17 dist folder NOT found" >> $GITHUB_STEP_SUMMARY
-              echo "⚠️ Expected: App_Plugins/BulkUpload/dist/" >> $GITHUB_STEP_SUMMARY
+              echo "❌ v17 App_Plugins/BulkUpload folder NOT found" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ Expected: App_Plugins/BulkUpload/ with assets" >> $GITHUB_STEP_SUMMARY
             fi
 
             # Check DLL for embedded resources (StaticWebAssets)
