@@ -1,5 +1,5 @@
 import { css as U, LitElement as k, nothing as d, html as l } from "lit";
-const A = {
+const R = {
   type: "section",
   alias: "BulkUpload.Section",
   name: "Bulk Upload",
@@ -7,7 +7,7 @@ const A = {
     label: "Bulk Upload",
     pathname: "bulk-upload"
   }
-}, R = {
+}, A = {
   type: "dashboard",
   alias: "BulkUpload.Dashboard",
   name: "Bulk Upload Dashboard",
@@ -23,7 +23,7 @@ const A = {
       match: "BulkUpload.Section"
     }
   ]
-}, T = [A, R];
+}, T = [R, A];
 /**
  * @license
  * Copyright 2017 Google LLC
@@ -39,7 +39,7 @@ const I = (i) => (t, e) => {
  * Copyright 2019 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const g = globalThis, $ = g.ShadowRoot && (g.ShadyCSS === void 0 || g.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, M = Symbol(), x = /* @__PURE__ */ new WeakMap();
+const g = globalThis, $ = g.ShadowRoot && (g.ShadyCSS === void 0 || g.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, M = Symbol(), C = /* @__PURE__ */ new WeakMap();
 let O = class {
   constructor(t, e, s) {
     if (this._$cssResult$ = !0, s !== M) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
@@ -50,7 +50,7 @@ let O = class {
     const e = this.t;
     if ($ && t === void 0) {
       const s = e !== void 0 && e.length === 1;
-      s && (t = x.get(e)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && x.set(e, t));
+      s && (t = C.get(e)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), s && C.set(e, t));
     }
     return t;
   }
@@ -64,7 +64,7 @@ const F = (i) => new O(typeof i == "string" ? i : i + "", void 0, M), z = (i, t)
     const s = document.createElement("style"), o = g.litNonce;
     o !== void 0 && s.setAttribute("nonce", o), s.textContent = e.cssText, i.appendChild(s);
   }
-}, C = $ ? (i) => i : (i) => i instanceof CSSStyleSheet ? ((t) => {
+}, x = $ ? (i) => i : (i) => i instanceof CSSStyleSheet ? ((t) => {
   let e = "";
   for (const s of t.cssRules) e += s.cssText;
   return F(e);
@@ -158,8 +158,8 @@ class p extends HTMLElement {
     const e = [];
     if (Array.isArray(t)) {
       const s = new Set(t.flat(1 / 0).reverse());
-      for (const o of s) e.unshift(C(o));
-    } else t !== void 0 && e.push(C(t));
+      for (const o of s) e.unshift(x(o));
+    } else t !== void 0 && e.push(x(t));
     return e;
   }
   static _$Eu(t, e) {
@@ -949,7 +949,7 @@ let m = class extends k {
             </div>
           </div>
 
-          <!-- Export Button -->
+          <!-- Action Buttons -->
           <div class="export-section">
             <uui-button
               label="Export Results"
@@ -957,6 +957,13 @@ let m = class extends k {
               color="default"
               @click=${i === "content" ? this.handleContentExport : this.handleMediaExport}>
               ⬇ Export Results
+            </uui-button>
+            <uui-button
+              label="Clear Results"
+              look="outline"
+              color="default"
+              @click=${() => i === "content" ? this.service.clearContentResults() : this.service.clearMediaResults()}>
+              Clear Results
             </uui-button>
           </div>
 
@@ -1143,6 +1150,8 @@ m.styles = U`
     }
 
     .export-section {
+      display: flex;
+      gap: 10px;
       margin-bottom: 20px;
     }
 
