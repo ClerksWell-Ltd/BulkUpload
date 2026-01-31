@@ -47,12 +47,6 @@
     <PackageReference Include="Umbraco.Cms.Core" Version="17.1.0" />
   </ItemGroup>
 
-  <!-- Exclude files with Umbraco 13-specific APIs from net10.0 build -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <Compile Remove="Resolvers\SampleAuthorNameResolver.cs" />
-    <Compile Remove="Resolvers\SampleCategoryNamesResolver.cs" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>

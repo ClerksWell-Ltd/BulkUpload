@@ -36,9 +36,8 @@ internal class BulkUploadComposer : IComposer
         builder.Services.AddSingleton<IResolver, SampleBlockListContentResolver>();
         builder.Services.AddSingleton<IResolver, MultiBlockListResolver>();
         builder.Services.AddSingleton<IResolver, StringArrayResolver>();
-        // Sample resolvers excluded from V17 due to API changes
-        // builder.Services.AddTransient<IResolver, SampleAuthorNameResolver>();
-        // builder.Services.AddTransient<IResolver, SampleCategoryNamesResolver>();
+        builder.Services.AddTransient<IResolver, SampleAuthorNameResolver>();
+        builder.Services.AddTransient<IResolver, SampleCategoryNamesResolver>();
         builder.Services.AddSingleton<IResolver, LegacyContentPickerResolver>();
         builder.Services.AddSingleton<IResolver, LegacyContentPickersResolver>();
 
