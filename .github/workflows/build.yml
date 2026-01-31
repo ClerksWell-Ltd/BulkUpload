@@ -116,7 +116,7 @@ jobs:
           echo "<details><summary>🔴 Build Errors</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          grep "error [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+          grep "error [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -127,7 +127,7 @@ jobs:
           echo "<details><summary>⚠️ Build Warnings</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          grep "warning [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+          grep "warning [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -171,7 +171,7 @@ jobs:
             echo "<details><summary>❌ Test Failures</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -A 5 "Failed!" test.log | head -20 >> $GITHUB_STEP_SUMMARY
+            grep -A 5 "Failed!" test.log | head -20 >> $GITHUB_STEP_SUMMARY || true
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
