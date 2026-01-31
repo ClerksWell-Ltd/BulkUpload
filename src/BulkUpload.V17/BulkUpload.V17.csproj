@@ -38,6 +38,13 @@
     <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>
 
+  <!-- Package wwwroot assets as content files for NuGet -->
+  <ItemGroup>
+    <!-- Include all wwwroot files as content in the NuGet package -->
+    <Content Include="wwwroot\**\*" Pack="true" PackagePath="contentFiles\any\any\App_Plugins\BulkUpload" />
+    <Content Include="wwwroot\**\*" Pack="true" PackagePath="content\App_Plugins\BulkUpload" />
+  </ItemGroup>
+
   <!-- Build frontend before .NET build -->
   <Target Name="BuildFrontend" BeforeTargets="BeforeBuild">
     <Message Text="Installing frontend dependencies..." Importance="high" />
