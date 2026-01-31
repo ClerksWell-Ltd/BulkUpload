@@ -40,9 +40,20 @@
 
   <!-- Package wwwroot assets as content files for NuGet -->
   <ItemGroup>
-    <!-- Include all wwwroot files as content in the NuGet package -->
-    <Content Include="wwwroot\**\*" Pack="true" PackagePath="contentFiles\any\any\App_Plugins\BulkUpload" />
-    <Content Include="wwwroot\**\*" Pack="true" PackagePath="content\App_Plugins\BulkUpload" />
+    <!-- Remove wwwroot from default Content items to avoid NETSDK1022 duplicate error -->
+    <Content Remove="wwwroot\**\*" />
+
+    <!-- Explicitly include all wwwroot files as content in the NuGet package -->
+    <Content Include="wwwroot\**\*">
+      <Pack>true</Pack>
+      <PackagePath>contentFiles\any\any\App_Plugins\BulkUpload</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+    <Content Include="wwwroot\**\*">
+      <Pack>true</Pack>
+      <PackagePath>content\App_Plugins\BulkUpload</PackagePath>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <!-- Build frontend before .NET build -->
