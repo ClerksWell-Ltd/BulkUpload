@@ -28,9 +28,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Umbraco 17 uses consolidated Umbraco.Cms package instead of separate Web packages -->
-    <PackageReference Include="Umbraco.Cms" Version="17.1.0" />
+    <!-- Reference only specific Umbraco packages needed for the package -->
+    <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
     <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
   </ItemGroup>
 
   <!-- Include README and icon -->

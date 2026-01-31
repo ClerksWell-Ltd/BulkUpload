@@ -9,13 +9,23 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+#if NET8_0
 using Umbraco.Cms.Web.BackOffice.Controllers;
+#else
+using Umbraco.Cms.Api.Common.Attributes;
+#endif
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Services;
 
 namespace BulkUpload.Core.Controllers;
 
+#if NET8_0
 public class MediaImportController : UmbracoAuthorizedApiController
+#else
+[ApiController]
+[MapToApi("management")]
+public class MediaImportController : ControllerBase
+#endif
 {
     private readonly ILogger<MediaImportController> _logger;
     private readonly IMediaImportService _mediaImportService;

@@ -15,14 +15,24 @@ using Umbraco.Cms.Core.Scoping;
 using Umbraco.Cms.Core.Serialization;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Web;
+#if NET8_0
 using Umbraco.Cms.Web.BackOffice.Controllers;
+#else
+using Umbraco.Cms.Api.Common.Attributes;
+#endif
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Services;
 
 
 namespace BulkUpload.Core.Controllers;
 
+#if NET8_0
 public class BulkUploadController : UmbracoAuthorizedApiController
+#else
+[ApiController]
+[MapToApi("management")]
+public class BulkUploadController : ControllerBase
+#endif
 {
     private readonly ILogger<BulkUploadController> _logger;
     private readonly IImportUtilityService _importUtilityService;
