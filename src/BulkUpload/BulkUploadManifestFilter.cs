@@ -1,3 +1,5 @@
+#if NET8_0
+// Umbraco 13 only - v17 uses umbraco-package.json for manifest registration
 using Umbraco.Cms.Core.Manifest;
 
 namespace BulkUpload;
@@ -34,3 +36,4 @@ internal class BulkUploadManifestFilter : IManifestFilter
         });
     }
 }
+#endif
