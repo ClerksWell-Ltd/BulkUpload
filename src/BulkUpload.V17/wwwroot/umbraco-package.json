@@ -1,0 +1,13 @@
+{
+  "$schema": "../../umbraco-package-schema.json",
+  "name": "Bulk Upload",
+  "version": "2.0.0",
+  "extensions": [
+    {
+      "type": "backofficeEntryPoint",
+      "alias": "BulkUpload.EntryPoint",
+      "name": "Bulk Upload Entry Point",
+      "js": "/App_Plugins/BulkUpload/bulkupload.js"
+    }
+  ]
+}

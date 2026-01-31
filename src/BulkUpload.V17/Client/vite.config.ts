@@ -1,13 +1,14 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  publicDir: 'public',
   build: {
     lib: {
       entry: 'src/index.ts',
       formats: ['es'],
-      fileName: () => 'bundle.js'
+      fileName: () => 'bulkupload.js'
     },
-    outDir: '../App_Plugins/BulkUpload/dist',
+    outDir: '../wwwroot',
     emptyOutDir: true,
     rollupOptions: {
       external: [/^@umbraco/, 'lit']
