@@ -6,16 +6,20 @@ namespace BulkUpload.Core.Resolvers;
 public class ResolverFactory : IResolverFactory
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly Lazy<Dictionary<string, Type>> _resolverTypes;
+    private readonly Lazy<Dictionary<string, IResolver>> _resolverCache;
 
     public ResolverFactory(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        // Lazy initialization to avoid DI validation issues with transient resolvers
-        _resolverTypes = new Lazy<Dictionary<string, Type>>(() =>
+        // Lazy initialization to build resolver cache
+        _resolverCache = new Lazy<Dictionary<string, IResolver>>(() =>
         {
-            var resolvers = serviceProvider.GetServices<IResolver>();
-            return resolvers.ToDictionary(r => r.Alias(), r => r.GetType(), StringComparer.OrdinalIgnoreCase);
+            // Create a scope to resolve resolvers that depend on scoped services
+            using var scope = serviceProvider.CreateScope();
+            var resolvers = scope.ServiceProvider.GetServices<IResolver>();
+
+            // Cache all resolver instances by alias
+            return resolvers.ToDictionary(r => r.Alias(), r => r, StringComparer.OrdinalIgnoreCase);
         });
     }
 
@@ -26,13 +30,10 @@ public class ResolverFactory : IResolverFactory
         var baseAlias = parts[0];
         var parameter = parts.Length > 1 ? parts[1] : null;
 
-        if (!_resolverTypes.Value.TryGetValue(baseAlias, out var resolverType))
+        if (!_resolverCache.Value.TryGetValue(baseAlias, out var resolver))
         {
             return null;
         }
-
-        // Resolve the resolver from the service provider (respects lifetime)
-        var resolver = (IResolver)_serviceProvider.GetRequiredService(resolverType);
 
         // If there's a parameter, wrap the resolver to inject it
         if (!string.IsNullOrEmpty(parameter))
@@ -45,8 +46,8 @@ public class ResolverFactory : IResolverFactory
 
     public IEnumerable<IResolver> GetAll()
     {
-        // Get all registered IResolver services directly from the service provider
-        return _serviceProvider.GetServices<IResolver>();
+        // Return all cached resolver instances
+        return _resolverCache.Value.Values.ToList();
     }
 
     /// <summary>
