@@ -59,7 +59,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.post<ImportResultResponse>(
-        '/umbraco/management/api/bulkupload/importall',
+        '/api/v1/content/importall',
         file
       );
       return response;
@@ -80,7 +80,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.post<ImportResultResponse>(
-        '/umbraco/management/api/mediaimport/importmedia',
+        '/api/v1/media/importmedia',
         file
       );
       return response;
@@ -101,7 +101,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.postForBlob(
-        '/umbraco/management/api/bulkupload/exportresults',
+        '/api/v1/content/exportresults',
         results
       );
       return response;
@@ -122,7 +122,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.postForBlob(
-        '/umbraco/management/api/mediaimport/exportresults',
+        '/api/v1/media/exportresults',
         results
       );
       return response;
