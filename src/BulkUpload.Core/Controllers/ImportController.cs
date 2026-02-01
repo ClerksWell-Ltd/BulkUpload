@@ -91,6 +91,7 @@ public class BulkUploadController : ControllerBase
     [HttpPost]
 #if !NET8_0
     [Route("importall")]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
 #endif
