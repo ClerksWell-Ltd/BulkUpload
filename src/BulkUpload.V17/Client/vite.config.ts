@@ -11,7 +11,7 @@ export default defineConfig({
     outDir: '../wwwroot',
     emptyOutDir: true,
     rollupOptions: {
-      external: [/^@umbraco/, 'lit']
+      external: [/^@umbraco/]
     },
     sourcemap: true
   }
