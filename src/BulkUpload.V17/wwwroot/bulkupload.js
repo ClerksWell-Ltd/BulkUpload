@@ -8,14 +8,15 @@ const R = {
     pathname: "bulk-upload"
   }
 }, A = {
-  type: "dashboard",
-  alias: "BulkUpload.Dashboard",
+  type: "sectionView",
+  alias: "BulkUpload.SectionView",
   name: "Bulk Upload Dashboard",
   element: () => Promise.resolve().then(() => et),
   weight: -10,
   meta: {
     label: "Bulk Upload",
-    pathname: "bulk-upload-dashboard"
+    pathname: "overview",
+    icon: "icon-cloud-upload"
   },
   conditions: [
     {
@@ -74,7 +75,7 @@ const F = (i) => new O(typeof i == "string" ? i : i + "", void 0, M), z = (i, t)
  * Copyright 2017 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
-const { is: B, defineProperty: j, getOwnPropertyDescriptor: D, getOwnPropertyNames: N, getOwnPropertySymbols: q, getPrototypeOf: L } = Object, h = globalThis, S = h.trustedTypes, V = S ? S.emptyScript : "", v = h.reactiveElementPolyfillSupport, f = (i, t) => i, b = { toAttribute(i, t) {
+const { is: B, defineProperty: j, getOwnPropertyDescriptor: N, getOwnPropertyNames: D, getOwnPropertySymbols: q, getPrototypeOf: L } = Object, h = globalThis, S = h.trustedTypes, V = S ? S.emptyScript : "", v = h.reactiveElementPolyfillSupport, f = (i, t) => i, b = { toAttribute(i, t) {
   switch (t) {
     case Boolean:
       i = i ? V : null;
@@ -118,7 +119,7 @@ class p extends HTMLElement {
     }
   }
   static getPropertyDescriptor(t, e, s) {
-    const { get: o, set: a } = D(this.prototype, t) ?? { get() {
+    const { get: o, set: a } = N(this.prototype, t) ?? { get() {
       return this[e];
     }, set(n) {
       this[e] = n;
@@ -139,7 +140,7 @@ class p extends HTMLElement {
   static finalize() {
     if (this.hasOwnProperty(f("finalized"))) return;
     if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(f("properties"))) {
-      const e = this.properties, s = [...N(e), ...q(e)];
+      const e = this.properties, s = [...D(e), ...q(e)];
       for (const o of s) this.createProperty(o, e[o]);
     }
     const t = this[Symbol.metadata];
