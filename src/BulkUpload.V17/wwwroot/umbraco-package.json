@@ -4,10 +4,31 @@
   "version": "2.0.0",
   "extensions": [
     {
-      "type": "backofficeEntryPoint",
-      "alias": "BulkUpload.EntryPoint",
-      "name": "Bulk Upload Entry Point",
-      "js": "/App_Plugins/BulkUpload/bulkupload.js"
+      "type": "section",
+      "alias": "BulkUpload.Section",
+      "name": "Bulk Upload",
+      "meta": {
+        "label": "Bulk Upload",
+        "pathname": "bulk-upload"
+      }
+    },
+    {
+      "type": "dashboard",
+      "alias": "BulkUpload.Dashboard",
+      "name": "Bulk Upload Dashboard",
+      "element": "/App_Plugins/BulkUpload/bulkupload.js",
+      "elementName": "bulk-upload-dashboard",
+      "weight": -10,
+      "meta": {
+        "label": "Bulk Upload",
+        "pathname": "bulk-upload-dashboard"
+      },
+      "conditions": [
+        {
+          "alias": "Umb.Condition.SectionAlias",
+          "match": "BulkUpload.Section"
+        }
+      ]
     }
   ]
 }
