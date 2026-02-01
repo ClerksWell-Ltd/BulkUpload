@@ -30,7 +30,6 @@
   <ItemGroup>
     <!-- Reference only specific Umbraco packages needed for the package -->
     <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
-    <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.1.0" />
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
   </ItemGroup>
 
@@ -45,17 +44,25 @@
     <!-- Include wwwroot files in NuGet package under App_Plugins/BulkUpload -->
     <None Include="wwwroot\**\*" Pack="true" PackagePath="contentFiles\any\any\App_Plugins\BulkUpload\%(RecursiveDir)%(Filename)%(Extension);content\App_Plugins\BulkUpload\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="BulkUploadMvcConfigureOptions.cs" />
+  </ItemGroup>
+
+  <!-- Copy XML documentation from BulkUpload.Core for OpenAPI/Swagger -->
+  <ItemGroup>
+    <Content Include="..\BulkUpload.Core\bin\$(Configuration)\net10.0\BulkUpload.Core.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
 
   <!-- Build frontend before .NET build -->
   <Target Name="BuildFrontend" BeforeTargets="BeforeBuild">
     <Message Text="Installing frontend dependencies..." Importance="high" />
-    <Exec Command="npm install"
-          WorkingDirectory="Client"
-          Condition="!Exists('Client/node_modules')" />
+    <Exec Command="npm install" WorkingDirectory="Client" Condition="!Exists('Client/node_modules')" />
 
     <Message Text="Building frontend bundle..." Importance="high" />
-    <Exec Command="npm run build"
-          WorkingDirectory="Client" />
+    <Exec Command="npm run build" WorkingDirectory="Client" />
   </Target>
 
 </Project>

@@ -12,6 +12,9 @@ internal class BulkUploadComposer : IComposer
 {
     public void Compose(IUmbracoBuilder builder)
     {
+        // Register controllers from BulkUpload.Core assembly
+        builder.Services.ConfigureOptions<ConfigureSwaggerGenOptions>();
+
         // NOTE: No ManifestFilter or Section registration needed for v17
         // Sections and dashboards are auto-discovered from umbraco-package.json
 

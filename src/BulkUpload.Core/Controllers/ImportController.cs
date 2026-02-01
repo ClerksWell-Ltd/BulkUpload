@@ -19,6 +19,7 @@ using Umbraco.Cms.Core.Web;
 using Umbraco.Cms.Web.BackOffice.Controllers;
 #else
 using Umbraco.Cms.Api.Common.Attributes;
+using Asp.Versioning;
 #endif
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Services;
@@ -29,8 +30,14 @@ namespace BulkUpload.Core.Controllers;
 #if NET8_0
 public class BulkUploadController : UmbracoAuthorizedApiController
 #else
+/// <summary>
+/// BulkUpload API for importing content from CSV/ZIP files
+/// </summary>
+[Route("api/v{version:apiVersion}/content")]
+[ApiVersion("1.0")]
+[ApiExplorerSettings(GroupName = "Content")]
+[MapToApi("bulk-upload")]
 [ApiController]
-[MapToApi("management")]
 public class BulkUploadController : ControllerBase
 #endif
 {
@@ -67,9 +74,25 @@ public class BulkUploadController : ControllerBase
         _legacyIdCache = legacyIdCache;
     }
 
+    /// <summary>
+    /// Imports content from a CSV file or ZIP archive containing CSV and media files
+    /// </summary>
+    /// <param name="file">CSV file or ZIP archive containing CSV files and optional media files</param>
+    /// <returns>Import results with success/failure counts and details for each imported item</returns>
+    /// <remarks>
+    /// Supports:
+    /// - Single CSV file upload (content only)
+    /// - ZIP file with CSV(s) and media files
+    /// - Multi-CSV imports with cross-file hierarchy
+    /// - Legacy content migration via bulkUploadLegacyId
+    /// - Automatic media deduplication
+    /// - Update mode via bulkUploadShouldUpdate column
+    /// </remarks>
     [HttpPost]
 #if !NET8_0
     [Route("importall")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
 #endif
     public async Task<IActionResult> ImportAll([FromForm] IFormFile file)
     {
@@ -267,9 +290,27 @@ public class BulkUploadController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Exports content import results to CSV or ZIP file
+    /// </summary>
+    /// <param name="results">Array of import result objects from a previous import operation</param>
+    /// <returns>CSV file (single source) or ZIP file (multiple sources) containing import results</returns>
+    /// <remarks>
+    /// Returns a CSV file with columns:
+    /// - bulkUploadSuccess, bulkUploadContentGuid, bulkUploadParentGuid
+    /// - bulkUploadErrorMessage (if errors occurred)
+    /// - bulkUploadLegacyId (if used in import)
+    /// - Original CSV columns preserved
+    ///
+    /// For multi-CSV imports, returns a ZIP with separate result files.
+    /// </remarks>
     [HttpPost]
 #if !NET8_0
     [Route("exportresults")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [Consumes("application/json")]
+    [Produces("text/csv", "application/zip")]
 #endif
     public IActionResult ExportResults([FromBody] List<ContentImportResult> results)
     {
@@ -437,9 +478,25 @@ public class BulkUploadController : ControllerBase
         return csv.ToString();
     }
 
+    /// <summary>
+    /// Exports media preprocessing results to CSV or ZIP file
+    /// </summary>
+    /// <param name="results">Array of media preprocessing result objects</param>
+    /// <returns>CSV file (single source) or ZIP file (multiple sources) containing media import results</returns>
+    /// <remarks>
+    /// Returns a CSV file with columns:
+    /// - bulkUploadMediaGuid: GUID of created media item
+    /// - bulkUploadFileName: Original filename
+    /// - bulkUploadStatus: Success/Failed
+    /// - bulkUploadErrorMessage: Error details if failed
+    /// </remarks>
     [HttpPost]
 #if !NET8_0
     [Route("exportmediapreprocessingresults")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [Consumes("application/json")]
+    [Produces("text/csv", "application/zip")]
 #endif
     public IActionResult ExportMediaPreprocessingResults([FromBody] List<MediaPreprocessingResult> results)
     {

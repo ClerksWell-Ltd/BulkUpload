@@ -6,6 +6,7 @@
  */
 
 import type { ImportResult } from '../utils/result.utils';
+import { apiContext } from './api-context.js';
 
 /**
  * API response wrapper
@@ -58,7 +59,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.post<ImportResultResponse>(
-        '/Umbraco/backoffice/Api/BulkUpload/ImportAll',
+        '/umbraco/management/api/bulkupload/importall',
         file
       );
       return response;
@@ -79,7 +80,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.post<ImportResultResponse>(
-        '/Umbraco/backoffice/Api/MediaImport/ImportMedia',
+        '/umbraco/management/api/mediaimport/importmedia',
         file
       );
       return response;
@@ -100,7 +101,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.postForBlob(
-        '/Umbraco/backoffice/Api/BulkUpload/ExportResults',
+        '/umbraco/management/api/bulkupload/exportresults',
         results
       );
       return response;
@@ -121,7 +122,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.postForBlob(
-        '/Umbraco/backoffice/Api/MediaImport/ExportResults',
+        '/umbraco/management/api/mediaimport/exportresults',
         results
       );
       return response;
@@ -176,6 +177,10 @@ export class BulkUploadApiClient {
     let body: FormData | string;
     const headers: Record<string, string> = {};
 
+    // Get auth headers from context
+    const authHeaders = await apiContext.getAuthHeaders();
+    Object.assign(headers, authHeaders);
+
     // Handle different data types
     if (data instanceof File) {
       // Wrap File in FormData
@@ -189,10 +194,16 @@ export class BulkUploadApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    const response = await fetch(url, {
+    // Get base URL and build full URL
+    const baseUrl = apiContext.getBaseUrl();
+    const fullUrl = baseUrl ? `${baseUrl}${url}` : url;
+    const credentials = apiContext.getCredentials();
+
+    const response = await fetch(fullUrl, {
       method: 'POST',
       body,
-      headers
+      headers,
+      credentials
     });
 
     if (!response.ok) {
@@ -213,12 +224,23 @@ export class BulkUploadApiClient {
    * Internal: POST request for blob/file downloads
    */
   private async postForBlob(url: string, data: object): Promise<Response> {
-    const response = await fetch(url, {
+    // Get auth headers from context
+    const authHeaders = await apiContext.getAuthHeaders();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...authHeaders
+    };
+
+    // Get base URL and build full URL
+    const baseUrl = apiContext.getBaseUrl();
+    const fullUrl = baseUrl ? `${baseUrl}${url}` : url;
+    const credentials = apiContext.getCredentials();
+
+    const response = await fetch(fullUrl, {
       method: 'POST',
       body: JSON.stringify(data),
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers,
+      credentials
     });
 
     if (!response.ok) {
