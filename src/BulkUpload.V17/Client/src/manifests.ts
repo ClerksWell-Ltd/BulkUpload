@@ -1,9 +1,9 @@
 /**
  * Extension manifests for Bulk Upload
- * Registers section and section view with Umbraco 17
+ * Registers section and dashboard with Umbraco 17
  */
 
-import type { ManifestSection, ManifestSectionView } from '@umbraco-cms/backoffice/extension-registry';
+import type { ManifestDashboard, ManifestSection } from '@umbraco-cms/backoffice/extension-registry';
 
 const sectionManifest: ManifestSection = {
   type: 'section',
@@ -15,16 +15,15 @@ const sectionManifest: ManifestSection = {
   }
 };
 
-const sectionViewManifest: ManifestSectionView = {
-  type: 'sectionView',
-  alias: 'BulkUpload.SectionView',
+const dashboardManifest: ManifestDashboard = {
+  type: 'dashboard',
+  alias: 'BulkUpload.Dashboard',
   name: 'Bulk Upload Dashboard',
   element: () => import('./components/bulk-upload-dashboard.element.js'),
   weight: -10,
   meta: {
     label: 'Bulk Upload',
-    pathname: 'overview',
-    icon: 'icon-cloud-upload'
+    pathname: 'bulk-upload-dashboard'
   },
   conditions: [
     {
@@ -34,4 +33,4 @@ const sectionViewManifest: ManifestSectionView = {
   ]
 };
 
-export const manifests = [sectionManifest, sectionViewManifest];
+export const manifests = [sectionManifest, dashboardManifest];
