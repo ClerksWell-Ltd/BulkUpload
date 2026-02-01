@@ -48,6 +48,9 @@ public class MediaImportController : ControllerBase
     }
 
     [HttpPost]
+#if !NET8_0
+    [Route("importmedia")]
+#endif
     public async Task<IActionResult> ImportMedia([FromForm] IFormFile file)
     {
         // Clear all caches at the start of each import to ensure fresh state
@@ -474,6 +477,9 @@ public class MediaImportController : ControllerBase
     }
 
     [HttpPost]
+#if !NET8_0
+    [Route("exportresults")]
+#endif
     public IActionResult ExportResults([FromBody] List<MediaImportResult> results)
     {
         try

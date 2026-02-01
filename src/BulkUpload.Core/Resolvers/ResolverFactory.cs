@@ -1,14 +1,22 @@
 using BulkUpload.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BulkUpload.Core.Resolvers;
 
 public class ResolverFactory : IResolverFactory
 {
-    private readonly Dictionary<string, IResolver> _resolvers;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly Lazy<Dictionary<string, Type>> _resolverTypes;
 
-    public ResolverFactory(IEnumerable<IResolver> resolvers)
+    public ResolverFactory(IServiceProvider serviceProvider)
     {
-        _resolvers = resolvers.ToDictionary(r => r.Alias(), r => r, StringComparer.OrdinalIgnoreCase);
+        _serviceProvider = serviceProvider;
+        // Lazy initialization to avoid DI validation issues with transient resolvers
+        _resolverTypes = new Lazy<Dictionary<string, Type>>(() =>
+        {
+            var resolvers = serviceProvider.GetServices<IResolver>();
+            return resolvers.ToDictionary(r => r.Alias(), r => r.GetType(), StringComparer.OrdinalIgnoreCase);
+        });
     }
 
     public IResolver? GetByAlias(string alias)
@@ -18,10 +26,13 @@ public class ResolverFactory : IResolverFactory
         var baseAlias = parts[0];
         var parameter = parts.Length > 1 ? parts[1] : null;
 
-        if (!_resolvers.TryGetValue(baseAlias, out var resolver))
+        if (!_resolverTypes.Value.TryGetValue(baseAlias, out var resolverType))
         {
             return null;
         }
+
+        // Resolve the resolver from the service provider (respects lifetime)
+        var resolver = (IResolver)_serviceProvider.GetRequiredService(resolverType);
 
         // If there's a parameter, wrap the resolver to inject it
         if (!string.IsNullOrEmpty(parameter))
@@ -32,7 +43,11 @@ public class ResolverFactory : IResolverFactory
         return resolver;
     }
 
-    public IEnumerable<IResolver> GetAll() => _resolvers.Values;
+    public IEnumerable<IResolver> GetAll()
+    {
+        // Get all registered IResolver services directly from the service provider
+        return _serviceProvider.GetServices<IResolver>();
+    }
 
     /// <summary>
     /// Wrapper that injects a parameter into the value before passing to the underlying resolver.

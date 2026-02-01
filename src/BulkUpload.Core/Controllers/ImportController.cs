@@ -68,6 +68,9 @@ public class BulkUploadController : ControllerBase
     }
 
     [HttpPost]
+#if !NET8_0
+    [Route("importall")]
+#endif
     public async Task<IActionResult> ImportAll([FromForm] IFormFile file)
     {
         // Clear all caches at the start of each import to ensure fresh state
@@ -265,6 +268,9 @@ public class BulkUploadController : ControllerBase
     }
 
     [HttpPost]
+#if !NET8_0
+    [Route("exportresults")]
+#endif
     public IActionResult ExportResults([FromBody] List<ContentImportResult> results)
     {
         try
@@ -432,6 +438,9 @@ public class BulkUploadController : ControllerBase
     }
 
     [HttpPost]
+#if !NET8_0
+    [Route("exportmediapreprocessingresults")]
+#endif
     public IActionResult ExportMediaPreprocessingResults([FromBody] List<MediaPreprocessingResult> results)
     {
         try
