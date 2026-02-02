@@ -31,6 +31,4 @@
     <RazorCompileOnPublish>false</RazorCompileOnPublish>
   </PropertyGroup>
 
-  <Import Project="..\BulkUpload\buildTransitive\Umbraco.Community.BulkUpload.targets" />
-
 </Project>

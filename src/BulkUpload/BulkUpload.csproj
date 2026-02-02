@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <!-- Target Umbraco 13 only - separate BulkUpload.V17 package for Umbraco 17 -->
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <StaticWebAssetBasePath>App_Plugins</StaticWebAssetBasePath>
     <ContentTargetFolders>.</ContentTargetFolders>
     <Product>Umbraco.Community.BulkUpload</Product>
@@ -54,10 +55,7 @@
     <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="App_Plugins\BulkUpload\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
-    <None Include="buildTransitive\**" Pack="true" PackagePath="buildTransitive" />
-  </ItemGroup>
+  <!-- RCL automatically includes wwwroot as static web assets -->
 
   <!-- Exclude node_modules and other frontend build artifacts from MSBuild processing -->
   <ItemGroup>
