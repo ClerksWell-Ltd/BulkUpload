@@ -1,20 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <!-- Target Umbraco 13 only - separate BulkUpload.V17 package for Umbraco 17 -->
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Multi-target for Umbraco 13 (net8.0) and Umbraco 17 (net10.0) -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
-    <StaticWebAssetBasePath>App_Plugins</StaticWebAssetBasePath>
     <ContentTargetFolders>.</ContentTargetFolders>
     <Product>Umbraco.Community.BulkUpload</Product>
     <PackageId>Umbraco.Community.BulkUpload</PackageId>
-    <Title>BulkUpload for Umbraco 13</Title>
-    <Description>BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco 13 using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data. For Umbraco 17, use Umbraco.Community.BulkUpload.V17 package.</Description>
-    <PackageTags>umbraco;umbraco-marketplace;umbraco13</PackageTags>
+    <Title>BulkUpload for Umbraco 13 &amp; 17</Title>
+    <Description>BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco 13 and 17 using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data. This package multi-targets net8.0 (Umbraco 13) and net10.0 (Umbraco 17).</Description>
+    <PackageTags>umbraco;umbraco-marketplace;umbraco13;umbraco17</PackageTags>
     <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
     <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
@@ -33,6 +32,18 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <EnablePackageValidation>true</EnablePackageValidation>
+    <!-- Disable API compat validation - net8.0 and net10.0 have intentionally different public APIs -->
+    <EnablePackageBaselineValidation>false</EnablePackageBaselineValidation>
+  </PropertyGroup>
+
+  <!-- Conditional StaticWebAssetBasePath per framework -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <StaticWebAssetBasePath>App_Plugins</StaticWebAssetBasePath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <StaticWebAssetBasePath>/App_Plugins/BulkUpload</StaticWebAssetBasePath>
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
   </PropertyGroup>
 
   <!-- Reference to Core package containing shared business logic -->
@@ -43,8 +54,18 @@
   <!-- Package dependencies -->
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Umbraco 13 dependencies -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.13.0" />
     <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.13.0" />
+  </ItemGroup>
+
+  <!-- Umbraco 17 dependencies -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -59,11 +80,33 @@
 
   <!-- Exclude node_modules and other frontend build artifacts from MSBuild processing -->
   <ItemGroup>
-    <Compile Remove="Client\node_modules\**" />
-    <Content Remove="Client\node_modules\**" />
-    <EmbeddedResource Remove="Client\node_modules\**" />
-    <None Remove="Client\node_modules\**" />
+    <Compile Remove="ClientV13\**" />
+    <Compile Remove="ClientV17\node_modules\**" />
+    <Content Remove="ClientV17\node_modules\**" />
+    <EmbeddedResource Remove="ClientV17\node_modules\**" />
+    <None Remove="ClientV17\node_modules\**" />
   </ItemGroup>
+
+  <!-- Copy XML documentation from BulkUpload.Core for OpenAPI/Swagger (V17 only) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Content Include="..\BulkUpload.Core\bin\$(Configuration)\net10.0\BulkUpload.Core.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+
+  <!-- Build V17 frontend only for net10.0 -->
+  <Target Name="BuildFrontendV17" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net10.0'">
+    <!-- Clean only V17 files from wwwroot, preserve V13 BulkUpload folder -->
+    <Message Text="[BulkUpload V17] Cleaning previous V17 bundle..." Importance="high" />
+    <Delete Files="wwwroot\bulkupload.js;wwwroot\bulkupload.js.map;wwwroot\umbraco-package.json" />
+
+    <Message Text="[BulkUpload V17] Installing frontend dependencies..." Importance="high" />
+    <Exec Command="npm install" WorkingDirectory="ClientV17" Condition="!Exists('ClientV17/node_modules')" />
+
+    <Message Text="[BulkUpload V17] Building frontend bundle..." Importance="high" />
+    <Exec Command="npm run build" WorkingDirectory="ClientV17" />
+  </Target>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(SkipPreBuild)' != 'true'">
     <Exec Command="dotnet format --severity warn --verbosity diagnostic" />
