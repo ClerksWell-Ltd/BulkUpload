@@ -59,6 +59,14 @@
     <None Include="buildTransitive\**" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
 
+  <!-- Exclude node_modules and other frontend build artifacts from MSBuild processing -->
+  <ItemGroup>
+    <Compile Remove="Client\node_modules\**" />
+    <Content Remove="Client\node_modules\**" />
+    <EmbeddedResource Remove="Client\node_modules\**" />
+    <None Remove="Client\node_modules\**" />
+  </ItemGroup>
+
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(SkipPreBuild)' != 'true'">
     <Exec Command="dotnet format --severity warn --verbosity diagnostic" />
   </Target>
