@@ -9,13 +9,30 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+#if NET8_0
 using Umbraco.Cms.Web.BackOffice.Controllers;
+#else
+using Umbraco.Cms.Api.Common.Attributes;
+using Asp.Versioning;
+#endif
 using BulkUpload.Core.Models;
 using BulkUpload.Core.Services;
 
 namespace BulkUpload.Core.Controllers;
 
+#if NET8_0
 public class MediaImportController : UmbracoAuthorizedApiController
+#else
+/// <summary>
+/// Media Import API for importing media files from CSV/ZIP files or URLs
+/// </summary>
+[Route("api/v{version:apiVersion}/media")]
+[ApiVersion("1.0")]
+[ApiExplorerSettings(GroupName = "Media")]
+[MapToApi("bulk-upload")]
+[ApiController]
+public class MediaImportController : ControllerBase
+#endif
 {
     private readonly ILogger<MediaImportController> _logger;
     private readonly IMediaImportService _mediaImportService;
@@ -37,7 +54,31 @@ public class MediaImportController : UmbracoAuthorizedApiController
         _legacyIdCache = legacyIdCache;
     }
 
+    /// <summary>
+    /// Imports media files from a CSV file or ZIP archive
+    /// </summary>
+    /// <param name="file">CSV file or ZIP archive containing CSV and media files</param>
+    /// <returns>Import results with success/failure counts and details for each imported media item</returns>
+    /// <remarks>
+    /// Supports multiple media sources:
+    /// - ZIP file: Media files in archive (fileName column in CSV)
+    /// - URL: Download from URL (mediaSource|urlToStream column)
+    /// - File path: Import from server file path (mediaSource|pathToStream column)
+    ///
+    /// Features:
+    /// - Auto-creates parent folders
+    /// - Media deduplication across multiple CSVs
+    /// - Auto-detects media type from file extension
+    /// - Update mode via bulkUploadShouldUpdate column
+    /// - SSRF protection for URL downloads
+    /// </remarks>
     [HttpPost]
+#if !NET8_0
+    [Route("importmedia")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+#endif
     public async Task<IActionResult> ImportMedia([FromForm] IFormFile file)
     {
         // Clear all caches at the start of each import to ensure fresh state
@@ -463,7 +504,29 @@ public class MediaImportController : UmbracoAuthorizedApiController
         }
     }
 
+    /// <summary>
+    /// Exports media import results to CSV file
+    /// </summary>
+    /// <param name="results">Array of media import result objects from a previous import operation</param>
+    /// <returns>CSV file containing media import results</returns>
+    /// <remarks>
+    /// Returns a CSV file with columns:
+    /// - bulkUploadFileName: Original filename
+    /// - bulkUploadSuccess: true/false
+    /// - bulkUploadMediaGuid: GUID of created media item
+    /// - bulkUploadMediaUdi: UDI of created media item
+    /// - bulkUploadErrorMessage: Error details if failed
+    /// - bulkUploadLegacyId: Legacy ID if used
+    /// - Original CSV columns preserved
+    /// </remarks>
     [HttpPost]
+#if !NET8_0
+    [Route("exportresults")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [Consumes("application/json")]
+    [Produces("text/csv")]
+#endif
     public IActionResult ExportResults([FromBody] List<MediaImportResult> results)
     {
         try

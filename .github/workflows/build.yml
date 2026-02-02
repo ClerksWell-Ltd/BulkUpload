@@ -1,10 +1,8 @@
 name: Build
 
 on:
+  push:
   pull_request:
-    branches:
-      - main
-      - master
   workflow_dispatch:
 
 jobs:
@@ -18,24 +16,37 @@ jobs:
     - name: Extract .NET version from csproj
       id: dotnet-version
       run: |
-        # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
-        DOTNET_VERSION=$(sed -n 's/.*<TargetFramework>net\([0-9]\+\).*/\1/p' src/BulkUpload/BulkUpload.csproj)
-        echo "version=$DOTNET_VERSION" >> $GITHUB_OUTPUT
-        echo "Detected .NET version: $DOTNET_VERSION"
+        # Extract TargetFramework(s) from csproj - handles both single and multi-targeting
+        # For multi-targeting: <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+        # For single-targeting: <TargetFramework>net8.0</TargetFramework>
 
-        # Set flag for npm usage (>= 10 requires npm)
-        if [ "$DOTNET_VERSION" -ge 10 ]; then
-          echo "use_npm=true" >> $GITHUB_OUTPUT
-          echo "Will use npm for .NET $DOTNET_VERSION"
-        else
-          echo "use_npm=false" >> $GITHUB_OUTPUT
-          echo "Will NOT use npm for .NET $DOTNET_VERSION"
+        FRAMEWORKS=$(grep -oP '<TargetFrameworks?>net[^<]+' src/BulkUpload/BulkUpload.csproj | sed 's/.*>net//' | sed 's/<.*//')
+
+        if [ -z "$FRAMEWORKS" ]; then
+          echo "Error: Could not extract target framework(s)"
+          exit 1
         fi
 
-    - name: Setup .NET
+        # Get all unique versions (handles both net8.0 and net8.0;net10.0)
+        VERSIONS=$(echo "$FRAMEWORKS" | tr ';' '\n' | sed 's/\..*//' | sort -u | tr '\n' ' ')
+
+        # Get highest version for npm check
+        HIGHEST_VERSION=$(echo "$VERSIONS" | tr ' ' '\n' | sort -n | tail -1)
+
+        echo "Detected .NET versions: $VERSIONS"
+        echo "Highest version: $HIGHEST_VERSION"
+        echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
+        echo "highest=$HIGHEST_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ steps.dotnet-version.outputs.version }}.0.x
+        dotnet-version: 8.0.x
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -99,7 +110,7 @@ jobs:
           echo "<details><summary>🔴 Build Errors</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          grep "error [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+          grep "error [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -110,7 +121,7 @@ jobs:
           echo "<details><summary>⚠️ Build Warnings</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          grep "warning [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY
+          grep "warning [A-Z]*[0-9]*:" build.log | head -10 >> $GITHUB_STEP_SUMMARY || true
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "</details>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -154,7 +165,7 @@ jobs:
             echo "<details><summary>❌ Test Failures</summary>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            grep -A 5 "Failed!" test.log | head -20 >> $GITHUB_STEP_SUMMARY
+            grep -A 5 "Failed!" test.log | head -20 >> $GITHUB_STEP_SUMMARY || true
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
@@ -176,4 +187,150 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "- **Total Errors:** $errors" >> $GITHUB_STEP_SUMMARY
         echo "- **Total Warnings:** $warnings" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+    - name: Verify package contents and v17 RCL assets
+      if: success()
+      shell: bash
+      run: |
+        echo "## 📦 Package Verification" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        # Find all NuGet packages
+        packages=$(find . -name "*.nupkg" -not -name "*.symbols.nupkg" 2>/dev/null || true)
+
+        if [ -z "$packages" ]; then
+          echo "⚠️ No packages found to verify" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        fi
+
+        # Create temp directory for extraction
+        temp_dir=$(mktemp -d)
+
+        for pkg in $packages; do
+          pkg_name=$(basename "$pkg")
+          echo "### 📦 $pkg_name" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Extract package
+          extract_dir="$temp_dir/${pkg_name%.nupkg}"
+          mkdir -p "$extract_dir"
+          unzip -q "$pkg" -d "$extract_dir" 2>/dev/null || {
+            echo "❌ Failed to extract package" >> $GITHUB_STEP_SUMMARY
+            continue
+          }
+
+          # Check for v17 package (contains V17 in name or targets net10.0)
+          is_v17=false
+          if [[ "$pkg_name" == *"V17"* ]] || [ -d "$extract_dir/lib/net10.0" ]; then
+            is_v17=true
+          fi
+
+          if [ "$is_v17" = true ]; then
+            echo "🔍 **Verifying v17 RCL assets...**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Check for App_Plugins/BulkUpload directory (assets are in base folder, not dist subfolder)
+            assets_found=false
+            assets_path=""
+
+            if [ -d "$extract_dir/content/App_Plugins/BulkUpload" ]; then
+              assets_found=true
+              assets_path="$extract_dir/content/App_Plugins/BulkUpload"
+            elif [ -d "$extract_dir/contentFiles/any/any/App_Plugins/BulkUpload" ]; then
+              assets_found=true
+              assets_path="$extract_dir/contentFiles/any/any/App_Plugins/BulkUpload"
+            elif [ -d "$extract_dir/App_Plugins/BulkUpload" ]; then
+              assets_found=true
+              assets_path="$extract_dir/App_Plugins/BulkUpload"
+            fi
+
+            if [ "$assets_found" = true ]; then
+              echo "✅ v17 App_Plugins/BulkUpload folder found" >> $GITHUB_STEP_SUMMARY
+              echo "- Location: ${assets_path#$extract_dir/}" >> $GITHUB_STEP_SUMMARY
+
+              # Count files
+              total_files=$(find "$assets_path" -type f 2>/dev/null | wc -l)
+              js_files=$(find "$assets_path" -name "*.js" -not -name "*.map" -type f 2>/dev/null | wc -l)
+
+              echo "- Total assets: $total_files files" >> $GITHUB_STEP_SUMMARY
+
+              if [ "$js_files" -gt 0 ]; then
+                echo "- ✅ JavaScript bundles found ($js_files files)" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- ⚠️ No JavaScript bundles found" >> $GITHUB_STEP_SUMMARY
+              fi
+
+              # Check for umbraco-package.json manifest
+              if find "$assets_path" -name "umbraco-package.json" -type f 2>/dev/null | grep -q .; then
+                echo "- ✅ Extension manifest (umbraco-package.json) found" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- ⚠️ Extension manifest not found" >> $GITHUB_STEP_SUMMARY
+              fi
+
+              # Check for entry point
+              if find "$assets_path" -name "bulkupload.js" -type f 2>/dev/null | grep -q .; then
+                echo "- ✅ Entry point (bulkupload.js) found" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- ⚠️ Entry point (bulkupload.js) not found" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "❌ v17 App_Plugins/BulkUpload folder NOT found" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ Expected: App_Plugins/BulkUpload/ with assets" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Check DLL for embedded resources (StaticWebAssets)
+            dll_path=$(find "$extract_dir" -name "BulkUpload*.dll" -not -path "*/ref/*" | head -1)
+            if [ -n "$dll_path" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "🔍 **Checking DLL for embedded resources...**" >> $GITHUB_STEP_SUMMARY
+
+              # Use strings command to check for embedded resource markers
+              if strings "$dll_path" 2>/dev/null | grep -q "Microsoft.AspNetCore.StaticWebAssets"; then
+                echo "- ✅ StaticWebAssets metadata found in DLL" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- ℹ️ No StaticWebAssets metadata detected (may use content files instead)" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          else
+            # v13 package verification
+            echo "🔍 **Verifying v13 package assets...**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Check for App_Plugins directory
+            app_plugins_found=false
+            if find "$extract_dir" -type d -path "*/App_Plugins/BulkUpload" 2>/dev/null | grep -q .; then
+              app_plugins_found=true
+            fi
+
+            if [ "$app_plugins_found" = true ]; then
+              echo "✅ App_Plugins/BulkUpload folder found" >> $GITHUB_STEP_SUMMARY
+
+              # Count files
+              total_files=$(find "$extract_dir" -path "*/App_Plugins/BulkUpload/*" -type f 2>/dev/null | wc -l)
+              js_files=$(find "$extract_dir" -path "*/App_Plugins/BulkUpload/*.js" -type f 2>/dev/null | wc -l)
+              html_files=$(find "$extract_dir" -path "*/App_Plugins/BulkUpload/*.html" -type f 2>/dev/null | wc -l)
+
+              echo "- Total assets: $total_files files" >> $GITHUB_STEP_SUMMARY
+              echo "- JavaScript files: $js_files" >> $GITHUB_STEP_SUMMARY
+              echo "- HTML files: $html_files" >> $GITHUB_STEP_SUMMARY
+
+              # Check for buildTransitive targets
+              if [ -f "$extract_dir/buildTransitive/Umbraco.Community.BulkUpload.targets" ]; then
+                echo "- ✅ MSBuild targets found (buildTransitive)" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- ⚠️ MSBuild targets not found" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "❌ App_Plugins/BulkUpload folder NOT found" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+        done
+
+        # Cleanup
+        rm -rf "$temp_dir"
+
+        echo "✅ Package verification complete" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY

@@ -1,9 +1,42 @@
 using BulkUpload.Core.Resolvers;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 
 namespace Umbraco.Community.BulkUpload.Tests.Resolvers;
 
 public class ResolverFactoryTests
 {
+    private static IServiceProvider CreateServiceProvider(List<IResolver> resolvers)
+    {
+        var services = new ServiceCollection();
+
+        // Group resolvers by type to handle multiple instances of same type
+        var resolversByType = resolvers.GroupBy(r => r.GetType());
+
+        foreach (var group in resolversByType)
+        {
+            var resolverType = group.Key;
+            var instances = group.ToList();
+
+            if (instances.Count == 1)
+            {
+                // Single instance: register by concrete type and as IResolver
+                var instance = instances[0];
+                services.AddSingleton(resolverType, instance);
+                services.AddSingleton<IResolver>(sp => (IResolver)sp.GetRequiredService(resolverType));
+            }
+            else
+            {
+                // Multiple instances of same type: register each directly as IResolver
+                foreach (var instance in instances)
+                {
+                    services.AddSingleton<IResolver>(instance);
+                }
+            }
+        }
+
+        return services.BuildServiceProvider();
+    }
     [Fact]
     public void Constructor_InitializesWithResolvers()
     {
@@ -14,9 +47,10 @@ public class ResolverFactoryTests
             new TestResolver("test1"),
             new TestResolver("test2")
         };
+        var serviceProvider = CreateServiceProvider(resolvers);
 
         // Act
-        var factory = new ResolverFactory(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
         var allResolvers = factory.GetAll();
 
         // Assert
@@ -34,7 +68,8 @@ public class ResolverFactoryTests
             new TestResolver("test1"),
             new TestResolver("test2")
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act
         var resolver = factory.GetByAlias("objectToJson");
@@ -52,7 +87,8 @@ public class ResolverFactoryTests
         {
             new ObjectToJsonResolver()
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act
         var resolver = factory.GetByAlias("nonExistent");
@@ -69,7 +105,8 @@ public class ResolverFactoryTests
         {
             new ObjectToJsonResolver()
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act
         var resolver1 = factory.GetByAlias("objectToJson");
@@ -95,7 +132,8 @@ public class ResolverFactoryTests
             new TestResolver("test2"),
             new TestResolver("test3")
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act
         var allResolvers = factory.GetAll().ToList();
@@ -113,9 +151,10 @@ public class ResolverFactoryTests
     {
         // Arrange
         var resolvers = new List<IResolver>();
+        var serviceProvider = CreateServiceProvider(resolvers);
 
         // Act
-        var factory = new ResolverFactory(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
         var allResolvers = factory.GetAll();
 
         // Assert
@@ -128,7 +167,8 @@ public class ResolverFactoryTests
     {
         // Arrange
         var resolvers = new List<IResolver>();
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act
         var resolver = factory.GetByAlias("anyAlias");
@@ -147,7 +187,8 @@ public class ResolverFactoryTests
         {
             new TestResolver("test")
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act - Request with parameter
         var resolver = factory.GetByAlias("test:1234");
@@ -165,7 +206,8 @@ public class ResolverFactoryTests
         {
             new TestResolver("test")
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act - Request non-existent resolver with parameter
         var resolver = factory.GetByAlias("nonexistent:1234");
@@ -182,7 +224,8 @@ public class ResolverFactoryTests
         {
             new TestResolver("test")
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act - Parameter contains colon (like a URL or path)
         var resolver = factory.GetByAlias("test:/Blog/Images:/Subfolder/");
@@ -198,7 +241,8 @@ public class ResolverFactoryTests
         // Arrange
         var testResolver = new TestResolver("test");
         var resolvers = new List<IResolver> { testResolver };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act - No parameter
         var resolver = factory.GetByAlias("test");
@@ -216,7 +260,8 @@ public class ResolverFactoryTests
         {
             new TestResolver("test")
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act - Different cases
         var resolver1 = factory.GetByAlias("test:1234");
@@ -240,7 +285,8 @@ public class ResolverFactoryTests
         {
             new TestResolver("test")
         };
-        var factory = new ResolverFactory(resolvers);
+        var serviceProvider = CreateServiceProvider(resolvers);
+        var factory = new ResolverFactory(serviceProvider);
 
         // Act
         var resolver = factory.GetByAlias(aliasWithParam);

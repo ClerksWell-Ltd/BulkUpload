@@ -413,7 +413,13 @@ public class ImportUtilityService : IImportUtilityService
                 // Save or publish
                 if (publish)
                 {
+#if NET8_0
                     _contentService.SaveAndPublish(contentItem);
+#else
+                    // Umbraco 17: Save and Publish are separate operations
+                    _contentService.Save(contentItem);
+                    _contentService.Publish(contentItem, Array.Empty<string>());
+#endif
                 }
                 else
                 {

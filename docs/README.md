@@ -42,6 +42,22 @@ Documentation for developers contributing to BulkUpload.
 
 ### Development Workflow
 
+#### Architecture
+- **[Multi-Targeting Architecture](./MULTI_TARGETING.md)** - **Complete guide** to how multi-targeting works (v2.0.0+)
+  - Single codebase supporting Umbraco 13 & 17
+  - Multi-targeting configuration
+  - Conditional compilation
+  - RCL and static assets
+  - Frontend build process
+  - Development workflows
+  - Migration from multi-branch strategy
+
+- **[Multi-Targeting Quick Start](./MULTI_TARGETING_QUICK_START.md)** - **Quick reference** for multi-targeting
+  - Essential commands
+  - Framework-specific code patterns
+  - Common workflows
+  - Troubleshooting
+
 #### Quick References
 - **[Quick Reference](./QUICK_REFERENCE.md)** - Essential commands for development and releases
   - Feature development workflow
@@ -56,12 +72,13 @@ Documentation for developers contributing to BulkUpload.
   - Testing and troubleshooting
 
 #### Complete Guides
-- **[Branching Strategy](./BRANCHING_STRATEGY.md)** - Multi-version branching and release strategy
+- **[Branching Strategy](./BRANCHING_STRATEGY.md)** - Multi-version branching and release strategy (legacy, pre-v2.0.0)
   - Branch structure and purposes
   - Version-specific workflows
   - Cherry-picking guide
   - Code sharing strategies
   - Maintenance strategy
+  - **Note**: As of v2.0.0, BulkUpload uses multi-targeting instead of multi-branch strategy
 
 - **[Release Process](./RELEASE_PROCESS.md)** - Complete release process guide
   - Automated workflows
@@ -113,7 +130,9 @@ Internal documentation for package maintainers and planning.
 - [Main README - Media Import](../.github/README.md#media-import)
 
 ### Development & Release
-- [Branching Strategy](./BRANCHING_STRATEGY.md)
+- [Multi-Targeting Architecture](./MULTI_TARGETING.md) - **Complete guide (v2.0.0+)**
+- [Multi-Targeting Quick Start](./MULTI_TARGETING_QUICK_START.md) - **Quick reference (v2.0.0+)**
+- [Branching Strategy](./BRANCHING_STRATEGY.md) - Legacy (pre-v2.0.0)
 - [Release Process](./RELEASE_PROCESS.md)
 - [Quick Reference](./QUICK_REFERENCE.md)
 - [Quick Reference: Release](./QUICK_REFERENCE_RELEASE.md)

@@ -1,14 +1,26 @@
 using BulkUpload.Core.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BulkUpload.Core.Resolvers;
 
 public class ResolverFactory : IResolverFactory
 {
-    private readonly Dictionary<string, IResolver> _resolvers;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly Lazy<Dictionary<string, IResolver>> _resolverCache;
 
-    public ResolverFactory(IEnumerable<IResolver> resolvers)
+    public ResolverFactory(IServiceProvider serviceProvider)
     {
-        _resolvers = resolvers.ToDictionary(r => r.Alias(), r => r, StringComparer.OrdinalIgnoreCase);
+        _serviceProvider = serviceProvider;
+        // Lazy initialization to build resolver cache
+        _resolverCache = new Lazy<Dictionary<string, IResolver>>(() =>
+        {
+            // Create a scope to resolve resolvers that depend on scoped services
+            using var scope = serviceProvider.CreateScope();
+            var resolvers = scope.ServiceProvider.GetServices<IResolver>();
+
+            // Cache all resolver instances by alias
+            return resolvers.ToDictionary(r => r.Alias(), r => r, StringComparer.OrdinalIgnoreCase);
+        });
     }
 
     public IResolver? GetByAlias(string alias)
@@ -18,7 +30,7 @@ public class ResolverFactory : IResolverFactory
         var baseAlias = parts[0];
         var parameter = parts.Length > 1 ? parts[1] : null;
 
-        if (!_resolvers.TryGetValue(baseAlias, out var resolver))
+        if (!_resolverCache.Value.TryGetValue(baseAlias, out var resolver))
         {
             return null;
         }
@@ -32,7 +44,11 @@ public class ResolverFactory : IResolverFactory
         return resolver;
     }
 
-    public IEnumerable<IResolver> GetAll() => _resolvers.Values;
+    public IEnumerable<IResolver> GetAll()
+    {
+        // Return all cached resolver instances
+        return _resolverCache.Value.Values.ToList();
+    }
 
     /// <summary>
     /// Wrapper that injects a parameter into the value before passing to the underlying resolver.
