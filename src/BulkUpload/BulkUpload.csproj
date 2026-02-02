@@ -1,10 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <!-- Multi-target: Umbraco 13 (net8.0) and Umbraco 17 (net10.0) -->
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <StaticWebAssetBasePath>App_Plugins</StaticWebAssetBasePath>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <ContentTargetFolders>.</ContentTargetFolders>
     <Product>Umbraco.Community.BulkUpload</Product>
     <PackageId>Umbraco.Community.BulkUpload</PackageId>
@@ -37,16 +37,30 @@
   <!-- Framework-specific properties for Umbraco 13 (net8.0) -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <Title>BulkUpload for Umbraco 13+</Title>
+    <!-- v13 uses RCL static web assets served from /App_Plugins/BulkUpload -->
+    <StaticWebAssetBasePath>/App_Plugins/BulkUpload</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <!-- Framework-specific properties for Umbraco 17 (net10.0) -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <Title>BulkUpload for Umbraco 13-17+</Title>
+    <!-- v17 uses RCL static web assets served from /App_Plugins/BulkUpload -->
+    <StaticWebAssetBasePath>/App_Plugins/BulkUpload</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <!-- Reference to Core package containing shared business logic -->
   <ItemGroup>
     <ProjectReference Include="..\BulkUpload.Core\BulkUpload.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Exclude folders from automatic MSBuild inclusion -->
+  <ItemGroup>
+    <Compile Remove="Client\**" />
+    <EmbeddedResource Remove="Client\**" />
+    <None Remove="Client\**" />
+    <!-- Exclude App_Plugins from automatic inclusion (will be copied to wwwroot by build target) -->
+    <Content Remove="App_Plugins\**" />
+    <!-- Don't exclude wwwroot - RCL needs it for static web assets -->
   </ItemGroup>
 
   <!-- Shared package dependencies -->
@@ -80,19 +94,12 @@
     <None Include="buildTransitive\**" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
 
-  <!-- v13 AngularJS frontend (net8.0) - Build output copy -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <Content Include="App_Plugins_V13\BulkUpload\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
-  </ItemGroup>
-
-  <!-- v17 TypeScript/Lit frontend (net10.0) - Build output copy -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <Content Include="wwwroot\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
-  </ItemGroup>
+  <!-- v13 and v17 files coexist in wwwroot - each Umbraco version uses what it needs -->
+  <!-- RCL automatically includes all wwwroot files as static web assets for both frameworks -->
 
   <!-- Package content files (unconditional - both frameworks) -->
   <ItemGroup>
-    <None Include="App_Plugins_V13\BulkUpload\**\*"
+    <None Include="App_Plugins\BulkUpload\**\*"
           Pack="true"
           PackagePath="contentFiles\any\net8.0\App_Plugins\BulkUpload\%(RecursiveDir)%(Filename)%(Extension)" />
     <None Include="wwwroot\**\*"

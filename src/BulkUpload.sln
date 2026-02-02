@@ -18,8 +18,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkUpload.Tests", "BulkUpl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BulkUpload.TestSite13", "BulkUpload.TestSite13\BulkUpload.TestSite13.csproj", "{8857200C-A216-4213-8EE9-3B11607CE9EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BulkUpload.V17", "BulkUpload.V17\BulkUpload.V17.csproj", "{B7E9A2D1-4F3C-4E1D-9B2A-8C5F6D7E8A9B}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BulkUpload.TestSite17", "BulkUpload.TestSite17\BulkUpload.TestSite17.csproj", "{E441AD89-7943-4CBD-AA72-647AF44BFF8B}"
 EndProject
 Global
