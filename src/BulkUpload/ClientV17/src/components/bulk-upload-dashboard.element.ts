@@ -228,33 +228,25 @@ export class BulkUploadDashboardElement extends LitElement {
     const stats = {
       total: results.totalCount || 0,
       success: results.successCount || 0,
-      failed: results.failureCount || 0,
-      successRate: results.totalCount > 0
-        ? Math.round((results.successCount / results.totalCount) * 100)
-        : 0
+      failed: results.failureCount || 0
     };
 
     return html`
       <uui-box headline="Import Results" class="results-section">
         <div class="results-content">
-          <!-- Statistics -->
-          <div class="stats-grid">
-            <div class="stat-card stat-total">
-              <div class="stat-label">Total</div>
-              <div class="stat-value">${stats.total}</div>
+          <!-- Summary Badges -->
+          <div class="results-summary">
+            <div class="badge badge-total">
+              <strong>Total:</strong> ${stats.total}
             </div>
-            <div class="stat-card stat-success">
-              <div class="stat-label">Success</div>
-              <div class="stat-value">${stats.success}</div>
+            <div class="badge badge-success">
+              <strong>✓ Success:</strong> ${stats.success}
             </div>
-            <div class="stat-card stat-failed">
-              <div class="stat-label">Failed</div>
-              <div class="stat-value">${stats.failed}</div>
-            </div>
-            <div class="stat-card stat-rate">
-              <div class="stat-label">Success Rate</div>
-              <div class="stat-value">${stats.successRate}%</div>
-            </div>
+            ${stats.failed > 0 ? html`
+              <div class="badge badge-failed">
+                <strong>✗ Failed:</strong> ${stats.failed}
+              </div>
+            ` : nothing}
           </div>
 
           <!-- Action Buttons -->
@@ -274,32 +266,6 @@ export class BulkUploadDashboardElement extends LitElement {
               Clear Results
             </uui-button>
           </div>
-
-          <!-- Results Table -->
-          ${results.results && results.results.length > 0 ? html`
-            <div class="results-table-container">
-              <table class="results-table">
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Name</th>
-                    ${type === 'content' ? html`<th>Doc Type</th>` : html`<th>Media Type</th>`}
-                    <th>Message</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${results.results.map((result: any) => html`
-                    <tr class=${result.success ? 'success' : 'failed'}>
-                      <td>${result.success ? '✅' : '❌'}</td>
-                      <td>${result.name || '-'}</td>
-                      <td>${type === 'content' ? result.docTypeAlias : result.mediaTypeAlias || '-'}</td>
-                      <td class="message-cell">${result.errorMessage || 'Success'}</td>
-                    </tr>
-                  `)}
-                </tbody>
-              </table>
-            </div>
-          ` : nothing}
         </div>
       </uui-box>
     `;
@@ -413,91 +379,39 @@ export class BulkUploadDashboardElement extends LitElement {
       padding: 1em;
     }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 15px;
-      margin-bottom: 20px;
+    .results-summary {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 1.5em;
     }
 
-    .stat-card {
-      padding: 15px;
-      border-radius: 8px;
-      text-align: center;
+    .badge {
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid;
     }
 
-    .stat-total {
-      background-color: #e3f2fd;
-      border-left: 4px solid #1976d2;
+    .badge-total {
+      background-color: #f5f5f5;
+      border-color: #ddd;
     }
 
-    .stat-success {
-      background-color: #e8f5e9;
-      border-left: 4px solid #4caf50;
+    .badge-success {
+      background-color: #d4edda;
+      border-color: #28a745;
+      color: #155724;
     }
 
-    .stat-failed {
-      background-color: #ffebee;
-      border-left: 4px solid #f44336;
-    }
-
-    .stat-rate {
-      background-color: #f3e5f5;
-      border-left: 4px solid #9c27b0;
-    }
-
-    .stat-label {
-      font-size: 0.875rem;
-      color: #666;
-      margin-bottom: 5px;
-    }
-
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 600;
+    .badge-failed {
+      background-color: #f8d7da;
+      border-color: #dc3545;
+      color: #721c24;
     }
 
     .export-section {
       display: flex;
       gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .results-table-container {
-      overflow-x: auto;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-
-    .results-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .results-table th,
-    .results-table td {
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-
-    .results-table th {
-      background-color: #f5f5f5;
-      font-weight: 600;
-    }
-
-    .results-table tr.success {
-      background-color: #f1f8f4;
-    }
-
-    .results-table tr.failed {
-      background-color: #fef5f5;
-    }
-
-    .message-cell {
-      max-width: 300px;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
   `;
 }
