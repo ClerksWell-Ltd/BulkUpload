@@ -1,16 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <!-- Target Umbraco 13 only - separate BulkUpload.V17 package for Umbraco 17 -->
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Multi-target: Umbraco 13 (net8.0) and Umbraco 17 (net10.0) -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <StaticWebAssetBasePath>App_Plugins</StaticWebAssetBasePath>
     <ContentTargetFolders>.</ContentTargetFolders>
     <Product>Umbraco.Community.BulkUpload</Product>
     <PackageId>Umbraco.Community.BulkUpload</PackageId>
-    <Title>BulkUpload for Umbraco 13</Title>
-    <Description>BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco 13 using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data. For Umbraco 17, use Umbraco.Community.BulkUpload.V17 package.</Description>
-    <PackageTags>umbraco;umbraco-marketplace;umbraco13</PackageTags>
+    <Description>BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data. This package supports both Umbraco 13 and Umbraco 17+.</Description>
+    <PackageTags>umbraco;umbraco-marketplace;umbraco13;umbraco17;bulk;import;csv</PackageTags>
     <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Version>2.0.0</Version>
@@ -31,7 +30,18 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
-    <EnablePackageValidation>true</EnablePackageValidation>
+    <!-- Disable API compatibility validation - intentional framework-specific differences -->
+    <EnablePackageValidation>false</EnablePackageValidation>
+  </PropertyGroup>
+
+  <!-- Framework-specific properties for Umbraco 13 (net8.0) -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <Title>BulkUpload for Umbraco 13+</Title>
+  </PropertyGroup>
+
+  <!-- Framework-specific properties for Umbraco 17 (net10.0) -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Title>BulkUpload for Umbraco 13-17+</Title>
   </PropertyGroup>
 
   <!-- Reference to Core package containing shared business logic -->
@@ -39,13 +49,24 @@
     <ProjectReference Include="..\BulkUpload.Core\BulkUpload.Core.csproj" />
   </ItemGroup>
 
-  <!-- Package dependencies -->
+  <!-- Shared package dependencies -->
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- Umbraco 13 dependencies (net8.0) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.13.0" />
     <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.13.0" />
   </ItemGroup>
 
+  <!-- Umbraco 17 dependencies (net10.0) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
+  </ItemGroup>
+
+  <!-- Package metadata files -->
   <ItemGroup>
     <None Include="..\..\docs\README_nuget.md">
       <Pack>True</Pack>
@@ -54,11 +75,40 @@
     <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>
 
+  <!-- Build transitive targets for content deployment -->
   <ItemGroup>
-    <Content Include="App_Plugins\BulkUpload\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
     <None Include="buildTransitive\**" Pack="true" PackagePath="buildTransitive" />
   </ItemGroup>
 
+  <!-- v13 AngularJS frontend (net8.0) - Build output copy -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <Content Include="App_Plugins_V13\BulkUpload\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+  <!-- v17 TypeScript/Lit frontend (net10.0) - Build output copy -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Content Include="wwwroot\**\*" ExcludeFromSingleFile="true" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+  <!-- Package content files (unconditional - both frameworks) -->
+  <ItemGroup>
+    <None Include="App_Plugins_V13\BulkUpload\**\*"
+          Pack="true"
+          PackagePath="contentFiles\any\net8.0\App_Plugins\BulkUpload\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="wwwroot\**\*"
+          Pack="true"
+          PackagePath="contentFiles\any\net10.0\App_Plugins\BulkUpload\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!-- Build v17 frontend before building net10.0 target -->
+  <Target Name="BuildV17Frontend"
+          BeforeTargets="BeforeBuild"
+          Condition="'$(TargetFramework)' == 'net10.0' AND Exists('Client\package.json')">
+    <Exec Command="npm install" WorkingDirectory="Client" Condition="!Exists('Client\node_modules')" />
+    <Exec Command="npm run build" WorkingDirectory="Client" />
+  </Target>
+
+  <!-- Pre-build formatting -->
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(SkipPreBuild)' != 'true'">
     <Exec Command="dotnet format --severity warn --verbosity diagnostic" />
   </Target>

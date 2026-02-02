@@ -12,6 +12,12 @@ using BulkUpload.Sections;
 using Umbraco.Cms.Core.Sections;
 #endif
 
+#if NET10_0
+using BulkUpload.Configuration;
+
+using Microsoft.Extensions.Options;
+#endif
+
 namespace BulkUpload;
 
 internal class BulkUploadComposer : IComposer
@@ -22,6 +28,12 @@ internal class BulkUploadComposer : IComposer
         // Umbraco 13: Register sections and dashboards via C# API
         builder.ManifestFilters().Append<BulkUploadManifestFilter>();
         builder.Sections().InsertAfter<TranslationSection, BulkUploadSection>();
+#endif
+
+#if NET10_0
+        // Umbraco 17: Configure MVC for controller discovery from BulkUpload.Core
+        builder.Services.ConfigureOptions<BulkUploadMvcConfigureOptions>();
+        builder.Services.ConfigureOptions<BulkUploadApplicationPartManagerConfigureOptions>();
 #endif
         // Note: Umbraco 17 uses umbraco-package.json for section/dashboard registration
 
