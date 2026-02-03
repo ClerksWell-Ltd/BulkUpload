@@ -13,7 +13,7 @@
     <PackageTags>umbraco;umbraco-marketplace;umbraco13;umbraco17</PackageTags>
     <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>2.0.0-rc1</Version>
+    <Version>2.0.0-rc3</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
     <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
@@ -31,9 +31,11 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
-    <EnablePackageValidation>true</EnablePackageValidation>
     <!-- Disable API compat validation - net8.0 and net10.0 have intentionally different public APIs -->
+    <EnablePackageValidation>false</EnablePackageValidation>
     <EnablePackageBaselineValidation>false</EnablePackageBaselineValidation>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn><!-- Suppress missing XML comment warnings -->
   </PropertyGroup>
 
   <!-- Conditional StaticWebAssetBasePath per framework -->
@@ -46,13 +48,16 @@
     <EnableDefaultContentItems>false</EnableDefaultContentItems>
   </PropertyGroup>
 
-  <!-- Reference to Core package containing shared business logic -->
-  <ItemGroup>
-    <ProjectReference Include="..\BulkUpload.Core\BulkUpload.Core.csproj" />
+  <!-- Exclude V17 frontend files from net8.0 build -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <Content Remove="wwwroot\bulkupload.js" />
+    <Content Remove="wwwroot\bulkupload.js.map" />
+    <Content Remove="wwwroot\umbraco-package.json" />
   </ItemGroup>
 
   <!-- Package dependencies -->
   <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
@@ -87,14 +92,6 @@
     <None Remove="ClientV17\node_modules\**" />
   </ItemGroup>
 
-  <!-- Copy XML documentation from BulkUpload.Core for OpenAPI/Swagger (V17 only) -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <Content Include="..\BulkUpload.Core\bin\$(Configuration)\net10.0\BulkUpload.Core.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup>
-
   <!-- Build V17 frontend only for net10.0 -->
   <Target Name="BuildFrontendV17" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net10.0'">
     <!-- Clean only V17 files from wwwroot, preserve V13 BulkUpload folder -->
@@ -106,10 +103,6 @@
 
     <Message Text="[BulkUpload V17] Building frontend bundle..." Importance="high" />
     <Exec Command="npm run build" WorkingDirectory="ClientV17" />
-  </Target>
-
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(SkipPreBuild)' != 'true'">
-    <Exec Command="dotnet format --severity warn --verbosity diagnostic" />
   </Target>
 
 </Project>
