@@ -105,8 +105,4 @@
     <Exec Command="npm run build" WorkingDirectory="ClientV17" />
   </Target>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(SkipPreBuild)' != 'true'">
-    <Exec Command="dotnet format --severity warn --verbosity diagnostic" />
-  </Target>
-
 </Project>
