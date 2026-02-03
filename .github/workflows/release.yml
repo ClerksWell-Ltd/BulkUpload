@@ -50,13 +50,10 @@ jobs:
 
         # Update both projects to same version
         sed -i "s|<Version>.*</Version>|<Version>${VERSION}</Version>|" src/BulkUpload/BulkUpload.csproj
-        sed -i "s|<Version>.*</Version>|<Version>${VERSION}</Version>|" src/BulkUpload.Core/BulkUpload.Core.csproj
 
         # Verify the update
         echo "Updated BulkUpload version to: ${VERSION}"
         grep "<Version>" src/BulkUpload/BulkUpload.csproj
-        echo "Updated BulkUpload.Core version to: ${VERSION}"
-        grep "<Version>" src/BulkUpload.Core/BulkUpload.Core.csproj
 
     - name: Setup Node.js (for Umbraco 17 frontend)
       uses: actions/setup-node@v4
