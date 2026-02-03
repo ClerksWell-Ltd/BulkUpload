@@ -5,9 +5,9 @@ using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.PropertyEditors;
 using Umbraco.Cms.Core.Services;
 using Umbraco.Cms.Core.Strings;
-using BulkUpload.Core.Models;
-using BulkUpload.Core.Resolvers;
-using BulkUpload.Core.Services;
+using BulkUpload.Models;
+using BulkUpload.Resolvers;
+using BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload.Tests.Resolvers;
 

@@ -1,5 +1,5 @@
-using BulkUpload.Core.Resolvers;
-using BulkUpload.Core.Services;
+using BulkUpload.Resolvers;
+using BulkUpload.Services;
 
 using Microsoft.Extensions.DependencyInjection;
 

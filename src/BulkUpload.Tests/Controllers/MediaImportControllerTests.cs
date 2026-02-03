@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
-using BulkUpload.Core.Controllers;
-using BulkUpload.Core.Models;
-using BulkUpload.Core.Services;
+using BulkUpload.Controllers;
+using BulkUpload.Models;
+using BulkUpload.Services;
 
 namespace Umbraco.Community.BulkUpload.Tests.Controllers;
 

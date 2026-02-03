@@ -1,4 +1,4 @@
-using BulkUpload.Core.Resolvers;
+using BulkUpload.Resolvers;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
