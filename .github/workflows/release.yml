@@ -1,6 +1,6 @@
 name: Release to NuGet
 
-# Only allow deploys when creating a release from release/* branches
+# Multi-targeting release (v2.0.0+): Publish from main branch with both net8.0 and net10.0
 on:
   release:
     types: [published]
@@ -16,36 +16,23 @@ jobs:
     - name: Verify release branch
       run: |
         BRANCH="${{ github.event.release.target_commitish }}"
-        if [[ ! "$BRANCH" =~ ^release/ ]]; then
-          echo "Error: Releases can only be created from release/* branches"
+        # v2.0.0+ releases from main (multi-targeted package)
+        if [[ "$BRANCH" != "main" ]]; then
+          echo "Error: v2.0.0+ releases must be from main branch (multi-targeted)"
           echo "Current branch: $BRANCH"
           exit 1
         fi
         echo "✓ Release is from valid branch: $BRANCH"
 
-    - name: Detect Umbraco version from branch
-      id: umbraco-version
-      run: |
-        BRANCH="${{ github.event.release.target_commitish }}"
-
-        # Determine Umbraco version from branch name
-        if [[ "$BRANCH" == "release/v13.x" ]]; then
-          UMBRACO_VERSION="13"
-        elif [[ "$BRANCH" == "release/v17.x" ]]; then
-          UMBRACO_VERSION="17"
-        else
-          UMBRACO_VERSION="Unknown"
-        fi
-
-        echo "umbraco_version=$UMBRACO_VERSION" >> $GITHUB_OUTPUT
-        echo "✓ Detected Umbraco version: $UMBRACO_VERSION"
-        echo "✓ Release version: ${{ github.event.release.tag_name }}"
-        echo "✓ Release date: $(date +%Y-%m-%d)"
-
-    - name: Setup .NET
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -55,54 +42,37 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-nuget-
 
-    - name: Extract .NET version from csproj
-      id: dotnet-version
-      run: |
-        # Extract TargetFramework from csproj (e.g., net8.0 -> 8)
-        DOTNET_VERSION=$(sed -n 's/.*<TargetFramework>net\([0-9]\+\).*/\1/p' src/BulkUpload/BulkUpload.csproj)
-        echo "version=$DOTNET_VERSION" >> $GITHUB_OUTPUT
-        echo "Detected .NET version: $DOTNET_VERSION"
-
-        # Set flag for npm usage (>= 10 requires npm)
-        if [ "$DOTNET_VERSION" -ge 10 ]; then
-          echo "use_npm=true" >> $GITHUB_OUTPUT
-          echo "Will use npm for .NET $DOTNET_VERSION"
-        else
-          echo "use_npm=false" >> $GITHUB_OUTPUT
-          echo "Will NOT use npm for .NET $DOTNET_VERSION"
-        fi
-
     - name: Update csproj version from release tag
       run: |
         # Extract version from release tag (e.g., v1.0.0 -> 1.0.0)
         VERSION="${{ github.event.release.tag_name }}"
         VERSION="${VERSION#v}"  # Remove 'v' prefix if present
 
-        # Update the Version element in the csproj file
+        # Update both projects to same version
         sed -i "s|<Version>.*</Version>|<Version>${VERSION}</Version>|" src/BulkUpload/BulkUpload.csproj
+        sed -i "s|<Version>.*</Version>|<Version>${VERSION}</Version>|" src/BulkUpload.Core/BulkUpload.Core.csproj
 
         # Verify the update
-        echo "Updated version to: ${VERSION}"
+        echo "Updated BulkUpload version to: ${VERSION}"
         grep "<Version>" src/BulkUpload/BulkUpload.csproj
+        echo "Updated BulkUpload.Core version to: ${VERSION}"
+        grep "<Version>" src/BulkUpload.Core/BulkUpload.Core.csproj
+
+    - name: Setup Node.js (for Umbraco 17 frontend)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+
+    - name: Install npm dependencies (Umbraco 17 frontend)
+      run: npm ci
+      working-directory: src/BulkUpload/ClientV17
+
+    - name: Build npm package (Umbraco 17 frontend)
+      run: npm run build
+      working-directory: src/BulkUpload/ClientV17
 
     - name: Restore dependencies
       run: dotnet restore src/BulkUpload/BulkUpload.csproj --disable-parallel
-
-    # NPM commands for .NET 10+ (Umbraco 17+)
-    # Uncomment when ready to use
-    # - name: Setup Node.js
-    #   if: steps.dotnet-version.outputs.use_npm == 'true'
-    #   uses: actions/setup-node@v4
-    #   with:
-    #     node-version: '20.x'
-    #
-    # - name: Install npm dependencies
-    #   if: steps.dotnet-version.outputs.use_npm == 'true'
-    #   run: npm ci
-    #
-    # - name: Build npm package
-    #   if: steps.dotnet-version.outputs.use_npm == 'true'
-    #   run: npm run build
 
     - name: Build, test, and publish to NuGet
       shell: bash
@@ -112,7 +82,7 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Release:** ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
         echo "**Branch:** ${{ github.event.release.target_commitish }}" >> $GITHUB_STEP_SUMMARY
-        echo "**Umbraco Version:** ${{ steps.umbraco-version.outputs.umbraco_version }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Targets:** net8.0 (Umbraco 13) and net10.0 (Umbraco 17)" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "---" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY

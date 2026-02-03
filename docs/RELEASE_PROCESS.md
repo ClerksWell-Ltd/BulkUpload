@@ -4,7 +4,8 @@ This guide covers the complete release process for BulkUpload, including automat
 
 ## Overview
 
-BulkUpload uses GitHub Actions to automate most of the release process. However, some manual steps are still required, particularly for multi-version support.
+**v2.0.0+ Multi-Targeting Architecture:**
+BulkUpload uses GitHub Actions to automate the release process. Starting with v2.0.0, the package uses .NET multi-targeting to support both Umbraco 13 (net8.0) and Umbraco 17 (net10.0) in a **single NuGet package** published from the `main` branch.
 
 ## Automated Workflows
 
@@ -13,15 +14,17 @@ BulkUpload uses GitHub Actions to automate most of the release process. However,
 **Trigger:** When you publish a GitHub Release
 
 **What it does:**
-- ✅ Verifies the release is from a `release/*` branch
+- ✅ Verifies the release is from `main` branch
+- ✅ Sets up both .NET 8 and .NET 10 SDKs
+- ✅ Builds Umbraco 17 frontend (npm)
 - ✅ Restores dependencies
-- ✅ Builds the project in Release mode
+- ✅ Builds the project in Release mode (both net8.0 and net10.0)
 - ✅ Runs all tests
-- ✅ Packs the NuGet package
+- ✅ Packs the NuGet package (includes both frameworks)
 - ✅ Publishes to NuGet.org
 - ✅ Uploads package as GitHub artifact
 
-**Branch restriction:** Only works for releases created from `release/v13.x`, `release/v17.x`, etc.
+**Branch restriction:** Only works for releases created from `main` branch (v2.0.0+)
 
 ### 2. Post-Release Automation (`post-release.yml`)
 
@@ -43,25 +46,28 @@ BulkUpload uses GitHub Actions to automate most of the release process. However,
 - [ ] CHANGELOG.md "Unreleased" section has all changes documented
 - [ ] You have `NUGET_API_KEY` configured in GitHub repository secrets
 
-### Step 1: Prepare the Release Branch
+### Step 1: Prepare the Main Branch (v2.0.0+)
 
 ```bash
-# Ensure you're on the correct release branch
-git checkout release/v13.x  # or release/v17.x
-git pull origin release/v13.x
+# Ensure you're on main with latest changes
+git checkout main
+git pull origin main
 
-# Verify everything builds and tests pass
-dotnet build src/BulkUpload/BulkUpload.csproj --configuration Release
+# Verify everything builds and tests pass (both frameworks)
+dotnet build src/BulkUpload.sln --configuration Release
 dotnet test
 ```
 
 ### Step 2: Update Version and CHANGELOG (Manual)
 
-**Update version in .csproj:**
+**Update version in BOTH .csproj files (must match):**
 
 ```xml
 <!-- src/BulkUpload/BulkUpload.csproj -->
-<Version>1.2.0</Version>  <!-- Update this -->
+<Version>2.1.0</Version>  <!-- Update this -->
+
+<!-- src/BulkUpload.Core/BulkUpload.Core.csproj -->
+<Version>2.1.0</Version>  <!-- Update this to match -->
 ```
 
 **Update CHANGELOG.md:**
@@ -85,19 +91,19 @@ Ensure the "Unreleased" section has all changes, following the format:
 **Commit these changes:**
 
 ```bash
-git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
-git commit -m "chore: prepare release v1.2.0"
-git push origin release/v13.x
+git add src/BulkUpload/BulkUpload.csproj src/BulkUpload.Core/BulkUpload.Core.csproj CHANGELOG.md
+git commit -m "chore: prepare release v2.1.0"
+git push origin main
 ```
 
 ### Step 3: Create GitHub Release
 
 1. Go to GitHub → **Releases** → **Draft a new release**
-2. Click **"Choose a tag"** → Type new tag (e.g., `v1.2.0`) → **"Create new tag on publish"**
-3. **Target:** Select the release branch (e.g., `release/v13.x`)
-4. **Release title:** `v1.2.0 - Umbraco 13` (include Umbraco version)
+2. Click **"Choose a tag"** → Type new tag (e.g., `v2.1.0`) → **"Create new tag on publish"**
+3. **Target:** Select `main` branch
+4. **Release title:** `v2.1.0` (multi-targeted for Umbraco 13 & 17)
 5. **Description:** Copy the changes from CHANGELOG.md for this version
-6. **Optional:** Check "Set as latest release" if this is the newest version
+6. **Optional:** Check "Set as latest release"
 7. Click **"Publish release"**
 
 ### Step 4: Automated Workflows Run
