@@ -1,0 +1,4 @@
+﻿<Project>
+  <!-- Import the main props file for transitive dependencies -->
+  <Import Project="..\build\Umbraco.Community.BulkUpload.props" />
+</Project>

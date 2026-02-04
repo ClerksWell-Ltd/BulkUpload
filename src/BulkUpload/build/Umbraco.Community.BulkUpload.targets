@@ -1,0 +1,31 @@
+﻿<Project>
+  <!-- Copy V17 frontend assets to consuming project's wwwroot for net10.0 targets -->
+  <Target Name="CopyBulkUploadV17Assets"
+          BeforeTargets="PreBuildEvent;BeforeBuild"
+          Condition="'$(TargetFramework)' == 'net10.0' OR '$(TargetFrameworks)' == 'net10.0' OR $(TargetFrameworks.Contains('net10.0'))">
+
+    <PropertyGroup>
+      <BulkUploadSourcePath>$(MSBuildThisFileDirectory)..\staticwebassets\BulkUpload\</BulkUploadSourcePath>
+      <BulkUploadDestPath>$(MSBuildProjectDirectory)\wwwroot\App_Plugins\BulkUpload\</BulkUploadDestPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <BulkUploadV17Files Include="$(BulkUploadSourcePath)umbraco-package.json" />
+      <BulkUploadV17Files Include="$(BulkUploadSourcePath)bulkupload.js" />
+      <BulkUploadV17Files Include="$(BulkUploadSourcePath)bulkupload.js.map" />
+    </ItemGroup>
+
+    <!-- Create destination directory if it doesn't exist -->
+    <MakeDir Directories="$(BulkUploadDestPath)" Condition="!Exists('$(BulkUploadDestPath)')" />
+
+    <!-- Copy files -->
+    <Copy SourceFiles="@(BulkUploadV17Files)"
+          DestinationFolder="$(BulkUploadDestPath)"
+          SkipUnchangedFiles="true"
+          Condition="Exists('%(BulkUploadV17Files.Identity)')" />
+
+    <Message Text="[BulkUpload] Copied V17 assets to $(BulkUploadDestPath)"
+             Importance="high"
+             Condition="'@(BulkUploadV17Files)' != ''" />
+  </Target>
+</Project>

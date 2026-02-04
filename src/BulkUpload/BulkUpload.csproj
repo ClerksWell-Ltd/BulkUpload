@@ -13,7 +13,7 @@
     <PackageTags>umbraco;umbraco-marketplace;umbraco13;umbraco17</PackageTags>
     <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>2.0.0-rc3</Version>
+    <Version>2.0.0</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
     <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
@@ -45,7 +45,6 @@
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <StaticWebAssetBasePath>/App_Plugins/BulkUpload</StaticWebAssetBasePath>
-    <EnableDefaultContentItems>false</EnableDefaultContentItems>
   </PropertyGroup>
 
   <!-- Exclude V17 frontend files from net8.0 build -->
@@ -53,6 +52,18 @@
     <Content Remove="wwwroot\bulkupload.js" />
     <Content Remove="wwwroot\bulkupload.js.map" />
     <Content Remove="wwwroot\umbraco-package.json" />
+  </ItemGroup>
+
+  <!-- Include V17 frontend files in net10.0 package using contentFiles -->
+  <!-- Include V17 frontend files for net10.0: both as static web assets and content files -->
+  <ItemGroup>
+    <None Include="wwwroot\umbraco-package.json" Pack="true" PackagePath="contentFiles/any/net10.0/wwwroot/App_Plugins/BulkUpload;content/wwwroot/App_Plugins/BulkUpload;staticwebassets/BulkUpload" />
+    <None Include="wwwroot\bulkupload.js" Pack="true" PackagePath="contentFiles/any/net10.0/wwwroot/App_Plugins/BulkUpload;content/wwwroot/App_Plugins/BulkUpload;staticwebassets/BulkUpload" />
+    <None Include="wwwroot\bulkupload.js.map" Pack="true" PackagePath="contentFiles/any/net10.0/wwwroot/App_Plugins/BulkUpload;content/wwwroot/App_Plugins/BulkUpload;staticwebassets/BulkUpload" />
+    <!-- Include custom build props and targets to include V17 assets -->
+    <None Include="build\Umbraco.Community.BulkUpload.props" Pack="true" PackagePath="build" />
+    <None Include="buildTransitive\Umbraco.Community.BulkUpload.props" Pack="true" PackagePath="buildTransitive" />
+    <None Include="build\Umbraco.Community.BulkUpload.targets" Pack="true" PackagePath="build;buildTransitive" />
   </ItemGroup>
 
   <!-- Package dependencies -->
@@ -79,6 +90,13 @@
       <PackagePath>\</PackagePath>
     </None>
     <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
+  </ItemGroup>
+
+  <!-- Exclude auto-generated props files so our custom ones are used -->
+  <ItemGroup>
+    <None Remove="$(BaseIntermediateOutputPath)**\build\*.props" />
+    <None Remove="$(BaseIntermediateOutputPath)**\buildMultiTargeting\*.props" />
+    <None Remove="$(BaseIntermediateOutputPath)**\buildTransitive\*.props" />
   </ItemGroup>
 
   <!-- RCL automatically includes wwwroot as static web assets -->
