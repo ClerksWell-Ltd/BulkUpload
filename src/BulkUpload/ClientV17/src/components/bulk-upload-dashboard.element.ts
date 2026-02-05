@@ -448,7 +448,7 @@ export class BulkUploadDashboardElement extends LitElement {
       <footer class="plugin-footer">
         <div class="divider"></div>
         <a href="https://www.clerkswell.com" target="_blank" rel="noopener noreferrer" class="brand-link">
-          Made for the Umbraco Community with
+          Made for the Umbraco Community
           <span class="heart">❤️</span>
           from
           <img src="/App_Plugins/BulkUpload/images/cw-logo-primary-blue.png" alt="ClerksWell" />
@@ -485,7 +485,7 @@ export class BulkUploadDashboardElement extends LitElement {
       --umb-radius-lg: 12px;
 
       max-width: 960px;
-      margin: 0 auto;
+      margin: 24px auto 10px auto;
       padding: 20px;
       animation: fadeUp 0.5s ease both;
     }
