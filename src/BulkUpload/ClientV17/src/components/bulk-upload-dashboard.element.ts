@@ -448,7 +448,7 @@ export class BulkUploadDashboardElement extends LitElement {
       <footer class="plugin-footer">
         <div class="divider"></div>
         <a href="https://www.clerkswell.com" target="_blank" rel="noopener noreferrer" class="brand-link">
-          Made for the Umbraco Community with
+          Made for the Umbraco Community
           <span class="heart">❤️</span>
           from
           <img src="/App_Plugins/BulkUpload/images/cw-logo-primary-blue.png" alt="ClerksWell" />
