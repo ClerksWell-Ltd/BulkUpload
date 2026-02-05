@@ -67,6 +67,15 @@ angular
         service.setActiveTab(tab);
       };
 
+      // File input trigger for drop zone
+      $scope.triggerFileInput = function(type) {
+        var inputId = type === 'content' ? 'content-file-input' : 'media-file-input';
+        var fileInput = document.getElementById(inputId);
+        if (fileInput) {
+          fileInput.click();
+        }
+      };
+
       // Content import handlers
       $scope.onFileSelected = function(file, evt) {
         service.setContentFile(file, evt ? evt.target : null);
@@ -84,6 +93,10 @@ angular
         try {
           await service.importContent();
           angularHelper.getCurrentForm($scope).$setPristine();
+          // Scroll to top to show results
+          setTimeout(function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 100);
         } catch (error) {
           // Error already handled by service
           console.error('Import failed:', error);
@@ -120,6 +133,10 @@ angular
         try {
           await service.importMedia();
           angularHelper.getCurrentForm($scope).$setPristine();
+          // Scroll to top to show results
+          setTimeout(function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 100);
         } catch (error) {
           // Error already handled by service
           console.error('Import failed:', error);

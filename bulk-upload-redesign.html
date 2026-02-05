@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bulk Upload – Umbraco Backoffice Redesign</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
+
+  :root {
+    --umb-blue: #1b264f;
+    --umb-blue-light: #2c3e6b;
+    --umb-blue-hover: #243561;
+    --umb-surface: #f6f7fb;
+    --umb-white: #ffffff;
+    --umb-border: #e0e3eb;
+    --umb-text: #303033;
+    --umb-text-muted: #68697a;
+    --umb-accent: #2bc37b;
+    --umb-accent-soft: #e6f9f0;
+    --umb-accent-hover: #25a86a;
+    --umb-danger: #d42054;
+    --umb-warning: #f5c142;
+    --umb-code-bg: #f0f1f5;
+    --umb-shadow-sm: 0 1px 3px rgba(27,38,79,0.06);
+    --umb-shadow-md: 0 4px 12px rgba(27,38,79,0.08);
+    --umb-shadow-lg: 0 8px 32px rgba(27,38,79,0.12);
+    --umb-radius: 8px;
+    --umb-radius-lg: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Lato', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--umb-surface);
+    color: var(--umb-text);
+    min-height: 100vh;
+  }
+
+  /* ── Top navbar (Umbraco style) ── */
+  .umb-navbar {
+    background: var(--umb-blue);
+    height: 52px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .umb-navbar svg { width: 28px; height: 28px; margin-right: 32px; }
+  .umb-navbar a {
+    color: rgba(255,255,255,0.65);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 0 16px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    transition: color .2s, box-shadow .2s;
+    position: relative;
+  }
+  .umb-navbar a:hover { color: #fff; }
+  .umb-navbar a.active {
+    color: #fff;
+    box-shadow: inset 0 -3px 0 var(--umb-accent);
+  }
+  .umb-navbar .spacer { flex: 1; }
+  .umb-navbar .nav-icon {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    color: rgba(255,255,255,0.6);
+    margin-left: 4px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .umb-navbar .nav-icon:hover { background: rgba(255,255,255,0.1); }
+  .nav-icon svg { width: 18px; height: 18px; fill: currentColor; }
+  .umb-navbar .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--umb-accent);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    margin-left: 8px;
+    cursor: pointer;
+  }
+
+  /* ── Main layout ── */
+  .main-content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+    animation: fadeUp .5s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Header area ── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--umb-blue);
+    letter-spacing: -0.5px;
+  }
+  .page-header p {
+    color: var(--umb-text-muted);
+    font-size: 14px;
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--umb-accent-soft);
+    color: var(--umb-accent-hover);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-top: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .header-badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--umb-accent);
+  }
+
+  /* ── Tabs ── */
+  .tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--umb-border);
+    margin-bottom: 28px;
+  }
+  .tab-bar button {
+    background: none;
+    border: none;
+    padding: 12px 24px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--umb-text-muted);
+    cursor: pointer;
+    position: relative;
+    transition: color .2s;
+  }
+  .tab-bar button::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0; right: 0;
+    height: 3px;
+    background: transparent;
+    border-radius: 3px 3px 0 0;
+    transition: background .25s;
+  }
+  .tab-bar button:hover { color: var(--umb-blue); }
+  .tab-bar button.active {
+    color: var(--umb-blue);
+  }
+  .tab-bar button.active::after {
+    background: var(--umb-accent);
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--umb-white);
+    border: 1px solid var(--umb-border);
+    border-radius: var(--umb-radius-lg);
+    box-shadow: var(--umb-shadow-sm);
+    overflow: hidden;
+    margin-bottom: 24px;
+    transition: box-shadow .25s;
+  }
+  .card:hover {
+    box-shadow: var(--umb-shadow-md);
+  }
+  .card-header {
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--umb-border);
+    background: linear-gradient(180deg, #fafbfe 0%, var(--umb-white) 100%);
+  }
+  .card-header .icon-circle {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-header .icon-circle svg {
+    width: 18px; height: 18px;
+  }
+  .card-header .icon-circle.blue {
+    background: rgba(27,38,79,0.08);
+    color: var(--umb-blue);
+  }
+  .card-header .icon-circle.green {
+    background: var(--umb-accent-soft);
+    color: var(--umb-accent-hover);
+  }
+  .card-header h2 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--umb-blue);
+  }
+  .card-header span {
+    font-size: 12px;
+    color: var(--umb-text-muted);
+  }
+  .card-body {
+    padding: 28px;
+  }
+
+  /* ── Drop zone ── */
+  .drop-zone {
+    border: 2px dashed var(--umb-border);
+    border-radius: var(--umb-radius);
+    padding: 48px 32px;
+    text-align: center;
+    transition: border-color .25s, background .25s, transform .15s;
+    cursor: pointer;
+    position: relative;
+  }
+  .drop-zone:hover {
+    border-color: var(--umb-accent);
+    background: var(--umb-accent-soft);
+    transform: scale(1.005);
+  }
+  .drop-zone .upload-icon {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--umb-accent-soft) 0%, #d4f3e4 100%);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--umb-accent);
+    transition: transform .3s;
+  }
+  .drop-zone:hover .upload-icon {
+    transform: translateY(-4px);
+  }
+  .drop-zone .upload-icon svg { width: 24px; height: 24px; }
+  .drop-zone h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--umb-text);
+    margin-bottom: 6px;
+  }
+  .drop-zone h3 em {
+    font-style: normal;
+    color: var(--umb-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .drop-zone p {
+    font-size: 13px;
+    color: var(--umb-text-muted);
+  }
+  .drop-zone .file-types {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .file-chip {
+    background: var(--umb-code-bg);
+    color: var(--umb-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .btn-import {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--umb-accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--umb-radius);
+    padding: 12px 28px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: background .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 2px 8px rgba(43,195,123,0.25);
+  }
+  .btn-import:hover {
+    background: var(--umb-accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(43,195,123,0.35);
+  }
+  .btn-import:active { transform: translateY(0); }
+  .btn-import svg { width: 16px; height: 16px; }
+
+  /* ── Requirements section ── */
+  .req-section {
+    margin-bottom: 24px;
+  }
+  .req-section:last-child { margin-bottom: 0; }
+  .req-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--umb-text-muted);
+    margin-bottom: 14px;
+  }
+  .req-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .req-item {
+    background: var(--umb-surface);
+    border: 1px solid var(--umb-border);
+    border-radius: var(--umb-radius);
+    padding: 16px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .req-item:hover {
+    border-color: rgba(27,38,79,0.2);
+    box-shadow: var(--umb-shadow-sm);
+  }
+  .req-item code {
+    display: inline-block;
+    background: var(--umb-blue);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    padding: 3px 8px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+  }
+  .req-item .desc {
+    font-size: 13px;
+    color: var(--umb-text-muted);
+    line-height: 1.45;
+  }
+  .req-item .examples {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .req-item .examples span {
+    font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+    font-size: 11px;
+    background: var(--umb-code-bg);
+    color: var(--umb-text-muted);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+
+  /* ── Media tips ── */
+  .media-tips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .media-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--umb-surface);
+    border: 1px solid var(--umb-border);
+    border-radius: var(--umb-radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--umb-text-muted);
+    line-height: 1.45;
+  }
+  .media-tip .tip-icon {
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: rgba(27,38,79,0.06);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--umb-blue-light);
+  }
+  .media-tip .tip-icon svg { width: 12px; height: 12px; }
+
+  /* ── Footer / Branding ── */
+  .plugin-footer {
+    margin-top: 48px;
+    text-align: center;
+    animation: fadeUp .6s ease .15s both;
+  }
+  .plugin-footer .divider {
+    width: 48px;
+    height: 2px;
+    background: var(--umb-border);
+    margin: 0 auto 20px;
+    border-radius: 2px;
+  }
+  .plugin-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--umb-text-muted);
+    font-size: 13px;
+    font-weight: 400;
+    padding: 10px 20px;
+    border-radius: var(--umb-radius);
+    transition: background .2s, color .2s, transform .15s;
+  }
+  .plugin-footer a:hover {
+    background: rgba(27,38,79,0.04);
+    color: var(--umb-blue);
+    transform: translateY(-1px);
+  }
+  .plugin-footer a svg,
+  .plugin-footer a img {
+    height: 18px;
+    width: auto;
+    opacity: 0.7;
+    transition: opacity .2s;
+  }
+  .plugin-footer a:hover svg,
+  .plugin-footer a:hover img {
+    opacity: 1;
+  }
+  .plugin-footer .heart {
+    color: var(--umb-danger);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Umbraco Navbar ── -->
+<nav class="umb-navbar">
+  <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="rgba(255,255,255,0.15)"/><path d="M10 13.5c0-1.5.8-2.5 2.2-2.5s2.2 1 2.2 2.5v5c0 1.5.8 2.5 2.2 2.5s2.2-1 2.2-2.5v-5c0-1.5.8-2.5 2.2-2.5s2.2 1 2.2 2.5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+  <a href="#">Content</a>
+  <a href="#">Media</a>
+  <a href="#">Settings</a>
+  <a href="#">Packages</a>
+  <a href="#">Users</a>
+  <a href="#">Members</a>
+  <a href="#">Translation</a>
+  <a href="#" class="active">Bulk Upload</a>
+  <span class="spacer"></span>
+  <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></span>
+  <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 16v-4m0-4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+  <span class="avatar">A</span>
+</nav>
+
+<!-- ── Main Content ── -->
+<div class="main-content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1>Bulk Upload</h1>
+      <p>Import content and media into your Umbraco site in bulk via CSV or ZIP files.</p>
+      <div class="header-badge"><span class="dot"></span> Ready to import</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="active">Content Import</button>
+    <button>Media Import</button>
+  </div>
+
+  <!-- Upload Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="icon-circle green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div>
+        <h2>Upload File</h2>
+        <span>Drag &amp; drop or browse for your import file</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="drop-zone">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h3>Drag files here or <em>browse</em></h3>
+        <p>Select a file to start your content import</p>
+        <div class="file-types">
+          <span class="file-chip">.csv</span>
+          <span class="file-chip">.zip</span>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <button class="btn-import">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import Content
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Requirements Card -->
+  <div class="card">
+    <div class="card-header">
+      <div class="icon-circle blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+      </div>
+      <div>
+        <h2>Requirements &amp; Help</h2>
+        <span>Everything you need to format your import file correctly</span>
+      </div>
+    </div>
+    <div class="card-body">
+
+      <!-- Required CSV Columns -->
+      <div class="req-section">
+        <div class="req-label">Required CSV Columns</div>
+        <div class="req-grid">
+          <div class="req-item">
+            <code>parent</code>
+            <div class="desc">Parent ID, GUID, or content path</div>
+            <div class="examples">
+              <span>1050</span>
+              <span>71332aa7-…</span>
+              <span>/news/2024/</span>
+            </div>
+          </div>
+          <div class="req-item">
+            <code>docTypeAlias</code>
+            <div class="desc">Content type alias</div>
+            <div class="examples">
+              <span>articlePage</span>
+            </div>
+          </div>
+          <div class="req-item">
+            <code>name</code>
+            <div class="desc">Content item name</div>
+            <div class="examples">
+              <span>My Article</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Files -->
+      <div class="req-section">
+        <div class="req-label">Media Files</div>
+        <div class="media-tips">
+          <div class="media-tip">
+            <div class="tip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+            Upload a <strong>&nbsp;ZIP file&nbsp;</strong> to include media with your content
+          </div>
+          <div class="media-tip">
+            <div class="tip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+            Reference media using resolvers like <code style="background:var(--umb-code-bg);padding:1px 5px;border-radius:3px;font-size:11px;">heroImage|zipFileToMedia</code>
+          </div>
+          <div class="media-tip">
+            <div class="tip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4V3"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+            Supports multi-CSV imports with automatic media deduplication
+          </div>
+          <div class="media-tip">
+            <div class="tip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            Add extra CSV columns for any property on your doc type
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ClerksWell Branding Footer -->
+  <footer class="plugin-footer">
+    <div class="divider"></div>
+    <a href="https://www.clerkswell.com" target="_blank" rel="noopener noreferrer">
+      Made for the Umbraco Community <span class="heart">♥</span> by
+      <!-- Inline ClerksWell logo (simplified version) -->
+      <svg width="100" height="20" viewBox="0 0 143 28.5" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(-30.5,-61.5)">
+          <path fill="#2c3852" d="m 95.991484,82.502148 -6.288089,-6.649813 1.525589,-1.317811 c 0.839074,-0.724796 2.494933,-2.251351 3.679687,-3.392343 1.901274,-1.831045 2.254402,-2.064549 3.008702,-1.98948 0.838995,0.0835 0.814149,0.112828 -1.360348,1.605886 -1.218224,0.836459 -2.552911,1.822077 -2.965971,2.190262 l -0.751019,0.669427 3.706028,3.895154 c 6.531627,6.864955 6.467167,6.815631 9.437677,7.221383 1.28576,0.175627 1.09914,0.193558 -0.98182,0.09434 l -2.56932,-0.122501 -0.0765,2.222653 -0.0765,2.222653 z m 23.265106,3.338208 c -0.24706,-0.409098 -7.58431,-21.188675 -7.58431,-21.479258 0,-0.210659 0.70331,-0.279969 2.30218,-0.226876 l 2.30219,0.07645 2.54213,7.227652 c 1.39818,3.975209 2.6356,7.249428 2.74982,7.276042 0.11423,0.02661 1.3511,-3.136533 2.74862,-7.029215 1.39751,-3.892682 2.60669,-7.076337 2.68706,-7.074789 0.0804,0.0015 1.27722,3.214969 2.65967,7.140935 1.38245,3.925965 2.5797,7.139385 2.66057,7.140934 0.19084,0.0037 2.44526,-6.426515 3.15295,-8.993018 0.30094,-1.091406 0.62176,-2.847578 0.71294,-3.902604 l 0.16577,-1.918229 h 1.01951 c 0.56073,0 1.01951,0.06062 1.01951,0.13472 0,0.0741 -0.51771,1.354018 -1.15046,2.844271 -0.63275,1.490253 -2.44846,6.369311 -4.0349,10.842352 -1.58644,4.473041 -2.94397,8.133248 -3.01673,8.133793 -0.0728,5.45e-4 -1.26338,-3.223797 -2.64583,-7.165205 -1.38245,-3.941408 -2.57747,-7.20601 -2.6556,-7.25467 -0.0781,-0.04866 -1.3173,3.177093 -2.75369,7.168341 -1.43639,3.991248 -2.64536,7.256815 -2.68659,7.256815 -0.0412,0 -0.1289,-0.0893 -0.19481,-0.198438 z M 37.888387,85.240584 C 34.94748,84.621717 32.716852,82.871717 31.383796,80.137522 28.434632,74.088576 30.483508,66.97489 35.950142,64.283194 c 1.649704,-0.812291 1.932835,-0.866275 4.543345,-0.866275 2.564033,0 2.919886,0.0646 4.503794,0.817656 0.945885,0.44971 2.113959,1.150974 2.595719,1.558363 l 0.875927,0.740708 -0.842874,0.869625 -0.842874,0.869626 -1.054852,-1.579653 c -1.786438,-2.675212 -4.518885,-3.779474 -6.89524,-2.78657 -1.189343,0.496939 -2.401338,1.965046 -3.127213,3.788038 -0.548345,1.377138 -0.615267,1.98397 -0.622436,5.644082 -0.0066,3.39274 0.07888,4.335143 0.495166,5.456485 1.269463,3.419495 3.38877,5.007867 6.640552,4.976943 2.180641,-0.02074 3.597898,-0.630984 5.400038,-2.325161 1.058886,-0.995449 1.113404,-1.018984 0.58994,-0.25467 -0.961327,1.40364 -2.91743,2.945135 -4.478388,3.529164 -1.722191,0.644354 -4.200528,0.864527 -5.842359,0.519029 z m 24.439102,-0.508385 c -1.165833,-0.285081 -2.82919,-1.198527 -3.47587,-1.908803 -2.446298,-2.686869 -2.579604,-7.8394 -0.280796,-10.853339 2.202039,-2.887067 7.243982,-3.741904 10.265141,-1.740405 1.173665,0.777545 2.355067,3.091018 2.355067,4.611794 v 1.143181 h -5.184203 -5.184203 l 0.175149,1.389062 c 0.515098,4.085124 2.154254,6.016192 5.108526,6.018282 1.685919,0.0012 2.798529,-0.431172 4.16763,-1.619558 l 1.028788,-0.892994 -0.725696,0.962021 c -1.835396,2.433098 -5.240936,3.62645 -8.249533,2.890759 z m 5.422483,-10.401218 c -0.0033,-3.074315 -1.194663,-4.960937 -3.132819,-4.960937 -1.832604,0 -3.091033,1.817753 -3.617623,5.22552 l -0.173762,1.12448 h 3.46284 3.46284 z m 5.619751,3.192185 0.07027,-7.457294 1.190625,-0.303127 c 0.654844,-0.166721 1.518047,-0.385082 1.918229,-0.485247 l 0.727605,-0.182119 0.01524,2.320145 0.01524,2.320145 0.602066,-1.322917 c 0.73175,-1.607871 2.199415,-2.954376 3.482599,-3.195103 1.313168,-0.246352 1.505923,0.06212 1.009305,1.615223 l -0.420578,1.315297 -1.166468,-0.0932 c -1.364363,-0.109009 -2.2522,0.369891 -3.019883,1.628928 -0.464961,0.762557 -0.515643,1.358251 -0.516535,6.07104 l -9.89e-4,5.225521 h -1.988496 -1.988495 z m 67.717017,6.969445 c -1.66181,-0.593047 -3.25589,-2.052518 -4.08217,-3.737464 -0.84482,-1.722728 -0.82096,-5.128938 0.0497,-7.093411 1.23101,-2.777619 4.0842,-4.556276 7.30884,-4.556276 3.56316,0 5.81143,1.992727 6.34342,5.622396 l 0.1842,1.256771 h -5.18942 -5.18942 v 1.142603 c 0,1.601625 0.67869,3.707134 1.51553,4.70166 1.80753,2.148131 5.38734,2.100326 7.71193,-0.102985 0.57471,-0.544721 0.79467,-0.657843 0.61703,-0.31732 -1.41435,2.711156 -6.02035,4.243586 -9.26961,3.084026 z m 6.2561,-9.636357 c 0.0463,-0.402324 -0.0568,-1.410268 -0.22905,-2.239876 -0.63401,-3.054024 -3.0348,-4.220539 -4.88284,-2.372507 -0.92646,0.926459 -1.71909,3.0502 -1.71909,4.606058 v 0.885925 l 3.37344,-0.07405 3.37344,-0.07405 z m -62.594785,-1.290394 0.06902,-11.150017 2.05052,-0.591739 2.050521,-0.591738 v 11.741755 11.741756 h -2.11954 -2.119538 z M 108.2327,84.422793 c 1.66443,-0.653085 2.10834,-2.670843 0.85989,-3.908549 -0.40018,-0.396739 -1.99189,-1.227832 -3.53713,-1.846873 -2.83768,-1.136806 -4.28823,-2.179377 -4.76052,-3.421586 -0.43476,-1.143518 -0.27018,-2.835103 0.36798,-3.782064 0.61023,-0.905519 2.37217,-2.088062 3.10103,-2.081279 0.27424,0.0026 0.23336,0.09313 -0.13229,0.293125 -0.84124,0.460119 -1.19063,1.051235 -1.19063,2.014357 0,1.323723 1.04002,2.181468 4.06029,3.348691 3.66307,1.415641 5.20013,2.898479 5.20013,5.01669 0,1.164241 -0.4017,2.234096 -1.14211,3.04183 -0.61852,0.674768 -2.43789,1.614203 -3.09123,1.59616 -0.21828,-0.006 -0.0992,-0.127754 0.26459,-0.270502 z m -57.615926,-10.989226 0.06905,-11.017726 2.05052,-0.591738 2.050521,-0.591737 V 72.84183 84.451294 h -2.119569 -2.11957 z m 102.922916,-0.0046 0.0691,-11.022315 1.71979,-0.486027 c 0.94589,-0.267315 1.80909,-0.486493 1.91823,-0.487061 0.10914,-5.68e-4 0.19844,5.178185 0.19844,11.508342 v 11.509375 h -1.98728 -1.98728 z m 7.08051,0.05331 V 62.513285 l 1.81446,-0.540371 c 0.99796,-0.297204 1.95046,-0.54037 2.11667,-0.54037 0.22192,0 0.3022,3.057671 0.3022,11.509375 v 11.509375 h -2.11667 -2.11666 z m -50.38617,-2.506013 c -0.74268,-0.820652 -2.27957,-1.447186 -3.98571,-1.624832 l -1.5875,-0.165293 1.50833,-0.04035 c 1.51176,-0.04044 3.93822,0.356576 4.74063,0.775653 0.2853,0.149006 0.38534,0.447384 0.29988,0.894424 -0.15372,0.804167 -0.36204,0.838413 -0.97563,0.160393 z"/>
+          <path fill="#202d49" d="M 98.046239,84.62825 C 95.717906,82.178961 92.898332,79.191914 91.78052,77.990368 l -2.032386,-2.184629 1.900094,-1.598815 c 1.045052,-0.879348 2.674001,-2.385371 3.619886,-3.346716 1.439466,-1.462994 1.864876,-1.74846 2.609883,-1.751325 0.868081,-0.0033 0.838005,0.0342 -1.216278,1.517931 -1.158502,0.836745 -2.511366,1.845189 -3.006364,2.240986 l -0.899997,0.719632 1.584702,1.661618 c 4.959382,5.200096 8.29335,8.492285 8.95437,8.84216 0.41265,0.218414 1.48421,0.492749 2.38125,0.609633 1.49052,0.194215 1.52844,0.214047 0.44035,0.230295 -0.65484,0.0098 -1.75196,-0.07467 -2.43804,-0.187668 l -1.24742,-0.205445 -0.0755,2.271738 -0.0755,2.271739 z m 21.188551,1.14596 c -0.39551,-1.046761 -7.25099,-20.316097 -7.41283,-20.835937 -0.18255,-0.586367 -0.15028,-0.595313 2.14787,-0.595313 h 2.33321 l 2.34004,6.680729 c 1.28702,3.674402 2.48365,7.031352 2.65917,7.45989 0.3052,0.745132 0.4101,0.525584 2.40194,-5.027084 3.39403,-9.461512 3.20871,-9.015118 3.50095,-8.4334 0.14105,0.28077 1.31495,3.516818 2.60867,7.191219 1.29371,3.674401 2.42939,6.68073 2.52373,6.68073 0.21676,0 2.72772,-7.246643 3.28315,-9.475213 0.22892,-0.918502 0.4878,-2.436549 0.57529,-3.373437 l 0.15907,-1.703434 h 1.0037 1.0037 l -1.17608,2.807113 c -0.64684,1.543912 -2.43227,6.328883 -3.96762,10.633269 -1.53535,4.304386 -2.86243,7.940852 -2.94907,8.081037 -0.0866,0.140184 -1.27688,-2.948146 -2.64498,-6.862956 -1.3681,-3.914811 -2.57943,-7.210335 -2.69184,-7.323388 -0.11241,-0.113053 -1.25827,2.744447 -2.54635,6.35 -2.88424,8.073487 -2.9588,8.25674 -3.15172,7.746175 z M 37.947471,85.249459 c -4.101401,-0.867321 -7.177449,-4.40165 -7.730703,-8.882455 -0.750174,-6.075653 2.070546,-11.041409 7.147927,-12.583615 3.488119,-1.059484 7.188891,-0.35491 10.053734,1.914088 l 1.052779,0.833816 -0.868381,0.895941 -0.86838,0.895941 -0.484688,-0.944754 c -0.646682,-1.260513 -2.409853,-2.993295 -3.516129,-3.455526 -1.146623,-0.47909 -3.116713,-0.4793 -4.033342,-4.31e-4 -2.529502,1.321473 -3.835069,4.688766 -3.801941,9.80589 0.02819,4.355155 1.122939,7.321505 3.278235,8.882794 2.827184,2.048001 6.866512,1.548992 9.561471,-1.181201 0.920182,-0.932212 0.985315,-0.964046 0.476831,-0.233051 -0.939751,1.350982 -2.970614,2.94977 -4.460921,3.511841 -1.635604,0.61687 -4.281321,0.863249 -5.806492,0.540722 z m 23.806522,-0.741958 c -1.897329,-0.678985 -3.010967,-1.604053 -3.9312,-3.265537 -0.717968,-1.296295 -0.78697,-1.641268 -0.78697,-3.93442 0,-2.875569 0.54257,-4.36139 2.196634,-6.015455 1.502373,-1.502373 2.995925,-2.04875 5.608574,-2.051753 1.984775,-0.0023 2.395764,0.08371 3.498697,0.732052 1.57554,0.926153 2.568267,2.55259 2.773856,4.544554 l 0.151479,1.467685 h -5.196391 c -5.900172,0 -5.395684,-0.261728 -4.906801,2.545646 0.559056,3.210335 2.252772,4.862687 4.984415,4.862687 1.645007,0 2.762271,-0.437758 4.136027,-1.620547 l 1.037172,-0.892994 -0.76414,0.926041 c -2.243903,2.719329 -5.747442,3.794925 -8.801352,2.702041 z m 5.991644,-10.441103 c -0.01032,-2.935633 -1.230356,-4.696354 -3.254199,-4.696354 -1.735751,0 -2.969791,1.846698 -3.491908,5.22552 l -0.173762,1.12448 h 3.46284 3.46284 z m 5.624086,3.456768 0.07027,-7.457294 1.190625,-0.303127 c 0.654844,-0.166721 1.518047,-0.385082 1.918229,-0.485247 l 0.727605,-0.182119 0.01948,2.452436 0.01948,2.452437 0.443537,-1.182383 c 0.624704,-1.665333 2.304086,-3.352996 3.572156,-3.589766 1.375641,-0.256857 1.571243,0.03656 1.069794,1.604769 l -0.420578,1.315297 -1.166468,-0.0932 c -1.364363,-0.109009 -2.2522,0.369891 -3.019883,1.628928 -0.464961,0.762557 -0.515643,1.358251 -0.516535,6.07104 l -9.89e-4,5.225521 H 75.28795 73.299455 Z m 67.671307,6.956391 c -1.87105,-0.66353 -3.72303,-2.591784 -4.25747,-4.432801 -0.53116,-1.829748 -0.42986,-4.748238 0.21546,-6.207083 1.19716,-2.706393 3.64246,-4.434778 6.61144,-4.673099 4.00012,-0.321091 6.49863,1.644402 7.06943,5.561282 l 0.18315,1.256771 h -5.17559 -5.17559 v 1.142603 c 0,2.515106 1.24078,5.005448 2.9288,5.878358 1.58899,0.8217 4.18777,0.365723 6.33162,-1.110933 0.48487,-0.333971 0.41511,-0.191771 -0.26128,0.532635 -2.06362,2.210119 -5.60513,3.068224 -8.46997,2.052267 z m 6.19073,-10.35667 c -0.0549,-2.977573 -1.20464,-4.752843 -3.07827,-4.752843 -0.83381,0 -1.22777,0.179061 -1.92254,0.873827 -0.92646,0.926459 -1.71909,3.0502 -1.71909,4.606058 v 0.885925 l 3.37344,-0.07405 3.37344,-0.07405 z M 84.684781,73.614581 V 62.513285 l 1.814463,-0.540371 c 0.997955,-0.297204 1.950455,-0.54037 2.116667,-0.54037 0.22197,0 0.302203,3.090789 0.302203,11.641666 v 11.641667 h -2.116666 -2.116667 z m 23.871989,10.709122 c 0.8719,-0.497661 1.26343,-1.172424 1.26343,-2.177394 0,-1.489706 -1.07362,-2.305268 -5.00006,-3.798241 -0.95923,-0.364736 -2.22041,-1.118086 -2.91041,-1.738507 -1.20483,-1.08332 -1.21766,-1.112595 -1.21766,-2.778125 0,-1.997733 0.639,-3.110883 2.2607,-3.938216 1.05493,-0.538182 2.12668,-0.736057 1.17889,-0.217653 -0.85837,0.469487 -1.19063,1.056302 -1.19063,2.102777 0,1.324039 0.89028,2.042971 4.04225,3.26426 3.68491,1.427785 5.21817,2.949064 5.21817,5.177399 0,1.788649 -1.76037,3.85476 -3.70417,4.347523 -0.64805,0.164284 -0.64684,0.15934 0.0595,-0.243823 z M 50.553531,73.482289 V 62.513285 l 1.814463,-0.540371 c 0.997955,-0.297204 1.950455,-0.54037 2.116667,-0.54037 0.221917,0 0.302203,3.057671 0.302203,11.509375 v 11.509375 h -2.116666 -2.116667 z m 102.986159,-0.05331 0.0691,-11.022315 1.71979,-0.486027 c 0.94589,-0.267315 1.80909,-0.486493 1.91823,-0.487061 0.10914,-5.68e-4 0.19844,5.178185 0.19844,11.508342 v 11.509375 h -1.98728 -1.98728 z m 7.08051,0.06088 V 62.528426 l 1.38906,-0.39886 c 0.76398,-0.219373 1.71648,-0.478854 2.11667,-0.576624 l 0.7276,-0.177764 v 11.538058 11.538058 h -2.11667 -2.11666 z m -50.26818,-2.396828 c -0.74323,-0.895539 -2.25799,-1.560667 -3.9488,-1.733912 l -1.7424,-0.178531 1.59806,-0.03757 c 1.36041,-0.03198 4.24277,0.492031 4.88302,0.887726 0.24514,0.151506 0.0106,1.45596 -0.26182,1.45596 -0.11073,0 -0.34836,-0.177155 -0.52806,-0.393678 z"/>
+        </g>
+      </svg>
+    </a>
+  </footer>
+
+</div>
+</body>
+</html>
