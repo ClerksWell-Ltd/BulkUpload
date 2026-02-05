@@ -8,7 +8,7 @@
 
 BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content and media into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes and media items, making it ideal for migrations, bulk updates, or onboarding new data.
 
-It currently just works with Umbraco 13, but we are looking at releasing it for Umbraco 16/17 soon.
+**Supports both Umbraco 13 and Umbraco 17** through a single multi-targeted package (v2.0.0+).
 
 ## Features
 
@@ -189,7 +189,7 @@ parentId,docTypeAlias,name,heroImage|mediaIdToMediaUdi
 1100,productPage,Red Widget,2001
 ```
 
-For detailed instructions, see the [Media Import Guide](../docs/media-import-guide.md).
+For detailed instructions, see the [Media Import Guide](docs/user-guides/media-import-guide.md).
 
 ## Resolvers
 
