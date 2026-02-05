@@ -105,10 +105,38 @@
   <ItemGroup>
     <Compile Remove="ClientV13\**" />
     <Compile Remove="ClientV17\node_modules\**" />
+    <Compile Remove="ClientShared\**" />
     <Content Remove="ClientV17\node_modules\**" />
+    <Content Remove="ClientShared\**" />
     <EmbeddedResource Remove="ClientV17\node_modules\**" />
+    <EmbeddedResource Remove="ClientShared\**" />
     <None Remove="ClientV17\node_modules\**" />
+    <None Remove="ClientShared\**" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="ClientShared\images\cw-logo-primary-blue.png" />
+  </ItemGroup>
+
+  <!-- Build V13 frontend only for net8.0 -->
+  <Target Name="BuildFrontendV13" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net8.0'">
+    <Message Text="[BulkUpload V13] Copying V13 frontend files to wwwroot..." Importance="high" />
+
+    <!-- Create wwwroot/BulkUpload directory if it doesn't exist -->
+    <MakeDir Directories="wwwroot\BulkUpload" Condition="!Exists('wwwroot\BulkUpload')" />
+
+    <!-- Copy V13 source files -->
+    <ItemGroup>
+      <V13Files Include="ClientV13\BulkUpload\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(V13Files)" DestinationFolder="wwwroot\BulkUpload\%(RecursiveDir)" SkipUnchangedFiles="true" />
+
+    <!-- Copy shared assets -->
+    <Message Text="[BulkUpload V13] Copying shared assets..." Importance="high" />
+    <ItemGroup>
+      <SharedImages Include="ClientShared\images\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SharedImages)" DestinationFolder="wwwroot\BulkUpload\images" SkipUnchangedFiles="true" />
+  </Target>
 
   <!-- Build V17 frontend only for net10.0 -->
   <Target Name="BuildFrontendV17" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net10.0'">
@@ -121,6 +149,14 @@
 
     <Message Text="[BulkUpload V17] Building frontend bundle..." Importance="high" />
     <Exec Command="npm run build" WorkingDirectory="ClientV17" />
+
+    <!-- Copy shared assets for V17 -->
+    <Message Text="[BulkUpload V17] Copying shared assets..." Importance="high" />
+    <MakeDir Directories="wwwroot\images" Condition="!Exists('wwwroot\images')" />
+    <ItemGroup>
+      <SharedImagesV17 Include="ClientShared\images\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SharedImagesV17)" DestinationFolder="wwwroot\images" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

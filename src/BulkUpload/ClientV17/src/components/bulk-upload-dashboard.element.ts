@@ -485,7 +485,7 @@ export class BulkUploadDashboardElement extends LitElement {
       --umb-radius-lg: 12px;
 
       max-width: 960px;
-      margin: 0 auto;
+      margin: 24px auto 10px auto;
       padding: 20px;
       animation: fadeUp 0.5s ease both;
     }

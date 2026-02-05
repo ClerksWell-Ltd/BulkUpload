@@ -363,3 +363,13 @@ src/.idea
 /src/BulkUpload.TestSite/App_Plugins/BulkUpload
 /src/BulkUpload.TestSite/wwwroot/media
 /.claude
+
+# BulkUpload: Ignore generated frontend files in wwwroot (built from ClientV13/ClientV17 sources)
+/src/BulkUpload/wwwroot/BulkUpload/
+/src/BulkUpload/wwwroot/bulkupload.js
+/src/BulkUpload/wwwroot/bulkupload.js.map
+/src/BulkUpload/wwwroot/umbraco-package.json
+/src/BulkUpload/wwwroot/images/
+
+# BulkUpload: Keep source files (ClientV13, ClientV17, ClientShared) in git
+# These are the single source of truth and must be version controlled
