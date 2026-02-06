@@ -81,3 +81,208 @@ export function getFileTypeDescription(file: File): string {
 
   return typeMap[ext] || ext.toUpperCase() + ' File';
 }
+
+/**
+ * Import type detected from CSV headers
+ */
+export type ImportType = 'content' | 'media' | 'unknown';
+
+/**
+ * Result of CSV file type detection
+ */
+export interface FileTypeDetectionResult {
+  importType: ImportType;
+  confidence: 'high' | 'medium' | 'low';
+  detectedHeaders: string[];
+}
+
+/**
+ * Reads the first line (headers) from a CSV file
+ * @param file - The CSV file to read
+ * @returns Promise resolving to array of header column names
+ */
+async function readCsvHeaders(file: File): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        if (!text) {
+          resolve([]);
+          return;
+        }
+
+        // Get first line (headers)
+        const firstLine = text.split('\n')[0];
+        if (!firstLine) {
+          resolve([]);
+          return;
+        }
+
+        // Parse CSV headers (handle quoted values)
+        const headers = firstLine.split(',').map(h =>
+          h.trim().replace(/^["']|["']$/g, '')
+        );
+
+        resolve(headers);
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    reader.onerror = () => reject(reader.error);
+
+    // Read only first 1KB to get headers
+    const blob = file.slice(0, 1024);
+    reader.readAsText(blob);
+  });
+}
+
+/**
+ * Reads CSV headers from a ZIP file (extracts first CSV found)
+ * @param file - The ZIP file to read
+ * @returns Promise resolving to array of header column names
+ */
+async function readCsvHeadersFromZip(file: File): Promise<string[]> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      // Dynamically import JSZip
+      const JSZip = (await import('jszip')).default;
+
+      const zip = await JSZip.loadAsync(file);
+
+      // Find first CSV file
+      const csvFiles = Object.keys(zip.files).filter(name =>
+        name.toLowerCase().endsWith('.csv') && !zip.files[name].dir
+      );
+
+      if (csvFiles.length === 0) {
+        resolve([]);
+        return;
+      }
+
+      // Read first CSV file
+      const csvContent = await zip.files[csvFiles[0]].async('text');
+      const firstLine = csvContent.split('\n')[0];
+
+      if (!firstLine) {
+        resolve([]);
+        return;
+      }
+
+      // Parse CSV headers
+      const headers = firstLine.split(',').map(h =>
+        h.trim().replace(/^["']|["']$/g, '')
+      );
+
+      resolve(headers);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+/**
+ * Detects whether a file is for content or media import based on CSV headers
+ * @param file - The CSV or ZIP file to analyze
+ * @returns Promise resolving to detection result
+ */
+export async function detectImportType(file: File): Promise<FileTypeDetectionResult> {
+  try {
+    const ext = getFileExtension(file.name).toLowerCase();
+    let headers: string[] = [];
+
+    if (ext === 'csv') {
+      headers = await readCsvHeaders(file);
+    } else if (ext === 'zip') {
+      headers = await readCsvHeadersFromZip(file);
+    } else {
+      return {
+        importType: 'unknown',
+        confidence: 'low',
+        detectedHeaders: []
+      };
+    }
+
+    // Normalize headers (remove resolver syntax and convert to lowercase)
+    const normalizedHeaders = headers.map(h =>
+      h.split('|')[0].toLowerCase().trim()
+    );
+
+    // Content-specific columns
+    const contentIndicators = [
+      'doctypealias',
+      'contenttype',
+      'bulkuploadlegacyparentid'
+    ];
+
+    // Media-specific columns
+    const mediaIndicators = [
+      'filename',
+      'mediatypealias',
+      'mediasource'
+    ];
+
+    // Common columns that appear in both
+    const commonColumns = ['name', 'parent'];
+
+    // Count matches
+    const contentMatches = contentIndicators.filter(indicator =>
+      normalizedHeaders.includes(indicator)
+    ).length;
+
+    const mediaMatches = mediaIndicators.filter(indicator =>
+      normalizedHeaders.includes(indicator)
+    ).length;
+
+    // Determine type based on indicators
+    if (contentMatches > 0 && mediaMatches === 0) {
+      return {
+        importType: 'content',
+        confidence: contentMatches >= 2 ? 'high' : 'medium',
+        detectedHeaders: headers
+      };
+    }
+
+    if (mediaMatches > 0 && contentMatches === 0) {
+      return {
+        importType: 'media',
+        confidence: mediaMatches >= 1 ? 'high' : 'medium',
+        detectedHeaders: headers
+      };
+    }
+
+    // If both have matches, prioritize based on count
+    if (contentMatches > mediaMatches) {
+      return {
+        importType: 'content',
+        confidence: 'medium',
+        detectedHeaders: headers
+      };
+    }
+
+    if (mediaMatches > contentMatches) {
+      return {
+        importType: 'media',
+        confidence: 'medium',
+        detectedHeaders: headers
+      };
+    }
+
+    // If we only have common columns, return unknown
+    return {
+      importType: 'unknown',
+      confidence: 'low',
+      detectedHeaders: headers
+    };
+
+  } catch (error) {
+    console.error('Error detecting import type:', error);
+    return {
+      importType: 'unknown',
+      confidence: 'low',
+      detectedHeaders: []
+    };
+  }
+}
