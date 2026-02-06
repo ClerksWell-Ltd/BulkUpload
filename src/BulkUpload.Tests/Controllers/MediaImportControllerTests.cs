@@ -217,10 +217,10 @@ public class MediaImportControllerTests
         var value = okResult.Value;
         Assert.NotNull(value);
 
-        var totalCountProp = value.GetType().GetProperty("totalCount");
-        var successCountProp = value.GetType().GetProperty("successCount");
-        var failureCountProp = value.GetType().GetProperty("failureCount");
-        var resultsProp = value.GetType().GetProperty("results");
+        var totalCountProp = value.GetType().GetProperty("TotalCount");
+        var successCountProp = value.GetType().GetProperty("SuccessCount");
+        var failureCountProp = value.GetType().GetProperty("FailureCount");
+        var resultsProp = value.GetType().GetProperty("Results");
 
         Assert.NotNull(totalCountProp);
         Assert.NotNull(successCountProp);
@@ -528,8 +528,9 @@ public class MediaImportControllerTests
         Assert.NotNull(okResult.Value);
 
         var value = okResult.Value;
-        var successCountProp = value.GetType().GetProperty("successCount");
-        var successCount = (int)successCountProp!.GetValue(value)!;
+        var successCountProp = value.GetType().GetProperty("SuccessCount");
+        Assert.NotNull(successCountProp);
+        var successCount = (int)successCountProp.GetValue(value)!;
         Assert.Equal(1, successCount);
     }
 
@@ -574,8 +575,9 @@ public class MediaImportControllerTests
         Assert.NotNull(okResult.Value);
 
         var value = okResult.Value;
-        var successCountProp = value.GetType().GetProperty("successCount");
-        var successCount = (int)successCountProp!.GetValue(value)!;
+        var successCountProp = value.GetType().GetProperty("SuccessCount");
+        Assert.NotNull(successCountProp);
+        var successCount = (int)successCountProp.GetValue(value)!;
         Assert.Equal(1, successCount);
     }
 
@@ -620,8 +622,9 @@ public class MediaImportControllerTests
         Assert.NotNull(okResult.Value);
 
         var value = okResult.Value;
-        var successCountProp = value.GetType().GetProperty("successCount");
-        var successCount = (int)successCountProp!.GetValue(value)!;
+        var successCountProp = value.GetType().GetProperty("SuccessCount");
+        Assert.NotNull(successCountProp);
+        var successCount = (int)successCountProp.GetValue(value)!;
         Assert.Equal(1, successCount);
     }
 
