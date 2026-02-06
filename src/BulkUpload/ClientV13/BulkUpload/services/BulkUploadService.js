@@ -49,7 +49,8 @@
         loading: false,
         file: null,
         fileElement: null,
-        results: null
+        results: null,
+        detectedImportType: null
       },
       media: {
         loading: false,
@@ -105,10 +106,45 @@
   };
 
   /**
+   * Sets content file with auto-detection of import type
+   * @param {File} file - The selected file
+   * @param {HTMLElement} fileElement - The file input element
+   * @returns {Promise<void>}
+   */
+  BulkUploadService.prototype.setContentFileWithDetection = function(file, fileElement) {
+    var self = this;
+    this.state.content.file = file;
+    this.state.content.fileElement = fileElement || null;
+
+    // Detect import type
+    return window.BulkUploadUtils.detectImportType(file)
+      .then(function(detection) {
+        self.state.content.detectedImportType = detection.importType;
+
+        // Notify user of detected type
+        if (detection.importType !== 'unknown') {
+          self.notify({
+            type: 'info',
+            headline: 'File Type Detected',
+            message: 'Detected ' + detection.importType + ' import (' + detection.confidence + ' confidence)'
+          });
+        }
+
+        self.emitStateChange();
+      })
+      .catch(function(error) {
+        console.error('Error detecting import type:', error);
+        self.state.content.detectedImportType = 'unknown';
+        self.emitStateChange();
+      });
+  };
+
+  /**
    * Clears content file
    */
   BulkUploadService.prototype.clearContentFile = function() {
     this.state.content.file = null;
+    this.state.content.detectedImportType = null;
     if (this.state.content.fileElement) {
       this.state.content.fileElement.value = '';
     }
@@ -312,6 +348,126 @@
 
     } finally {
       this.state.media.loading = false;
+      this.emitStateChange();
+    }
+  };
+
+  /**
+   * Imports file with auto-detection (unified import for content tab)
+   * Automatically detects whether to import as content or media based on CSV headers
+   * @returns {Promise<Object>} Promise resolving to import results
+   */
+  BulkUploadService.prototype.importWithAutoDetection = async function() {
+    var self = this;
+    var file = this.state.content.file;
+    var detectedType = this.state.content.detectedImportType;
+
+    if (!file) {
+      this.notify({
+        type: 'warning',
+        headline: 'No File Selected',
+        message: 'Please select a CSV or ZIP file to import.'
+      });
+      return null;
+    }
+
+    // If type wasn't detected yet, detect it now
+    var importType = detectedType;
+    if (!importType || importType === 'unknown') {
+      try {
+        var detection = await window.BulkUploadUtils.detectImportType(file);
+        importType = detection.importType;
+        this.state.content.detectedImportType = importType;
+      } catch (error) {
+        this.notify({
+          type: 'error',
+          headline: 'Detection Failed',
+          message: 'Could not determine file type. Please use the Media Import tab for media files.'
+        });
+        return null;
+      }
+    }
+
+    // If still unknown, ask user to use media tab
+    if (importType === 'unknown') {
+      this.notify({
+        type: 'warning',
+        headline: 'Unknown File Type',
+        message: 'Could not automatically detect import type. If importing media, please use the Media Import tab.'
+      });
+      return null;
+    }
+
+    // Validate file
+    var validation = this.apiClient.validateFile(file, {
+      acceptedTypes: ['.csv', '.zip'],
+      maxSizeInMB: 100
+    });
+
+    if (!validation.valid) {
+      this.notify({
+        type: 'error',
+        headline: 'Invalid File',
+        message: validation.errors.join(', ')
+      });
+      return null;
+    }
+
+    // Start import
+    this.state.content.loading = true;
+    this.state.content.results = null;
+    this.emitStateChange();
+
+    try {
+      // Call appropriate API based on detected type
+      var response = importType === 'media'
+        ? await this.apiClient.importMedia(file)
+        : await this.apiClient.importContent(file);
+
+      // Clear file after successful upload
+      this.clearContentFile();
+
+      // Store results
+      this.state.content.results = response.data;
+
+      // Use pre-calculated stats from API response
+      var stats = {
+        total: response.data.totalCount || 0,
+        success: response.data.successCount || 0,
+        failed: response.data.failureCount || 0
+      };
+
+      // Create summary message
+      var itemType = importType === 'media' ? 'media items' : 'content items';
+      var message;
+      if (stats.total === 0) {
+        message = 'No ' + itemType + ' to import.';
+      } else if (stats.failed === 0) {
+        message = 'All ' + stats.total + ' ' + itemType + ' imported successfully.';
+      } else if (stats.success === 0) {
+        message = 'All ' + stats.total + ' ' + itemType + ' failed to import.';
+      } else {
+        message = stats.success + ' of ' + stats.total + ' ' + itemType + ' imported successfully. ' + stats.failed + ' failed.';
+      }
+
+      this.notify({
+        type: stats.failed > 0 ? 'warning' : 'success',
+        headline: (importType === 'media' ? 'Media' : 'Content') + ' Import Complete',
+        message: message
+      });
+
+      return response.data;
+
+    } catch (error) {
+      this.notify({
+        type: 'error',
+        headline: 'Import Failed',
+        message: error.message || 'An error occurred during import.'
+      });
+      throw error;
+
+    } finally {
+      this.state.content.loading = false;
       this.emitStateChange();
     }
   };

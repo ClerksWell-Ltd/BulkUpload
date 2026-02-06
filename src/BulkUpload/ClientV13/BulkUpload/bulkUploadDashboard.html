@@ -73,7 +73,7 @@
                 <div class="icon-circle green">▲</div>
                 <div>
                     <h2>Upload File</h2>
-                    <span class="subtitle">Drag & drop or browse for your import file</span>
+                    <span class="subtitle">Automatically detects content or media imports</span>
                 </div>
             </div>
             <div class="card-body">
@@ -81,7 +81,7 @@
                 <div class="drop-zone" ng-click="triggerFileInput('content')" ng-if="!state.content.file">
                     <div class="upload-icon">▲</div>
                     <h3>Drag files here or <em>browse</em></h3>
-                    <p>Select a file to start your content import</p>
+                    <p>File type will be automatically detected</p>
                     <div class="file-types">
                         <span class="file-chip">.csv</span>
                         <span class="file-chip">.zip</span>
@@ -94,6 +94,11 @@
                     <div class="file-details">
                         <div class="file-name">{{state.content.file.name}}</div>
                         <div class="file-size">{{formatFileSize(state.content.file.size)}}</div>
+                        <div class="detected-type" ng-if="state.content.detectedImportType">
+                            <span class="type-badge content-badge" ng-if="state.content.detectedImportType === 'content'">📝 Content Import</span>
+                            <span class="type-badge media-badge" ng-if="state.content.detectedImportType === 'media'">🖼 Media Import</span>
+                            <span class="type-badge unknown-badge" ng-if="state.content.detectedImportType === 'unknown'">❓ Unknown Type</span>
+                        </div>
                     </div>
                     <uui-button label="Clear"
                                 look="outline"
@@ -113,13 +118,15 @@
 
                 <!-- Import Button -->
                 <div class="btn-container">
-                    <uui-button label="Import Content"
+                    <uui-button ng-attr-label="{{state.content.detectedImportType === 'content' ? 'Import Content' : state.content.detectedImportType === 'media' ? 'Import Media' : 'Import File'}}"
                                 look="primary"
                                 color="positive"
                                 ng-click="onUploadClicked()"
                                 ng-disabled="!state.content.file || state.content.loading"
                                 style="--uui-button-padding: 12px 28px;">
-                        <span ng-if="!state.content.loading">▲ Import Content</span>
+                        <span ng-if="!state.content.loading && state.content.detectedImportType === 'content'">▲ Import Content</span>
+                        <span ng-if="!state.content.loading && state.content.detectedImportType === 'media'">▲ Import Media</span>
+                        <span ng-if="!state.content.loading && (!state.content.detectedImportType || state.content.detectedImportType === 'unknown')">▲ Import File</span>
                         <span ng-if="state.content.loading">Processing...</span>
                     </uui-button>
                 </div>

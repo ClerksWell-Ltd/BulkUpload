@@ -77,8 +77,8 @@ angular
       };
 
       // Content import handlers
-      $scope.onFileSelected = function(file, evt) {
-        service.setContentFile(file, evt ? evt.target : null);
+      $scope.onFileSelected = async function(file, evt) {
+        await service.setContentFileWithDetection(file, evt ? evt.target : null);
       };
 
       $scope.clearContentFile = function() {
@@ -91,7 +91,7 @@ angular
 
       $scope.onUploadClicked = async function() {
         try {
-          await service.importContent();
+          await service.importWithAutoDetection();
           angularHelper.getCurrentForm($scope).$setPristine();
           // Scroll to top to show results
           setTimeout(function() {
