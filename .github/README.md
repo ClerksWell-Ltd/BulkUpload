@@ -8,7 +8,7 @@
 
 BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content and media into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes and media items, making it ideal for migrations, bulk updates, or onboarding new data.
 
-It currently just works with Umbraco 13, but we are looking at releasing it for Umbraco 16/17 soon.
+**Supports both Umbraco 13 and Umbraco 17** through a single multi-targeted package (v2.0.0+).
 
 ## Features
 
@@ -48,7 +48,7 @@ This script will install the package with Clean Starter Kit so you can test it s
 
 ```ps1
 # Ensure we have the version specific Umbraco templates
-dotnet new install Umbraco.Templates::13.10.0 --force
+dotnet new install Umbraco.Templates --force
 
 # Create solution/project
 dotnet new sln --name "MySolution"
@@ -57,7 +57,7 @@ dotnet sln add "MyProject"
 
 
 #Add starter kit
-dotnet add "MyProject" package clean --version 4.2.2
+dotnet add "MyProject" package clean
 
 #Add BulkUpload package
 dotnet add "MyProject" package Umbraco.Community.BulkUpload
@@ -69,7 +69,7 @@ dotnet run --project "MyProject"
 #Running
 ```
 
-In the umbraco backoffice, go to the users section and add the Bulk Upload section to the relevant group e.g. Administrators and refresh the page. You will see a new section called Bulk Upload.
+In the umbraco backoffice, go to the `Users` section and add the `Bulk Upload` section to the relevant group e.g. Administrators and refresh the page. You will see a new section called Bulk Upload.
 
 ## Using the tool
 
@@ -80,7 +80,7 @@ The package supports bulk importing content with optional media files:
 - **ZIP file** (new) - Upload a ZIP containing CSV + media files for content with embedded images/files
 
 Sample files:
-- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv?raw=true" download>CSV-only sample</a>
+- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-sample.csv?raw=true" download>CSV-only sample</a>
 
 **How it works:**
 
@@ -97,7 +97,7 @@ Sample files:
 
 **Example CSV with ZIP media:**
 ```csv
-parentId,docTypeAlias,name,heroImage|zipFileToMedia
+parent,docTypeAlias,name,heroImage|zipFileToMedia
 1100,productPage,Red Widget,hero-red-widget.jpg
 1100,productPage,Blue Widget,hero-blue-widget.jpg
 ```
@@ -116,13 +116,13 @@ The package supports bulk importing media files (images, documents, videos, etc.
 - **URLs** - Download directly from HTTP/HTTPS URLs
 
 **Multi-CSV Benefits:**
-- Organize imports by category, department, or source system
+- Organise imports by category, department, or source system
 - Automatic deduplication: same media file referenced in multiple CSVs is created only once
 - Separate result files per source CSV for easy tracking
 
 Sample files:
-- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-sample.csv?raw=true" download>Traditional media CSV (for use in ZIP)</a>
-- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-url-sample.csv?raw=true" download>CSV-only sample (URL-based media)</a>
+- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-sample.csv?raw=true" download>Traditional media CSV (for use in ZIP)</a>
+- <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-url-sample.csv?raw=true" download>CSV-only sample (URL-based media)</a>
 
 **How it works:**
 
@@ -138,7 +138,6 @@ Sample files:
      - Integer ID: `1150`
      - GUID: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`
      - Path: `/Products/Images/` (auto-creates folders)
-     - Legacy `parentId` column still supported
    - Optional columns: `name`, `mediaTypeAlias`, plus any custom media properties (e.g., `altText`, `caption`)
 
 3. **Upload:**
@@ -184,12 +183,7 @@ For more examples and detailed instructions, see the [samples directory](../samp
 
 After media import, download the results CSV which contains `mediaId`, `mediaGuid`, and `mediaUdi` for each imported item. You can then use these IDs in your content import CSV:
 
-```csv
-parentId,docTypeAlias,name,heroImage|mediaIdToMediaUdi
-1100,productPage,Red Widget,2001
-```
-
-For detailed instructions, see the [Media Import Guide](../docs/media-import-guide.md).
+For detailed instructions, see the [Media Import Guide](.github/docs/user-guides/media-import-guide.md).
 
 ## Resolvers
 
@@ -215,7 +209,7 @@ public class DateTimeResolver : IResolver
 }
 ```
 
-In our [example CSV file](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv) there is a column called `articleDate` and it uses the `dateTime` resolver. The way we tell it to use it is by making the column header look like this:
+In our [example CSV file](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-sample.csv) there is a column called `articleDate` and it uses the `dateTime` resolver. The way we tell it to use it is by making the column header look like this:
 
 `articleDate|dateTime`
 
@@ -269,7 +263,7 @@ In your CSV file add a column e.g. `title` and get it to use the `example` resol
 
 ## Documentation
 
-For complete documentation, see the [Documentation Index](../docs/README.md) which includes:
+For complete documentation, see the [Documentation Index](.github/docs/README.md) which includes:
 
 - **User Guides**: Media import, legacy hierarchy mapping, and advanced features
 - **Developer Guides**: Branching strategy, release process, and workflow diagrams
@@ -277,8 +271,8 @@ For complete documentation, see the [Documentation Index](../docs/README.md) whi
 - **Contributing**: Development workflow and contribution guidelines
 
 Quick links:
-- [Media Import Guide](../docs/media-import-guide.md) - Comprehensive media import documentation
-- [Legacy Hierarchy Mapping](../docs/LEGACY_HIERARCHY_MAPPING.md) - Preserve CMS hierarchies during migration
+- [Media Import Guide](.github/docs/media-import-guide.md) - Comprehensive media import documentation
+- [Legacy Hierarchy Mapping](.github/docs/LEGACY_HIERARCHY_MAPPING.md) - Preserve CMS hierarchies during migration
 - [Contributing Guidelines](./CONTRIBUTING.md) - How to contribute to the project
 - [Changelog](../CHANGELOG.md) - Version history and release notes
 

@@ -148,14 +148,12 @@ sequenceDiagram
     Dev->>GH: Tag release on release/v13.x
     Dev->>GH: Publish GitHub Release
     GH->>Workflow: Trigger release workflow
-    Workflow->>Workflow: Verify release/* branch
-    Workflow->>Workflow: Build & Test
+    Workflow->>Workflow: Verify main branch
+    Workflow->>Workflow: Build & Test (net8.0 + net10.0)
     Workflow->>Workflow: Pack NuGet package
     Workflow->>NuGet: Publish package
     NuGet-->>Workflow: Confirm published
     Workflow->>GH: Upload artifact
-    Workflow->>Post: Trigger post-release workflow
-    Post->>GH: Create cleanup PR
     Note over NuGet: Package available to users
 ```
 
@@ -248,10 +246,10 @@ To create a release:
 4. Commit changes
 5. Create and push a git tag: `git tag v1.2.3 && git push origin v1.2.3`
 6. Go to GitHub → Releases → Draft a new release
-7. Select the tag, fill in release notes
+7. Select the tag (targeting main branch), fill in release notes
 8. Click "Publish release"
-9. Workflow runs automatically
-10. Review post-release PR and merge
+9. Workflow runs automatically and publishes to NuGet
+10. Verify release on NuGet.org
 
 ## Workflow File
 
@@ -259,5 +257,4 @@ Location: `.github/workflows/release.yml`
 
 ## Related Workflows
 
-- `build.yml` - Runs tests on PRs (quality gate before merging to release branch)
-- `post-release.yml` - Triggered after this workflow to update versions
+- `build.yml` - Runs tests on PRs and main branch pushes

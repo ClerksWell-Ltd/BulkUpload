@@ -236,11 +236,12 @@ git commit -m "chore: prepare release v2.1.0"
 
 ## Resources
 
-- **[Full Documentation](./MULTI_TARGETING.md)** - Complete multi-targeting guide
+- **[Branching Strategy](./BRANCHING_STRATEGY.md)** - Complete guide to the multi-targeting workflow
 - **[CLAUDE.md](../.claude/CLAUDE.md)** - Developer quick reference
 - **[Quick Reference](./QUICK_REFERENCE.md)** - Command cheat sheet
-- **[Branching Strategy](./BRANCHING_STRATEGY.md)** - Legacy multi-branch docs (pre-v2.0.0)
+- **[Release Process](./RELEASE_PROCESS.md)** - How to release from main branch
+- **[Workflow Diagrams](./WORKFLOW_DIAGRAM.md)** - Visual workflow guides
 
 ---
 
-**Questions?** See [MULTI_TARGETING.md](./MULTI_TARGETING.md) for detailed documentation.
+**Questions?** See [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md) for detailed documentation on the multi-targeting workflow.
