@@ -140,9 +140,9 @@ async function readCsvHeaders(file: File): Promise<string[]> {
 }
 
 /**
- * Reads CSV headers from a ZIP file (extracts first CSV found)
+ * Reads CSV headers from ALL CSV files in a ZIP and combines them
  * @param file - The ZIP file to read
- * @returns Promise resolving to array of header column names
+ * @returns Promise resolving to combined array of header column names from all CSVs
  */
 async function readCsvHeadersFromZip(file: File): Promise<string[]> {
   return new Promise(async (resolve, reject) => {
@@ -152,7 +152,7 @@ async function readCsvHeadersFromZip(file: File): Promise<string[]> {
 
       const zip = await JSZip.loadAsync(file);
 
-      // Find first CSV file
+      // Find ALL CSV files
       const csvFiles = Object.keys(zip.files).filter(name =>
         name.toLowerCase().endsWith('.csv') && !zip.files[name].dir
       );
@@ -162,21 +162,27 @@ async function readCsvHeadersFromZip(file: File): Promise<string[]> {
         return;
       }
 
-      // Read first CSV file
-      const csvContent = await zip.files[csvFiles[0]].async('text');
-      const firstLine = csvContent.split('\n')[0];
+      // Read ALL CSV files and collect unique headers
+      const allHeaders = new Set<string>();
 
-      if (!firstLine) {
-        resolve([]);
-        return;
+      for (const csvFileName of csvFiles) {
+        try {
+          const csvContent = await zip.files[csvFileName].async('text');
+          const firstLine = csvContent.split('\n')[0];
+
+          if (firstLine) {
+            const headers = firstLine.split(',').map(h =>
+              h.trim().replace(/^["']|["']$/g, '')
+            );
+            headers.forEach(h => allHeaders.add(h));
+          }
+        } catch (err) {
+          console.warn(`Failed to read CSV ${csvFileName}:`, err);
+          // Continue processing other CSVs
+        }
       }
 
-      // Parse CSV headers
-      const headers = firstLine.split(',').map(h =>
-        h.trim().replace(/^["']|["']$/g, '')
-      );
-
-      resolve(headers);
+      resolve(Array.from(allHeaders));
     } catch (error) {
       reject(error);
     }
@@ -196,6 +202,7 @@ export async function detectImportType(file: File): Promise<FileTypeDetectionRes
     if (ext === 'csv') {
       headers = await readCsvHeaders(file);
     } else if (ext === 'zip') {
+      // For ZIP files, we need to check ALL CSVs, not just the first one
       headers = await readCsvHeadersFromZip(file);
     } else {
       return {
@@ -224,9 +231,6 @@ export async function detectImportType(file: File): Promise<FileTypeDetectionRes
       'mediasource'
     ];
 
-    // Common columns that appear in both
-    const commonColumns = ['name', 'parent'];
-
     // Count matches
     const contentMatches = contentIndicators.filter(indicator =>
       normalizedHeaders.includes(indicator)
@@ -236,7 +240,18 @@ export async function detectImportType(file: File): Promise<FileTypeDetectionRes
       normalizedHeaders.includes(indicator)
     ).length;
 
-    // Determine type based on indicators
+    // IMPORTANT: If we detect BOTH content and media indicators, treat as content import
+    // because the content import endpoint already does media preprocessing.
+    // A ZIP with both content CSVs and media CSVs should go through the content endpoint.
+    if (contentMatches > 0 && mediaMatches > 0) {
+      return {
+        importType: 'content',
+        confidence: 'high',
+        detectedHeaders: headers
+      };
+    }
+
+    // Pure content import
     if (contentMatches > 0 && mediaMatches === 0) {
       return {
         importType: 'content',
@@ -245,27 +260,11 @@ export async function detectImportType(file: File): Promise<FileTypeDetectionRes
       };
     }
 
+    // Pure media import (standalone media, no content)
     if (mediaMatches > 0 && contentMatches === 0) {
       return {
         importType: 'media',
         confidence: mediaMatches >= 1 ? 'high' : 'medium',
-        detectedHeaders: headers
-      };
-    }
-
-    // If both have matches, prioritize based on count
-    if (contentMatches > mediaMatches) {
-      return {
-        importType: 'content',
-        confidence: 'medium',
-        detectedHeaders: headers
-      };
-    }
-
-    if (mediaMatches > contentMatches) {
-      return {
-        importType: 'media',
-        confidence: 'medium',
         detectedHeaders: headers
       };
     }

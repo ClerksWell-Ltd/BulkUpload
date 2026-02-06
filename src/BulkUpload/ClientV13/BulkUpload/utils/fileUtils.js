@@ -134,9 +134,9 @@
   }
 
   /**
-   * Reads CSV headers from a ZIP file (extracts first CSV found)
+   * Reads CSV headers from ALL CSV files in a ZIP and combines them
    * @param {File} file - The ZIP file to read
-   * @returns {Promise<string[]>} Promise resolving to array of header column names
+   * @returns {Promise<string[]>} Promise resolving to combined array of header column names from all CSVs
    */
   function readCsvHeadersFromZip(file) {
     return new Promise(function(resolve, reject) {
@@ -148,7 +148,7 @@
 
       JSZip.loadAsync(file)
         .then(function(zip) {
-          // Find first CSV file
+          // Find ALL CSV files
           var csvFiles = Object.keys(zip.files).filter(function(name) {
             return name.toLowerCase().endsWith('.csv') && !zip.files[name].dir;
           });
@@ -158,23 +158,37 @@
             return;
           }
 
-          // Read first CSV file
-          return zip.files[csvFiles[0]].async('text');
-        })
-        .then(function(csvContent) {
-          var firstLine = csvContent.split('\n')[0];
+          // Read ALL CSV files and collect unique headers
+          var allHeadersSet = {};
+          var promises = [];
 
-          if (!firstLine) {
-            resolve([]);
-            return;
-          }
-
-          // Parse CSV headers
-          var headers = firstLine.split(',').map(function(h) {
-            return h.trim().replace(/^["']|["']$/g, '');
+          csvFiles.forEach(function(csvFileName) {
+            promises.push(
+              zip.files[csvFileName].async('text')
+                .then(function(csvContent) {
+                  var firstLine = csvContent.split('\n')[0];
+                  if (firstLine) {
+                    var headers = firstLine.split(',').map(function(h) {
+                      return h.trim().replace(/^["']|["']$/g, '');
+                    });
+                    headers.forEach(function(h) {
+                      allHeadersSet[h] = true;
+                    });
+                  }
+                })
+                .catch(function(err) {
+                  console.warn('Failed to read CSV ' + csvFileName + ':', err);
+                  // Continue processing other CSVs
+                })
+            );
           });
 
-          resolve(headers);
+          return Promise.all(promises).then(function() {
+            return Object.keys(allHeadersSet);
+          });
+        })
+        .then(function(allHeaders) {
+          resolve(allHeaders);
         })
         .catch(function(error) {
           reject(error);
@@ -235,7 +249,19 @@
             return normalizedHeaders.indexOf(indicator) !== -1;
           }).length;
 
-          // Determine type based on indicators
+          // IMPORTANT: If we detect BOTH content and media indicators, treat as content import
+          // because the content import endpoint already does media preprocessing.
+          // A ZIP with both content CSVs and media CSVs should go through the content endpoint.
+          if (contentMatches > 0 && mediaMatches > 0) {
+            resolve({
+              importType: 'content',
+              confidence: 'high',
+              detectedHeaders: headers
+            });
+            return;
+          }
+
+          // Pure content import
           if (contentMatches > 0 && mediaMatches === 0) {
             resolve({
               importType: 'content',
@@ -245,29 +271,11 @@
             return;
           }
 
+          // Pure media import (standalone media, no content)
           if (mediaMatches > 0 && contentMatches === 0) {
             resolve({
               importType: 'media',
               confidence: mediaMatches >= 1 ? 'high' : 'medium',
-              detectedHeaders: headers
-            });
-            return;
-          }
-
-          // If both have matches, prioritize based on count
-          if (contentMatches > mediaMatches) {
-            resolve({
-              importType: 'content',
-              confidence: 'medium',
-              detectedHeaders: headers
-            });
-            return;
-          }
-
-          if (mediaMatches > contentMatches) {
-            resolve({
-              importType: 'media',
-              confidence: 'medium',
               detectedHeaders: headers
             });
             return;
