@@ -42,11 +42,11 @@ export class BulkUploadDashboardElement extends LitElement {
     this.dashboardState = { ...state };
   }
 
-  private handleContentFileChange(e: Event): void {
+  private async handleContentFileChange(e: Event): Promise<void> {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     if (file) {
-      this.service.setContentFile(file, input);
+      await this.service.setContentFileWithDetection(file, input);
     }
   }
 
@@ -67,7 +67,7 @@ export class BulkUploadDashboardElement extends LitElement {
   }
 
   private async handleContentImport(): Promise<void> {
-    await this.service.importContent();
+    await this.service.importWithAutoDetection();
     // Scroll to top to show results
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -160,7 +160,7 @@ export class BulkUploadDashboardElement extends LitElement {
     const fileInputId = isContent ? 'content-file-input' : 'media-file-input';
     const title = isContent ? 'Upload File' : 'Upload File';
     const subtitle = isContent
-      ? 'Drag & drop or browse for your import file'
+      ? 'Automatically detects content or media imports'
       : 'Drag & drop or browse for your media import file';
 
     return html`
@@ -178,7 +178,7 @@ export class BulkUploadDashboardElement extends LitElement {
             <div class="drop-zone" @click=${() => this.triggerFileInput(type)}>
               <div class="upload-icon">▲</div>
               <h3>Drag files here or <em>browse</em></h3>
-              <p>Select a ${isContent ? 'file to start your content import' : 'ZIP or CSV file to start your media import'}</p>
+              <p>${isContent ? 'File type will be automatically detected' : 'Select a ZIP or CSV file to start your media import'}</p>
               <div class="file-types">
                 <span class="file-chip">.csv</span>
                 <span class="file-chip">.zip</span>
@@ -193,6 +193,17 @@ export class BulkUploadDashboardElement extends LitElement {
               <div class="file-details">
                 <div class="file-name">${tabState.file.name}</div>
                 <div class="file-size">${formatFileSize(tabState.file.size)}</div>
+                ${isContent && tabState.detectedImportType ? html`
+                  <div class="detected-type">
+                    ${tabState.detectedImportType === 'content' ? html`
+                      <span class="type-badge content-badge">📝 Content Import</span>
+                    ` : tabState.detectedImportType === 'media' ? html`
+                      <span class="type-badge media-badge">🖼 Media Import</span>
+                    ` : html`
+                      <span class="type-badge unknown-badge">❓ Unknown Type</span>
+                    `}
+                  </div>
+                ` : nothing}
               </div>
               <uui-button
                 label="Clear"
@@ -215,13 +226,17 @@ export class BulkUploadDashboardElement extends LitElement {
           <!-- Import Button -->
           <div class="btn-container">
             <uui-button
-              label=${isContent ? 'Import Content' : 'Import Media'}
+              label=${isContent ? 'Import File' : 'Import Media'}
               look="primary"
               color="positive"
               ?disabled=${!tabState.file || tabState.loading}
               @click=${isContent ? this.handleContentImport : this.handleMediaImport}
               style="--uui-button-padding: 12px 28px;">
-              ${tabState.loading ? 'Processing...' : `▲ Import ${isContent ? 'Content' : 'Media'}`}
+              ${tabState.loading ? 'Processing...' : isContent ? (
+                tabState.detectedImportType === 'content' ? '▲ Import Content' :
+                tabState.detectedImportType === 'media' ? '▲ Import Media' :
+                '▲ Import File'
+              ) : '▲ Import Media'}
             </uui-button>
           </div>
         </div>
@@ -726,6 +741,37 @@ export class BulkUploadDashboardElement extends LitElement {
       color: var(--umb-text-muted);
       font-size: 12px;
       margin-top: 2px;
+    }
+
+    .file-preview .detected-type {
+      margin-top: 6px;
+    }
+
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .content-badge {
+      background: rgba(27,38,79,0.08);
+      color: var(--umb-blue);
+    }
+
+    .media-badge {
+      background: var(--umb-accent-soft);
+      color: var(--umb-accent-hover);
+    }
+
+    .unknown-badge {
+      background: rgba(245,193,66,0.15);
+      color: #c49a2e;
     }
 
     /* Hidden file input */
