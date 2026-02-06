@@ -32,7 +32,8 @@ namespace BulkUpload.Controllers;
 public class BulkUploadController : UmbracoAuthorizedApiController
 #else
 /// <summary>
-/// BulkUpload API for importing content from CSV/ZIP files
+/// BulkUpload API for importing content from CSV/ZIP files into Umbraco CMS.
+/// Supports single and multi-CSV imports, media deduplication, legacy CMS migration, and update mode.
 /// </summary>
 [Route("api/v{version:apiVersion}/content")]
 [ApiVersion("1.0")]
@@ -76,27 +77,72 @@ public class BulkUploadController : ControllerBase
     }
 
     /// <summary>
-    /// Imports content from a CSV file or ZIP archive containing CSV and media files
+    /// Imports content from a CSV file or ZIP archive containing CSV and media files.
     /// </summary>
-    /// <param name="file">CSV file or ZIP archive containing CSV files and optional media files</param>
-    /// <returns>Import results with success/failure counts and details for each imported item</returns>
+    /// <param name="model">Request model containing the file to import.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the import operation.</param>
+    /// <returns>
+    /// Import results containing total counts, success/failure counts, and detailed information for each imported content item.
+    /// Includes media preprocessing results if media files were included in the upload.
+    /// </returns>
     /// <remarks>
-    /// Supports:
-    /// - Single CSV file upload (content only)
-    /// - ZIP file with CSV(s) and media files
-    /// - Multi-CSV imports with cross-file hierarchy
-    /// - Legacy content migration via bulkUploadLegacyId
-    /// - Automatic media deduplication
-    /// - Update mode via bulkUploadShouldUpdate column
+    /// <para>This endpoint supports multiple import scenarios:</para>
+    /// <list type="bullet">
+    ///   <item><description><strong>Single CSV:</strong> Upload a CSV file containing content data only (no media files)</description></item>
+    ///   <item><description><strong>ZIP with CSV and media:</strong> Upload a ZIP containing CSV(s) and media files</description></item>
+    ///   <item><description><strong>Multi-CSV imports:</strong> ZIP with multiple CSV files supporting cross-file parent-child hierarchy</description></item>
+    ///   <item><description><strong>Legacy migration:</strong> Use bulkUploadLegacyId and bulkUploadLegacyParentId for legacy CMS migration</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Update Mode:</strong></para>
+    /// <para>Include a 'bulkUploadShouldUpdate' column (true/false) in your CSV to enable update mode. Rows with 'true' will update existing content, while 'false' rows are skipped.</para>
+    ///
+    /// <para><strong>Media Deduplication:</strong></para>
+    /// <para>When importing multiple CSVs, media files referenced across different CSVs are automatically deduplicated - each unique file is created only once.</para>
+    ///
+    /// <para><strong>Required CSV Columns:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>name - Content node name</description></item>
+    ///   <item><description>docTypeAlias - Content type alias (must exist in Umbraco)</description></item>
+    ///   <item><description>parent - Parent node ID, GUID, or path</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Optional CSV Columns:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>bulkUploadLegacyId - Legacy CMS identifier for this content item</description></item>
+    ///   <item><description>bulkUploadLegacyParentId - Legacy CMS parent identifier (enables cross-file hierarchy)</description></item>
+    ///   <item><description>bulkUploadShouldUpdate - Set to 'true' to update existing content instead of creating new</description></item>
+    ///   <item><description>bulkUploadShouldPublish - Set to 'true' to publish content after creation (default: false)</description></item>
+    ///   <item><description>propertyAlias|resolverAlias - Content properties using resolver syntax (e.g., heroImage|zipFileToMedia)</description></item>
+    /// </list>
     /// </remarks>
+    /// <example>
+    /// Example ZIP structure:
+    /// <code>
+    /// upload.zip
+    /// ├── content.csv
+    /// ├── categories.csv
+    /// └── media/
+    ///     ├── hero-image.jpg
+    ///     └── thumbnail.jpg
+    /// </code>
+    ///
+    /// Example CSV content:
+    /// <code>
+    /// name,docTypeAlias,parent,heroImage|zipFileToMedia,publishDate|dateTime,bulkUploadShouldPublish
+    /// "Article 1","article","umb://document/1234","media/hero-image.jpg","2024-01-01T00:00:00Z","true"
+    /// "Article 2","article","umb://document/1234","media/thumbnail.jpg","2024-01-02T00:00:00Z","false"
+    /// </code>
+    /// </example>
     [HttpPost]
 #if !NET8_0
     [Route("importall")]
     [Consumes("multipart/form-data")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ContentImportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 #endif
-    public async Task<IActionResult> ImportAll([FromForm] IFormFile file)
+    public async Task<IActionResult> ImportAll([FromForm] ImportContentRequestModel model, CancellationToken cancellationToken = default)
     {
         // Clear all caches at the start of each import to ensure fresh state
         _parentLookupCache.Clear();
@@ -108,17 +154,30 @@ public class BulkUploadController : ControllerBase
 
         try
         {
+            var file = model.File;
             if (file == null || file.Length == 0)
             {
                 _logger.LogError("Bulk Upload: Uploaded file is not valid");
-                return BadRequest("Uploaded file not valid.");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid File",
+                    Detail = "Uploaded file is not valid or is empty.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
             }
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (extension != ".zip" && extension != ".csv")
             {
                 _logger.LogError("Bulk Upload: File is not a ZIP or CSV file");
-                return BadRequest("Please upload either a CSV file (content only) or a ZIP file (content + media files).");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid File Type",
+                    Detail = "Please upload either a CSV file (content only) or a ZIP file (content + media files).",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
             }
 
             List<string> csvFilePaths;
@@ -142,7 +201,13 @@ public class BulkUploadController : ControllerBase
                 if (csvFiles.Length == 0)
                 {
                     _logger.LogError("Bulk Upload: No CSV file found in ZIP archive");
-                    return BadRequest("No CSV file found in ZIP archive.");
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "No CSV Found",
+                        Detail = "No CSV file found in ZIP archive. Please ensure your ZIP contains at least one .csv file.",
+                        Status = StatusCodes.Status400BadRequest,
+                        Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                    });
                 }
 
                 csvFilePaths = csvFiles.ToList();
@@ -190,7 +255,13 @@ public class BulkUploadController : ControllerBase
             if (!allRecordsWithSource.Any())
             {
                 _logger.LogInformation("Bulk Upload: No valid records found in any CSV file");
-                return Ok(new { totalCount = 0, successCount = 0, failureCount = 0, results = new List<ContentImportResult>() });
+                return Ok(new ContentImportResponse
+                {
+                    TotalCount = 0,
+                    SuccessCount = 0,
+                    FailureCount = 0,
+                    Results = new List<ContentImportResult>()
+                });
             }
 
             // Detect if this import supports update mode (per-file detection)
@@ -261,19 +332,25 @@ public class BulkUploadController : ControllerBase
             _logger.LogInformation("Bulk Upload: Completed processing {CsvCount} CSV file(s) - {Total} total records, {Success} successful, {Failed} failed",
                 csvFilePaths.Count, allResults.Count, totalSuccessCount, totalFailureCount);
 
-            return Ok(new
+            return Ok(new ContentImportResponse
             {
-                totalCount = allResults.Count,
-                successCount = totalSuccessCount,
-                failureCount = totalFailureCount,
-                results = allResults,
-                mediaPreprocessingResults = allMediaPreprocessingResults
+                TotalCount = allResults.Count,
+                SuccessCount = totalSuccessCount,
+                FailureCount = totalFailureCount,
+                Results = allResults,
+                MediaPreprocessingResults = allMediaPreprocessingResults
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Bulk Upload Case Studies: Error occurred while importing case studies from CSV");
-            return BadRequest("\r\n" + "Something went wrong while processing the records. Please try after some time.");
+            _logger.LogError(ex, "Bulk Upload: Error occurred while importing content from CSV/ZIP");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Import Failed",
+                Detail = "An unexpected error occurred while processing the import. Please check the logs for details.",
+                Status = StatusCodes.Status500InternalServerError,
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+            });
         }
         finally
         {
@@ -293,26 +370,45 @@ public class BulkUploadController : ControllerBase
     }
 
     /// <summary>
-    /// Exports content import results to CSV or ZIP file
+    /// Exports content import results to a CSV file or ZIP archive for review and further processing.
     /// </summary>
-    /// <param name="results">Array of import result objects from a previous import operation</param>
-    /// <returns>CSV file (single source) or ZIP file (multiple sources) containing import results</returns>
+    /// <param name="results">Array of content import result objects from a previous ImportAll operation.</param>
+    /// <returns>
+    /// A CSV file (for single-source imports) or ZIP archive (for multi-CSV imports) containing the import results.
+    /// Each file includes success status, GUIDs, error messages, and original CSV data.
+    /// </returns>
     /// <remarks>
-    /// Returns a CSV file with columns:
-    /// - bulkUploadSuccess, bulkUploadContentGuid, bulkUploadParentGuid
-    /// - bulkUploadErrorMessage (if errors occurred)
-    /// - bulkUploadLegacyId (if used in import)
-    /// - Original CSV columns preserved
+    /// <para>The exported CSV file(s) include the following columns:</para>
+    /// <list type="bullet">
+    ///   <item><description><strong>bulkUploadSuccess</strong> - true/false indicating if the import was successful</description></item>
+    ///   <item><description><strong>bulkUploadContentGuid</strong> - GUID of the created/updated content item</description></item>
+    ///   <item><description><strong>bulkUploadParentGuid</strong> - GUID of the parent content item</description></item>
+    ///   <item><description><strong>bulkUploadErrorMessage</strong> - Error details (only included if errors occurred)</description></item>
+    ///   <item><description><strong>bulkUploadLegacyId</strong> - Legacy CMS identifier (only if used in import)</description></item>
+    ///   <item><description><strong>bulkUploadShouldPublish</strong> - Publish flag (only if used in import)</description></item>
+    ///   <item><description><strong>bulkUploadShouldUpdate</strong> - Update flag value</description></item>
+    ///   <item><description><strong>Original columns</strong> - All original CSV columns are preserved</description></item>
+    /// </list>
     ///
-    /// For multi-CSV imports, returns a ZIP with separate result files.
+    /// <para><strong>Multi-CSV Imports:</strong></para>
+    /// <para>If the import contained multiple CSV files, this endpoint returns a ZIP archive with separate result files for each source CSV.
+    /// Each result file is named {originalFileName}-import-results.csv.</para>
+    ///
+    /// <para><strong>Use Cases:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>Audit trail of import operations</description></item>
+    ///   <item><description>Error analysis and debugging</description></item>
+    ///   <item><description>Preparing update imports (use bulkUploadContentGuid for subsequent updates)</description></item>
+    ///   <item><description>Legacy ID mapping for future imports</description></item>
+    /// </list>
     /// </remarks>
     [HttpPost]
 #if !NET8_0
     [Route("exportresults")]
-    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [Consumes("application/json")]
     [Produces("text/csv", "application/zip")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 #endif
     public IActionResult ExportResults([FromBody] List<ContentImportResult> results)
     {
@@ -506,7 +602,13 @@ public class BulkUploadController : ControllerBase
         {
             if (results == null || !results.Any())
             {
-                return BadRequest("No results to export.");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "No Results",
+                    Detail = "No media preprocessing results to export. Please provide a non-empty array of results.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
             }
 
             // Group results by source CSV file
@@ -547,7 +649,13 @@ public class BulkUploadController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Bulk Upload: Error exporting media preprocessing results");
-            return BadRequest("Error exporting media preprocessing results.");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Export Failed",
+                Detail = "An unexpected error occurred while exporting the media preprocessing results. Please check the logs for details.",
+                Status = StatusCodes.Status500InternalServerError,
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+            });
         }
     }
 

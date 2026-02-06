@@ -82,10 +82,13 @@
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
+    <!-- Swashbuckle and OpenAPI for Swagger documentation -->
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.0.1" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\docs\README_nuget.md">
+    <None Include="../../.github/docs/README_nuget.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

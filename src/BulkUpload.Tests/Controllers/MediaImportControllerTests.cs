@@ -7,6 +7,7 @@ using Moq;
 using BulkUpload.Controllers;
 using BulkUpload.Models;
 using BulkUpload.Services;
+using ProblemDetails = Microsoft.AspNetCore.Mvc.ProblemDetails;
 
 namespace Umbraco.Community.BulkUpload.Tests.Controllers;
 
@@ -43,11 +44,12 @@ public class MediaImportControllerTests
         IFormFile? file = null;
 
         // Act
-        var result = await _controller.ImportMedia(file!);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = file! });
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Uploaded file not valid.", badRequestResult.Value);
+        var problemDetails = Assert.IsType<ProblemDetails>(badRequestResult.Value);
+        Assert.Equal("Uploaded file is not valid or is empty.", problemDetails.Detail);
     }
 
     [Fact]
@@ -59,11 +61,12 @@ public class MediaImportControllerTests
         mockFile.Setup(f => f.FileName).Returns("test.zip");
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Uploaded file not valid.", badRequestResult.Value);
+        var problemDetails = Assert.IsType<ProblemDetails>(badRequestResult.Value);
+        Assert.Equal("Uploaded file is not valid or is empty.", problemDetails.Detail);
     }
 
     [Fact]
@@ -75,11 +78,12 @@ public class MediaImportControllerTests
         mockFile.Setup(f => f.FileName).Returns("test.txt");
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("Please upload either a ZIP file (containing CSV and media files) or a CSV file (for URL-based media).", badRequestResult.Value);
+        var problemDetails = Assert.IsType<ProblemDetails>(badRequestResult.Value);
+        Assert.Equal("Please upload either a ZIP file (containing CSV and media files) or a CSV file (for URL-based media).", problemDetails.Detail);
     }
 
     [Fact]
@@ -90,11 +94,12 @@ public class MediaImportControllerTests
         var mockFile = CreateMockFormFile("test.zip", zipStream);
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("No CSV file found in ZIP archive.", badRequestResult.Value);
+        var problemDetails = Assert.IsType<ProblemDetails>(badRequestResult.Value);
+        Assert.Equal("No CSV file found in ZIP archive. Please ensure your ZIP contains at least one .csv file.", problemDetails.Detail);
     }
 
     [Fact]
@@ -123,7 +128,7 @@ public class MediaImportControllerTests
             .Returns(importObject);
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -152,7 +157,7 @@ public class MediaImportControllerTests
             });
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -181,7 +186,7 @@ public class MediaImportControllerTests
             });
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -205,7 +210,7 @@ public class MediaImportControllerTests
             });
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -238,7 +243,8 @@ public class MediaImportControllerTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("No results to export.", badRequestResult.Value);
+        var problemDetails = Assert.IsType<ProblemDetails>(badRequestResult.Value);
+        Assert.Equal("No results to export. Please provide a non-empty array of media import results.", problemDetails.Detail);
     }
 
     [Fact]
@@ -252,7 +258,8 @@ public class MediaImportControllerTests
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
-        Assert.Equal("No results to export.", badRequestResult.Value);
+        var problemDetails = Assert.IsType<ProblemDetails>(badRequestResult.Value);
+        Assert.Equal("No results to export. Please provide a non-empty array of media import results.", problemDetails.Detail);
     }
 
     [Fact]
@@ -514,7 +521,7 @@ public class MediaImportControllerTests
             .Returns(importResult);
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -560,7 +567,7 @@ public class MediaImportControllerTests
             .Returns(importResult);
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -606,7 +613,7 @@ public class MediaImportControllerTests
             .Returns(importResult);
 
         // Act
-        var result = await _controller.ImportMedia(mockFile.Object);
+        var result = await _controller.ImportMedia(new ImportMediaRequestModel { File = mockFile.Object });
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);

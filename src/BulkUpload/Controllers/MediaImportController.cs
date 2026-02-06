@@ -25,7 +25,8 @@ namespace BulkUpload.Controllers;
 public class MediaImportController : UmbracoAuthorizedApiController
 #else
 /// <summary>
-/// Media Import API for importing media files from CSV/ZIP files or URLs
+/// Media Import API for importing media files from CSV/ZIP files, URLs, or server file paths into Umbraco CMS.
+/// Supports auto-folder creation, media deduplication, and update mode for property-only updates.
 /// </summary>
 [Route("api/v{version:apiVersion}/media")]
 [ApiVersion("1.0")]
@@ -56,31 +57,87 @@ public class MediaImportController : ControllerBase
     }
 
     /// <summary>
-    /// Imports media files from a CSV file or ZIP archive
+    /// Imports media files from a CSV file or ZIP archive into the Umbraco media library.
     /// </summary>
-    /// <param name="file">CSV file or ZIP archive containing CSV and media files</param>
-    /// <returns>Import results with success/failure counts and details for each imported media item</returns>
+    /// <param name="model">Request model containing the file to import.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the import operation.</param>
+    /// <returns>
+    /// Import results containing total counts, success/failure counts, and detailed information for each imported media item.
+    /// Includes media GUIDs, UDIs, filenames, and error messages if any imports failed.
+    /// </returns>
     /// <remarks>
-    /// Supports multiple media sources:
-    /// - ZIP file: Media files in archive (fileName column in CSV)
-    /// - URL: Download from URL (mediaSource|urlToStream column)
-    /// - File path: Import from server file path (mediaSource|pathToStream column)
+    /// <para>This endpoint supports multiple media source types:</para>
+    /// <list type="bullet">
+    ///   <item><description><strong>ZIP file:</strong> Media files included in the archive (use fileName column in CSV)</description></item>
+    ///   <item><description><strong>URL download:</strong> Download media from URL (use mediaSource|urlToStream column in CSV)</description></item>
+    ///   <item><description><strong>Server file path:</strong> Import from server file path (use mediaSource|pathToStream column in CSV)</description></item>
+    /// </list>
     ///
-    /// Features:
-    /// - Auto-creates parent folders
-    /// - Media deduplication across multiple CSVs
-    /// - Auto-detects media type from file extension
-    /// - Update mode via bulkUploadShouldUpdate column
-    /// - SSRF protection for URL downloads
+    /// <para><strong>Key Features:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description><strong>Auto-folder creation:</strong> Parent folders are automatically created based on the parent column</description></item>
+    ///   <item><description><strong>Media deduplication:</strong> Same media file referenced multiple times is created only once</description></item>
+    ///   <item><description><strong>Auto-type detection:</strong> Media type is automatically detected from file extension</description></item>
+    ///   <item><description><strong>Update mode:</strong> Use bulkUploadShouldUpdate column to update existing media properties without replacing files</description></item>
+    ///   <item><description><strong>SSRF protection:</strong> URL downloads are validated to prevent Server-Side Request Forgery attacks</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Required CSV Columns:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>fileName - Media filename (for ZIP uploads) or desired name</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Optional CSV Columns:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>parent - Parent folder ID, GUID, or path (creates folders automatically)</description></item>
+    ///   <item><description>name - Display name for the media item (defaults to fileName)</description></item>
+    ///   <item><description>mediaTypeAlias - Media type alias (auto-detected from extension if not provided)</description></item>
+    ///   <item><description>mediaSource|urlToStream - URL to download media from</description></item>
+    ///   <item><description>mediaSource|pathToStream - Server file path to import media from</description></item>
+    ///   <item><description>bulkUploadLegacyId - Legacy CMS identifier for this media item</description></item>
+    ///   <item><description>bulkUploadShouldUpdate - Set to 'true' to update properties without replacing file</description></item>
+    ///   <item><description>Additional property columns using propertyAlias|resolverAlias syntax</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Security:</strong></para>
+    /// <para>URL downloads are protected against SSRF attacks by blocking localhost and private IP ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x).
+    /// File path imports are validated to prevent path traversal attacks to system directories.</para>
     /// </remarks>
+    /// <example>
+    /// Example ZIP structure for media import:
+    /// <code>
+    /// media-upload.zip
+    /// ├── media.csv
+    /// └── files/
+    ///     ├── product-image-1.jpg
+    ///     ├── product-image-2.jpg
+    ///     └── brochure.pdf
+    /// </code>
+    ///
+    /// Example CSV content (ZIP-based import):
+    /// <code>
+    /// fileName,name,parent,altText
+    /// "files/product-image-1.jpg","Product Image 1","umb://media-folder/1234","Our flagship product"
+    /// "files/product-image-2.jpg","Product Image 2","umb://media-folder/1234","Secondary product view"
+    /// "files/brochure.pdf","Product Brochure","umb://media-folder/5678",""
+    /// </code>
+    ///
+    /// Example CSV content (URL-based import):
+    /// <code>
+    /// fileName,mediaSource|urlToStream,parent
+    /// "hero-image.jpg","https://example.com/images/hero.jpg","umb://media-folder/1234"
+    /// "logo.png","https://example.com/branding/logo.png","umb://media-folder/5678"
+    /// </code>
+    /// </example>
     [HttpPost]
 #if !NET8_0
     [Route("importmedia")]
     [Consumes("multipart/form-data")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(MediaImportResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 #endif
-    public async Task<IActionResult> ImportMedia([FromForm] IFormFile file)
+    public async Task<IActionResult> ImportMedia([FromForm] ImportMediaRequestModel model, CancellationToken cancellationToken = default)
     {
         // Clear all caches at the start of each import to ensure fresh state
         _parentLookupCache.Clear();
@@ -92,17 +149,30 @@ public class MediaImportController : ControllerBase
 
         try
         {
+            var file = model.File;
             if (file == null || file.Length == 0)
             {
                 _logger.LogError("Bulk Upload Media: Uploaded file is not valid");
-                return BadRequest("Uploaded file not valid.");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid File",
+                    Detail = "Uploaded file is not valid or is empty.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
             }
 
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (extension != ".zip" && extension != ".csv")
             {
                 _logger.LogError("Bulk Upload Media: File is not a ZIP or CSV file");
-                return BadRequest("Please upload either a ZIP file (containing CSV and media files) or a CSV file (for URL-based media).");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid File Type",
+                    Detail = "Please upload either a ZIP file (containing CSV and media files) or a CSV file (for URL-based media).",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
             }
 
             string csvFilePath;
@@ -126,7 +196,13 @@ public class MediaImportController : ControllerBase
                 if (csvFiles.Length == 0)
                 {
                     _logger.LogError("Bulk Upload Media: No CSV file found in ZIP archive");
-                    return BadRequest("No CSV file found in ZIP archive.");
+                    return BadRequest(new ProblemDetails
+                    {
+                        Title = "No CSV Found",
+                        Detail = "No CSV file found in ZIP archive. Please ensure your ZIP contains at least one .csv file.",
+                        Status = StatusCodes.Status400BadRequest,
+                        Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                    });
                 }
 
                 csvFilePath = csvFiles[0]; // Use first CSV found
@@ -474,19 +550,25 @@ public class MediaImportController : ControllerBase
                 _logger.LogInformation("Bulk Upload Media: Imported {SuccessCount} of {TotalCount} media items ({FailureCount} failed)",
                     successCount, totalCount, failureCount);
 
-                return Ok(new
+                return Ok(new MediaImportResponse
                 {
-                    totalCount,
-                    successCount,
-                    failureCount,
-                    results
+                    TotalCount = totalCount,
+                    SuccessCount = successCount,
+                    FailureCount = failureCount,
+                    Results = results
                 });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Bulk Upload Media: Error occurred while importing media from ZIP");
-            return BadRequest("\r\n" + "Something went wrong while processing the media files. Please try again later.");
+            _logger.LogError(ex, "Bulk Upload Media: Error occurred while importing media from CSV/ZIP");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Import Failed",
+                Detail = "An unexpected error occurred while processing the media files. Please check the logs for details.",
+                Status = StatusCodes.Status500InternalServerError,
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+            });
         }
         finally
         {
@@ -506,27 +588,41 @@ public class MediaImportController : ControllerBase
     }
 
     /// <summary>
-    /// Exports media import results to CSV file
+    /// Exports media import results to a CSV file for review and further processing.
     /// </summary>
-    /// <param name="results">Array of media import result objects from a previous import operation</param>
-    /// <returns>CSV file containing media import results</returns>
+    /// <param name="results">Array of media import result objects from a previous ImportMedia operation.</param>
+    /// <returns>
+    /// A CSV file containing the media import results with success status, GUIDs, UDIs, filenames, error messages, and original CSV data.
+    /// </returns>
     /// <remarks>
-    /// Returns a CSV file with columns:
-    /// - bulkUploadFileName: Original filename
-    /// - bulkUploadSuccess: true/false
-    /// - bulkUploadMediaGuid: GUID of created media item
-    /// - bulkUploadMediaUdi: UDI of created media item
-    /// - bulkUploadErrorMessage: Error details if failed
-    /// - bulkUploadLegacyId: Legacy ID if used
-    /// - Original CSV columns preserved
+    /// <para>The exported CSV file includes the following columns:</para>
+    /// <list type="bullet">
+    ///   <item><description><strong>bulkUploadFileName</strong> - Original filename of the media item</description></item>
+    ///   <item><description><strong>bulkUploadSuccess</strong> - true/false indicating if the import was successful</description></item>
+    ///   <item><description><strong>bulkUploadMediaGuid</strong> - GUID of the created/updated media item</description></item>
+    ///   <item><description><strong>bulkUploadMediaUdi</strong> - UDI of the created/updated media item (for use in content references)</description></item>
+    ///   <item><description><strong>bulkUploadErrorMessage</strong> - Error details (only included if errors occurred)</description></item>
+    ///   <item><description><strong>bulkUploadLegacyId</strong> - Legacy CMS identifier (only if used in import)</description></item>
+    ///   <item><description><strong>bulkUploadShouldUpdate</strong> - Update flag value</description></item>
+    ///   <item><description><strong>Original columns</strong> - All original CSV columns are preserved</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Use Cases:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>Audit trail of media import operations</description></item>
+    ///   <item><description>Error analysis and debugging</description></item>
+    ///   <item><description>Getting media UDIs for use in content property values</description></item>
+    ///   <item><description>Preparing update imports (use bulkUploadMediaGuid for subsequent updates)</description></item>
+    ///   <item><description>Legacy ID mapping for future imports</description></item>
+    /// </list>
     /// </remarks>
     [HttpPost]
 #if !NET8_0
     [Route("exportresults")]
-    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
     [Consumes("application/json")]
     [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 #endif
     public IActionResult ExportResults([FromBody] List<MediaImportResult> results)
     {
@@ -534,7 +630,13 @@ public class MediaImportController : ControllerBase
         {
             if (results == null || !results.Any())
             {
-                return BadRequest("No results to export.");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "No Results",
+                    Detail = "No results to export. Please provide a non-empty array of media import results.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
             }
 
             // Collect all unique original column names from all results (preserving order from first occurrence)
@@ -634,8 +736,14 @@ public class MediaImportController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Bulk Upload Media: Error exporting results");
-            return BadRequest("Error exporting results.");
+            _logger.LogError(ex, "Bulk Upload Media: Error exporting media import results");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Export Failed",
+                Detail = "An unexpected error occurred while exporting the results. Please check the logs for details.",
+                Status = StatusCodes.Status500InternalServerError,
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+            });
         }
     }
 

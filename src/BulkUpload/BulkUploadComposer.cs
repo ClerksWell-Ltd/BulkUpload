@@ -10,6 +10,11 @@ using Umbraco.Cms.Core.DependencyInjection;
 using BulkUpload.Sections;
 
 using Umbraco.Cms.Core.Sections;
+#else
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using System.Reflection;
 #endif
 
 namespace BulkUpload;
@@ -22,6 +27,9 @@ internal class BulkUploadComposer : IComposer
         // Umbraco 13: Register sections and dashboards via C# API
         builder.ManifestFilters().Append<BulkUploadManifestFilter>();
         builder.Sections().InsertAfter<TranslationSection, BulkUploadSection>();
+#else
+        // Umbraco 17: Register Swagger/OpenAPI documentation
+        builder.Services.ConfigureOptions<ConfigureBulkUploadSwaggerGenOptions>();
 #endif
         // Note: Umbraco 17 uses umbraco-package.json for section/dashboard registration
 
@@ -61,3 +69,50 @@ internal class BulkUploadComposer : IComposer
         builder.Services.AddSingleton<IMediaPreprocessorService, MediaPreprocessorService>();
     }
 }
+
+#if NET10_0
+/// <summary>
+/// Configures Swagger/OpenAPI generation options for BulkUpload API
+/// </summary>
+internal class ConfigureBulkUploadSwaggerGenOptions : IConfigureOptions<SwaggerGenOptions>
+{
+    public void Configure(SwaggerGenOptions swaggerGenOptions)
+    {
+        swaggerGenOptions.SwaggerDoc(
+            "bulk-upload",
+            new OpenApiInfo
+            {
+                Title = "BulkUpload API",
+                Version = "v1.0",
+                Description = "API for bulk importing content and media from CSV/ZIP files into Umbraco CMS. " +
+                              "Supports multi-CSV imports, media deduplication, legacy content migration, and update mode.",
+                Contact = new OpenApiContact
+                {
+                    Name = "BulkUpload Package",
+                    Url = new Uri("https://github.com/ClerksWell-Ltd/BulkUpload")
+                },
+                License = new OpenApiLicense
+                {
+                    Name = "MIT License",
+                    Url = new Uri("https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/LICENSE")
+                }
+            });
+
+        // Include XML comments from the assembly
+        var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        if (File.Exists(xmlPath))
+        {
+            swaggerGenOptions.IncludeXmlComments(xmlPath);
+        }
+
+        // Optionally include XML comments from BulkUpload.Core if it generates them
+        var coreXmlFile = "BulkUpload.Core.xml";
+        var coreXmlPath = Path.Combine(AppContext.BaseDirectory, coreXmlFile);
+        if (File.Exists(coreXmlPath))
+        {
+            swaggerGenOptions.IncludeXmlComments(coreXmlPath);
+        }
+    }
+}
+#endif
