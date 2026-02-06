@@ -1,390 +1,359 @@
 # Release Process Guide
 
-This guide covers the complete release process for BulkUpload, including automated and manual steps.
+This guide covers the complete release process for BulkUpload from the `main` branch with multi-targeting support.
 
 ## Overview
 
 **v2.0.0+ Multi-Targeting Architecture:**
-BulkUpload uses GitHub Actions to automate the release process. Starting with v2.0.0, the package uses .NET multi-targeting to support both Umbraco 13 (net8.0) and Umbraco 17 (net10.0) in a **single NuGet package** published from the `main` branch.
+BulkUpload uses GitHub Actions to automate releases. Starting with v2.0.0, the package uses .NET multi-targeting to support both Umbraco 13 (net8.0) and Umbraco 17 (net10.0) in a **single NuGet package** published from the `main` branch.
 
-## Automated Workflows
+**Key Points:**
+- All releases are created from `main` branch
+- Each release supports BOTH Umbraco 13 and 17
+- Fully automated through GitHub Actions
+- No cherry-picking or branch synchronization needed
 
-### 1. Release to NuGet (`release.yml`)
+## Automated Workflow
+
+### Release to NuGet (`release.yml`)
 
 **Trigger:** When you publish a GitHub Release
 
 **What it does:**
-- ✅ Verifies the release is from `main` branch
-- ✅ Sets up both .NET 8 and .NET 10 SDKs
-- ✅ Builds Umbraco 17 frontend (npm)
+- ✅ Validates release is from `main` branch
+- ✅ Sets up .NET 8 and .NET 10 SDKs
+- ✅ Builds Umbraco 17 frontend with Vite
 - ✅ Restores dependencies
-- ✅ Builds the project in Release mode (both net8.0 and net10.0)
+- ✅ Builds for both net8.0 and net10.0
 - ✅ Runs all tests
-- ✅ Packs the NuGet package (includes both frameworks)
+- ✅ Packs NuGet package with both frameworks
 - ✅ Publishes to NuGet.org
-- ✅ Uploads package as GitHub artifact
+- ✅ Uploads package artifact to GitHub
 
-**Branch restriction:** Only works for releases created from `main` branch (v2.0.0+)
-
-### 2. Post-Release Automation (`post-release.yml`)
-
-**Trigger:** Automatically after a GitHub Release is published
-
-**What it does:**
-- ✅ Updates CHANGELOG.md with release version and date
-- ✅ Bumps version in .csproj to next patch version
-- ✅ Creates a PR with these changes for review
-
-**Output:** A pull request labeled `post-release` that you need to review and merge.
+**Branch restriction:** Must be created from `main` branch
 
 ## Complete Release Checklist
 
 ### Prerequisites
 
-- [ ] All features/fixes for the release are merged
+- [ ] All features/fixes are merged to `main`
 - [ ] All tests are passing
-- [ ] CHANGELOG.md "Unreleased" section has all changes documented
-- [ ] You have `NUGET_API_KEY` configured in GitHub repository secrets
+- [ ] CHANGELOG.md has all changes documented
+- [ ] `NUGET_API_KEY` is configured in GitHub repository secrets
 
-### Step 1: Prepare the Main Branch (v2.0.0+)
+### Step 1: Prepare Main Branch
 
 ```bash
 # Ensure you're on main with latest changes
 git checkout main
 git pull origin main
 
-# Verify everything builds and tests pass (both frameworks)
+# Verify everything builds and tests pass
 dotnet build src/BulkUpload.sln --configuration Release
 dotnet test
+
+# Test both frameworks specifically
+dotnet build -f net8.0
+dotnet build -f net10.0
 ```
 
-### Step 2: Update Version and CHANGELOG (Manual)
+### Step 2: Update Version and CHANGELOG
 
-**Update version in BOTH .csproj files (must match):**
+**Update version in .csproj:**
 
 ```xml
 <!-- src/BulkUpload/BulkUpload.csproj -->
-<Version>2.1.0</Version>  <!-- Update this -->
-
-<!-- src/BulkUpload.Core/BulkUpload.Core.csproj -->
-<Version>2.1.0</Version>  <!-- Update this to match -->
+<Version>2.2.0</Version>  <!-- Update this -->
 ```
 
 **Update CHANGELOG.md:**
 
-Ensure the "Unreleased" section has all changes, following the format:
+Move items from "Unreleased" to new version section:
 
 ```markdown
 ## [Unreleased]
 
 ### Added
-- New feature X
-- New feature Y
 
 ### Fixed
-- Bug fix Z
 
 ### Changed
-- Updated dependency A
+
+## [2.2.0] - 2025-02-06
+
+### Added
+- New CSV validation feature
+- Support for additional file types
+
+### Fixed
+- Bug in media import
+- CSV parsing edge case
 ```
 
-**Commit these changes:**
+**Commit changes:**
 
 ```bash
-git add src/BulkUpload/BulkUpload.csproj src/BulkUpload.Core/BulkUpload.Core.csproj CHANGELOG.md
-git commit -m "chore: prepare release v2.1.0"
+git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
+git commit -m "chore: prepare release v2.2.0"
 git push origin main
 ```
 
 ### Step 3: Create GitHub Release
 
 1. Go to GitHub → **Releases** → **Draft a new release**
-2. Click **"Choose a tag"** → Type new tag (e.g., `v2.1.0`) → **"Create new tag on publish"**
+2. Click **"Choose a tag"** → Type new tag (e.g., `v2.2.0`) → **"Create new tag on publish"**
 3. **Target:** Select `main` branch
-4. **Release title:** `v2.1.0` (multi-targeted for Umbraco 13 & 17)
+4. **Release title:** `v2.2.0`
 5. **Description:** Copy the changes from CHANGELOG.md for this version
 6. **Optional:** Check "Set as latest release"
 7. Click **"Publish release"**
 
-### Step 4: Automated Workflows Run
+### Step 4: Monitor Automated Workflow
 
-**What happens automatically:**
+**GitHub Actions runs automatically:**
 
-1. **Release Workflow (`release.yml`)** triggers:
-   - Builds and tests the project
-   - Publishes to NuGet.org
-   - Takes ~2-5 minutes
+1. Go to GitHub → **Actions** tab
+2. Find the "Release to NuGet" workflow run
+3. Monitor the steps:
+   - ✅ Build (both net8.0 and net10.0)
+   - ✅ Test
+   - ✅ Pack
+   - ✅ Publish to NuGet
+4. Workflow takes ~3-5 minutes
+5. If anything fails, check the logs and fix the issue
 
-2. **Post-Release Workflow (`post-release.yml`)** triggers:
-   - Updates CHANGELOG.md
-   - Bumps version to next patch (e.g., 1.2.0 → 1.2.1)
-   - Creates a PR
+**Common issues:**
+- **Build failed:** Check build logs for errors
+- **Tests failed:** Fix failing tests and create new release
+- **NuGet push failed:** Verify `NUGET_API_KEY` secret is set correctly
 
-**Monitor the workflows:**
-- Go to GitHub → **Actions** tab
-- Verify both workflows complete successfully
-- If the NuGet publish fails, check the logs and your `NUGET_API_KEY` secret
-
-### Step 5: Review and Merge Post-Release PR
-
-1. Go to **Pull Requests** tab
-2. Find the automated PR: `"chore: post-release cleanup for v1.2.0"`
-3. Review the changes:
-   - CHANGELOG.md updated correctly?
-   - Version bumped correctly?
-4. **Merge the PR**
-
-Your release branch is now ready for the next development cycle!
-
-### Step 6: Cherry-Pick to Other Branches (Manual)
-
-**Important:** If changes need to be shared across Umbraco versions, cherry-pick them manually.
-
-#### Scenario A: Bug Fix Released in v13, Needs to Go to v17 and Main
-
-```bash
-# 1. Identify the commit hash from the release branch
-git log release/v13.x --oneline -5
-# Example output: abc1234 fix: handle empty CSV columns
-
-# 2. Cherry-pick to main
-git checkout main
-git pull origin main
-git cherry-pick abc1234
-# Resolve conflicts if needed
-dotnet test
-git push origin main
-
-# 3. Cherry-pick to release/v17.x
-git checkout release/v17.x
-git pull origin release/v17.x
-git cherry-pick abc1234
-# Resolve conflicts if needed
-dotnet test
-git push origin release/v17.x
-```
-
-#### Scenario B: Feature Released in Main, Needs to Go to Release Branches
-
-```bash
-# 1. Identify the commit hash from main
-git log main --oneline -10
-# Example: def5678 feat: add new CSV validator
-
-# 2. Cherry-pick to release/v13.x
-git checkout release/v13.x
-git pull origin release/v13.x
-git cherry-pick def5678
-dotnet test
-git push origin release/v13.x
-
-# 3. Cherry-pick to release/v17.x
-git checkout release/v17.x
-git pull origin release/v17.x
-git cherry-pick def5678
-dotnet test
-git push origin release/v17.x
-
-# 4. Create new releases for both branches (repeat Steps 2-5)
-```
-
-### Step 7: Verify NuGet Publication
+### Step 5: Verify NuGet Publication
 
 1. Go to [NuGet.org](https://www.nuget.org/packages/Umbraco.Community.BulkUpload)
 2. Verify the new version appears (may take 5-10 minutes to index)
-3. Check that the package details are correct
-4. Test installation: `dotnet add package Umbraco.Community.BulkUpload --version 1.2.0`
+3. Check that both frameworks are included:
+   - Dependencies → .NETStandard 8.0
+   - Dependencies → .NETStandard 10.0
+4. Test installation:
+   ```bash
+   dotnet nuget locals http-cache --clear
+   dotnet add package Umbraco.Community.BulkUpload --version 2.2.0
+   ```
+
+### Step 6: Complete
+
+That's it! The release is complete. The package is now available on NuGet with support for both Umbraco 13 and 17.
 
 ## Release Types
 
-### Patch Release (1.2.3 → 1.2.4)
+### Patch Release (2.1.0 → 2.1.1)
 
 **When:** Bug fixes, security patches
 
-**Process:** Follow all steps above
+**Process:** Follow all steps above, bump PATCH version
 
-**Cherry-pick strategy:** Usually cherry-pick to all active release branches
+**Example:** `v2.1.1`
 
-### Minor Release (1.2.0 → 1.3.0)
+### Minor Release (2.1.0 → 2.2.0)
 
 **When:** New features, enhancements
 
-**Process:** Follow all steps above
+**Process:** Follow all steps above, bump MINOR version
 
-**Cherry-pick strategy:** Consider impact - may only release on one version
+**Example:** `v2.2.0`
 
-### Major Release (1.x.x → 2.0.0)
+### Major Release (2.x.x → 3.0.0)
 
-**When:** New Umbraco version support, breaking changes
+**When:** Breaking changes, major architectural updates
 
 **Process:**
-1. Follow all steps above
-2. Create new `release/vXX.x` branch if needed (see [Creating New Release Branch](#creating-new-release-branch))
-3. Update documentation to reference new version
+1. Follow all steps above, bump MAJOR version
+2. Update documentation to highlight breaking changes
+3. Consider pre-release versions first (3.0.0-beta.1)
 
-## Creating New Release Branch
+**Example:** `v3.0.0`
 
-When adding support for a new Umbraco version (e.g., Umbraco 17):
+## Pre-release Versions
 
-### Step 1: Create Release Branch
+For beta or release candidate versions:
 
 ```bash
-# 1. Start from main
+# Update to prerelease version
+# src/BulkUpload/BulkUpload.csproj: <Version>2.3.0-beta.1</Version>
+
+# Commit and push
+git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
+git commit -m "chore: prepare prerelease v2.3.0-beta.1"
+git push origin main
+
+# Create GitHub Release
+# Tag: v2.3.0-beta.1
+# Target: main
+# ✓ Check "This is a pre-release"
+# Publish
+```
+
+**Note:** Prerelease packages won't show in NuGet search by default. Users must explicitly reference the version.
+
+## Hotfix Process
+
+For urgent fixes that need immediate release:
+
+```bash
+# 1. Create hotfix branch
 git checkout main
 git pull origin main
+git checkout -b hotfix/critical-security-fix
 
-# 2. Create new release branch
-git checkout -b release/v17.x
+# 2. Fix the issue
+# ... make changes ...
 
-# 3. Update dependencies in .csproj
-# Update Umbraco.Cms.Web.Website to 17.x.x
-# Update Umbraco.Cms.Web.BackOffice to 17.x.x
-# Update TargetFramework if needed
-
-# 4. Update version to 2.0.0
-# <Version>2.0.0</Version>
-
-# 5. Update CHANGELOG.md
-# Add new section for 2.0.0
-
-# 6. Test thoroughly with Umbraco 17
+# 3. Test thoroughly
 dotnet build
 dotnet test
 
-# 7. Push branch
-git push -u origin release/v17.x
+# 4. Create PR and get it merged
+git add .
+git commit -m "fix: critical security vulnerability in CSV parser"
+git push origin hotfix/critical-security-fix
+# Create PR → Get approved → Merge
+
+# 5. After merge, follow normal release process
+# Bump patch version (e.g., 2.1.1 → 2.1.2)
+# Create GitHub Release
 ```
-
-### Step 2: Create Initial Release
-
-Follow the standard release process (Steps 1-7 above) to create v2.0.0
-
-### Step 3: Update Documentation
-
-- [ ] Update README.md with Umbraco 17 installation instructions
-- [ ] Update CHANGELOG.md version mapping
-- [ ] Update package compatibility matrix
 
 ## Troubleshooting
 
-### Release Workflow Fails: "Not from release branch"
+### Release Workflow Failed
 
-**Problem:** Tried to create release from wrong branch (e.g., `main`)
+**Check GitHub Actions:**
+- Go to Actions → Find failed workflow
+- Review error logs
+- Common fixes:
+  - Build errors: Fix code and create new release
+  - Test failures: Fix tests and create new release
+  - NuGet push failed: Check `NUGET_API_KEY` secret
 
-**Solution:**
-1. Delete the draft release
-2. Create a new release from the correct `release/*` branch
+### Wrong Version Published
 
-### NuGet Push Fails: "Package already exists"
+**Cannot delete from NuGet, but can unlist:**
+1. Go to https://www.nuget.org/packages/Umbraco.Community.BulkUpload/manage
+2. Find the incorrect version
+3. Click "Unlist"
+4. Publish corrected version with higher version number
 
-**Problem:** Version already published to NuGet
+### Build Fails for One Framework
 
-**Solution:**
-1. Bump version in .csproj
-2. Commit and push
-3. Delete the GitHub release
-4. Create a new release with the new version tag
-
-### Cherry-Pick Conflicts
-
-**Problem:** Cherry-pick fails due to conflicts
-
-**Solution:**
+**Check conditional compilation:**
 ```bash
-# Option 1: Resolve conflicts manually
-git cherry-pick abc1234
-# Fix conflicts in your editor
-git add <resolved-files>
-git cherry-pick --continue
+# Build each framework separately to identify issue
+dotnet build -f net8.0
+dotnet build -f net10.0
 
-# Option 2: Abort and manually port the fix
-git cherry-pick --abort
-git checkout -b fix/manual-port
-# Manually recreate the fix
-git commit -m "fix: (ported from v13) description"
+# Review conditional compilation blocks
+# Ensure #if NET8_0 and #if NET10.0 blocks are correct
 ```
 
-### Post-Release PR Not Created
+### Missing Frontend Assets in Package
 
-**Problem:** Post-release workflow didn't create a PR
+**Verify frontend build:**
+```bash
+# For V17 frontend
+cd src/BulkUpload/ClientV17
+npm install
+npm run build
 
-**Solution:**
-1. Check GitHub Actions logs for errors
-2. Manually create the PR:
-   ```bash
-   git checkout release/v13.x
-   # Update CHANGELOG.md and .csproj manually
-   git checkout -b chore/post-release-v1.2.0
-   git commit -am "chore: post-release cleanup"
-   git push origin chore/post-release-v1.2.0
-   # Create PR on GitHub
-   ```
+# Check wwwroot/ is generated
+ls src/BulkUpload/wwwroot/
+```
 
-## Quick Reference
+## Version Numbering
 
-### Versioning Rules
+### Semantic Versioning: MAJOR.MINOR.PATCH
 
 | Change Type | Version Bump | Example |
 |------------|--------------|---------|
-| New Umbraco version | MAJOR | 1.x.x → 2.0.0 |
-| New feature | MINOR | 1.2.x → 1.3.0 |
-| Bug fix | PATCH | 1.2.3 → 1.2.4 |
-| Security fix | PATCH | 1.2.3 → 1.2.4 |
+| Breaking change | MAJOR | 2.x.x → 3.0.0 |
+| New feature | MINOR | 2.1.x → 2.2.0 |
+| Bug fix | PATCH | 2.1.0 → 2.1.1 |
+| Security fix | PATCH | 2.1.1 → 2.1.2 |
 
-### Version Mapping
+**Note:** All versions from v2.0.0+ support both Umbraco 13 and 17.
 
-| BulkUpload Version | Umbraco Version | Branch |
-|-------------------|----------------|---------|
-| 1.x.x | 13.x | `release/v13.x` |
-| 2.x.x | 17.x | `release/v17.x` |
-
-### Required GitHub Secrets
+## Required GitHub Secrets
 
 | Secret Name | Purpose | Where to Get |
 |------------|---------|--------------|
 | `NUGET_API_KEY` | Publish to NuGet.org | https://www.nuget.org/account/apikeys |
 
+**To configure:**
+1. Go to GitHub repository settings
+2. Navigate to Secrets and variables → Actions
+3. Add `NUGET_API_KEY` with your NuGet API key
+4. Scope: Select "Expiration: 365 days" and "Push packages" permission
+
 ## Best Practices
 
 ### Before Release
 
-- ✅ Run all tests locally
-- ✅ Test the package in a real Umbraco project
-- ✅ Review all changes in the "Unreleased" section of CHANGELOG
-- ✅ Ensure commit messages follow Conventional Commits format
-- ✅ Update documentation if needed
+- ✅ Run all tests locally (`dotnet test`)
+- ✅ Test package in real Umbraco 13 and 17 projects
+- ✅ Review CHANGELOG.md for completeness
+- ✅ Ensure commit messages follow Conventional Commits
+- ✅ Update documentation if APIs changed
 
 ### During Release
 
-- ✅ Use semantic versioning correctly
+- ✅ Use correct semantic versioning
 - ✅ Write clear, detailed release notes
-- ✅ Tag releases with Umbraco version in title
-- ✅ Wait for automated workflows to complete before proceeding
+- ✅ Wait for automated workflow to complete
+- ✅ Don't create multiple releases simultaneously
 
 ### After Release
 
-- ✅ Merge the post-release PR promptly
-- ✅ Cherry-pick important changes to other branches
-- ✅ Verify package appears on NuGet.org
-- ✅ Test installation from NuGet
-- ✅ Announce the release (if applicable)
+- ✅ Verify package on NuGet.org
+- ✅ Test installation: `dotnet add package`
+- ✅ Check package includes both frameworks
+- ✅ Announce release if significant
+- ✅ Close related GitHub milestones
 
-## Support Matrix
+## Quick Reference Commands
 
-Maintain active support for:
+```bash
+# Prepare release
+git checkout main && git pull origin main
+dotnet build -c Release && dotnet test
 
-| Support Level | Description | Actions |
-|--------------|-------------|---------|
-| **Active** | New features, bug fixes, security patches | Full release process |
-| **Maintenance** | Bug fixes and security patches only | Selective releases |
-| **End of Life** | No further updates | No releases |
+# Update version and CHANGELOG.md (manual edit)
+git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
+git commit -m "chore: prepare release v2.2.0"
+git push origin main
 
-Check [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md#maintenance-strategy) for current support status.
+# Create GitHub Release (via GitHub UI)
+# - Tag: v2.2.0
+# - Target: main
+# - Publish
 
----
+# Verify release
+# Check GitHub Actions
+# Check NuGet.org after 5-10 minutes
+```
+
+## Support and Documentation
+
+- **Branching Strategy:** [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md)
+- **Quick Reference:** [QUICK_REFERENCE_RELEASE.md](./QUICK_REFERENCE_RELEASE.md)
+- **Contributing:** [CONTRIBUTING.md](../.github/CONTRIBUTING.md)
+- **Multi-Targeting:** [MULTI_TARGETING_QUICK_START.md](./MULTI_TARGETING_QUICK_START.md)
 
 ## Questions or Issues?
 
-- See [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md) for detailed branching workflow
-- Check [CONTRIBUTING.md](../.github/CONTRIBUTING.md) for contribution guidelines
-- Open an issue on GitHub for questions
+- Check documentation in `docs/` folder
+- Review GitHub Actions logs
+- Open an issue on GitHub
+- Join Umbraco Discord #package-development
+
+---
+
+**Simplified with multi-targeting!** One branch, one package, both Umbraco versions.

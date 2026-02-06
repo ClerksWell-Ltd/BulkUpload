@@ -1,263 +1,275 @@
-# Quick Reference: Release & Branch Operations
+# Quick Reference: Release Process
 
-Quick command reference for common release and branching operations.
+Quick command reference for releasing from the `main` branch with multi-targeting support.
 
 ## Creating a Release
 
-### 1. Prepare Release Branch
+### 1. Prepare Release
+
 ```bash
-# Checkout release branch
-git checkout release/v13.x  # or release/v17.x
-git pull origin release/v13.x
+# Checkout main branch
+git checkout main
+git pull origin main
 
 # Update version in .csproj (manually edit)
+# src/BulkUpload/BulkUpload.csproj: <Version>2.2.0</Version>
+
 # Update CHANGELOG.md (manually edit)
+# Add release notes under new version heading
 
 # Commit changes
 git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
-git commit -m "chore: prepare release v1.2.0"
-git push origin release/v13.x
+git commit -m "chore: prepare release v2.2.0"
+git push origin main
 ```
 
 ### 2. Create GitHub Release
+
 1. Go to: https://github.com/ClerksWell-Ltd/BulkUpload/releases/new
-2. **Tag:** `v1.2.0` (create new tag)
-3. **Target:** `release/v13.x`
-4. **Title:** `v1.2.0 - Umbraco 13`
+2. **Tag:** `v2.2.0` (create new tag)
+3. **Target:** `main`
+4. **Title:** `v2.2.0`
 5. **Description:** Copy from CHANGELOG.md
 6. Click **"Publish release"**
 
 ### 3. Automated (No Action Needed)
-- ✅ Builds and tests
-- ✅ Publishes to NuGet
-- ✅ Creates post-release PR
 
-### 4. Merge Post-Release PR
+The release workflow automatically:
+- ✅ Validates release is from `main` branch
+- ✅ Builds for both net8.0 (Umbraco 13) and net10.0 (Umbraco 17)
+- ✅ Runs all tests
+- ✅ Creates NuGet package with both frameworks
+- ✅ Publishes to NuGet.org
+- ✅ Uploads package artifact to GitHub
+
+### 4. Verify Release
+
 ```bash
-# Review the automated PR, then merge via GitHub UI
+# Check NuGet.org for new version
+# https://www.nuget.org/packages/Umbraco.Community.BulkUpload
+
+# Verify package contains both frameworks
+dotnet nuget locals http-cache --clear
+dotnet add package Umbraco.Community.BulkUpload --version 2.2.0
 ```
 
-## Cherry-Picking Changes
+## Version Numbering
 
-### Bug Fix: v13 → v17 + main
+### Semantic Versioning: MAJOR.MINOR.PATCH
+
+| Change Type | Version Example | Description |
+|-------------|----------------|-------------|
+| Breaking change | 3.0.0 | Major architectural changes |
+| New feature | 2.2.0 | Add new functionality |
+| Bug fix | 2.1.1 | Fix existing functionality |
+| Security fix | 2.1.2 | Security patches |
+
+**Note:** Each release supports BOTH Umbraco 13 (net8.0) and Umbraco 17 (net10.0).
+
+## Testing Before Release
+
+### Build and Test Locally
+
 ```bash
-# 1. Find commit hash
-git log release/v13.x --oneline -5
-# Copy commit hash (e.g., abc1234)
+# Clean previous builds
+dotnet clean
 
-# 2. Cherry-pick to main
+# Restore dependencies
+dotnet restore
+
+# Build for both frameworks
+dotnet build --configuration Release
+
+# Run all tests
+dotnet test --configuration Release
+
+# Create package locally (optional - to test packaging)
+dotnet pack src/BulkUpload/BulkUpload.csproj --configuration Release --output ./artifacts
+```
+
+### Verify Package Contents
+
+```bash
+# Extract and inspect package
+cd ./artifacts
+unzip -l Umbraco.Community.BulkUpload.2.2.0.nupkg
+
+# Check for:
+# - lib/net8.0/BulkUpload.dll
+# - lib/net10.0/BulkUpload.dll
+# - contentFiles or staticwebassets for frontend assets
+```
+
+## Hotfix Process
+
+For urgent fixes that need to be released quickly:
+
+```bash
+# 1. Create hotfix branch
 git checkout main
 git pull origin main
-git cherry-pick abc1234
+git checkout -b hotfix/critical-bug
+
+# 2. Fix the bug
+# ... make changes ...
+
+# 3. Test thoroughly
+dotnet build
 dotnet test
+
+# 4. Commit and push
+git add .
+git commit -m "fix: resolve critical bug in CSV parser"
+git push origin hotfix/critical-bug
+
+# 5. Create PR to main
+# After PR is approved and merged...
+
+# 6. Follow normal release process above
+# Update version (e.g., 2.1.1 → 2.1.2 for patch)
+# Create GitHub Release
+```
+
+## Rollback a Release
+
+If you need to unpublish or rollback a release:
+
+### Unpublish from NuGet
+
+```bash
+# NuGet doesn't allow deletion, but you can unlist
+# Go to: https://www.nuget.org/packages/Umbraco.Community.BulkUpload/manage
+# Click "Unlist" for the problematic version
+# This hides it from search but allows existing users to continue using it
+```
+
+### Create Corrective Release
+
+```bash
+# 1. Fix the issue
+git checkout main
+git pull origin main
+git checkout -b fix/release-issue
+
+# 2. Make corrections
+# ... fix code ...
+
+# 3. Test thoroughly
+dotnet build
+dotnet test
+
+# 4. Commit and merge to main
+git add .
+git commit -m "fix: correct issue in v2.2.0"
+# Create PR, get approved, merge
+
+# 5. Release new patch version v2.2.1
+# Follow normal release process
+```
+
+## Prerelease Versions
+
+For beta or RC releases:
+
+```bash
+# 1. Update version with prerelease suffix
+# src/BulkUpload/BulkUpload.csproj: <Version>2.3.0-beta.1</Version>
+
+# 2. Commit and push
+git add src/BulkUpload/BulkUpload.csproj CHANGELOG.md
+git commit -m "chore: prepare prerelease v2.3.0-beta.1"
 git push origin main
 
-# 3. Cherry-pick to v17
-git checkout release/v17.x
-git pull origin release/v17.x
-git cherry-pick abc1234
-dotnet test
-git push origin release/v17.x
+# 3. Create GitHub Release
+# Tag: v2.3.0-beta.1
+# Target: main
+# ✓ Check "This is a pre-release"
+# Publish
+
+# Note: Prerelease versions won't appear in NuGet search by default
+# Users must explicitly opt-in: dotnet add package BulkUpload --version 2.3.0-beta.1
 ```
 
-### Feature: main → v13 + v17
-```bash
-# 1. Find commit hash from main
-git log main --oneline -10
-# Copy commit hash (e.g., def5678)
+## Release Checklist
 
-# 2. Cherry-pick to v13
-git checkout release/v13.x
-git pull origin release/v13.x
-git cherry-pick def5678
-dotnet test
-git push origin release/v13.x
+### Before Release
 
-# 3. Cherry-pick to v17
-git checkout release/v17.x
-git pull origin release/v17.x
-git cherry-pick def5678
-dotnet test
-git push origin release/v17.x
-```
+- [ ] All features/fixes merged to `main`
+- [ ] Code builds successfully (`dotnet build -c Release`)
+- [ ] All tests pass (`dotnet test -c Release`)
+- [ ] Tested manually with Umbraco 13
+- [ ] Tested manually with Umbraco 17
+- [ ] Version bumped in src/BulkUpload/BulkUpload.csproj
+- [ ] CHANGELOG.md updated with release notes
+- [ ] All changes committed and pushed to `main`
+- [ ] No pending PRs that should be included
 
-### Resolve Cherry-Pick Conflicts
-```bash
-# If cherry-pick has conflicts:
-git cherry-pick abc1234
-# Fix conflicts in editor
-git add <resolved-files>
-git cherry-pick --continue
-dotnet test
-git push
+### During Release
 
-# Or abort if needed:
-git cherry-pick --abort
-```
+- [ ] GitHub Release created from `main` branch
+- [ ] Correct tag version (e.g., v2.2.0)
+- [ ] Release notes added
+- [ ] Published (not saved as draft)
 
-## Creating New Release Branch
+### After Release
 
-### For New Umbraco Version (e.g., v17)
-```bash
-# 1. Create from main
-git checkout main
-git pull origin main
-git checkout -b release/v17.x
-
-# 2. Update .csproj (manually):
-#    - Umbraco.Cms.Web.Website → 17.x.x
-#    - Umbraco.Cms.Web.BackOffice → 17.x.x
-#    - <Version>2.0.0</Version>
-
-# 3. Update CHANGELOG.md (add v2.0.0 section)
-
-# 4. Test
-dotnet restore
-dotnet build --configuration Release
-dotnet test
-
-# 5. Push branch
-git add .
-git commit -m "feat: add Umbraco 17 support (v2.0.0)"
-git push -u origin release/v17.x
-
-# 6. Create initial release (follow "Creating a Release" above)
-```
-
-## Common Workflows
-
-### Feature Development
-```bash
-# Create feature branch from main
-git checkout main
-git pull origin main
-git checkout -b feature/new-feature
-
-# Make changes, commit
-git add .
-git commit -m "feat: add new feature"
-git push origin feature/new-feature
-
-# Create PR to main on GitHub
-```
-
-### Bug Fix for Specific Version
-```bash
-# Create bugfix branch from release branch
-git checkout release/v13.x
-git pull origin release/v13.x
-git checkout -b bugfix/fix-csv-parsing
-
-# Make changes, commit
-git add .
-git commit -m "fix: handle empty CSV columns"
-git push origin bugfix/fix-csv-parsing
-
-# Create PR to release/v13.x on GitHub
-```
-
-## Checking Status
-
-### See Recent Commits
-```bash
-# On current branch
-git log --oneline -10
-
-# On specific branch
-git log release/v13.x --oneline -10
-
-# With diffs
-git log -p -2
-```
-
-### Check Differences Between Branches
-```bash
-# See commits in v13 not in main
-git log main..release/v13.x --oneline
-
-# See file changes
-git diff main..release/v13.x
-
-# See commits since branch diverged
-git log main...release/v13.x --oneline
-```
-
-### See What's in Current Release
-```bash
-# View current version
-cat src/BulkUpload/BulkUpload.csproj | grep "<Version>"
-
-# View latest tag
-git describe --tags --abbrev=0
-
-# View all tags
-git tag -l
-```
-
-## Testing
-
-### Run All Tests
-```bash
-dotnet test
-```
-
-### Build Release Package Locally
-```bash
-# Build in release mode
-dotnet build src/BulkUpload/BulkUpload.csproj --configuration Release
-
-# Pack NuGet package
-dotnet pack src/BulkUpload/BulkUpload.csproj --configuration Release --output ./artifacts
-
-# Package will be in: ./artifacts/Umbraco.Community.BulkUpload.{version}.nupkg
-```
-
-### Test Package Locally
-```bash
-# Install from local file
-dotnet add package Umbraco.Community.BulkUpload --source ./artifacts
-```
+- [ ] Verify on NuGet.org: https://www.nuget.org/packages/Umbraco.Community.BulkUpload
+- [ ] Test installing package: `dotnet add package Umbraco.Community.BulkUpload --version 2.2.0`
+- [ ] Update marketplace listing (if needed)
+- [ ] Announce release (if significant)
+- [ ] Close milestone (if using GitHub milestones)
 
 ## Troubleshooting
 
-### Undo Last Commit (Not Pushed)
-```bash
-git reset --soft HEAD~1  # Keep changes staged
-# or
-git reset --hard HEAD~1  # Discard changes
+### Release Workflow Failed
+
+Check GitHub Actions:
+```
+https://github.com/ClerksWell-Ltd/BulkUpload/actions/workflows/release.yml
 ```
 
-### Undo Last Commit (Already Pushed)
-```bash
-git revert HEAD
-git push
+Common issues:
+- **Build failed:** Check build logs for errors
+- **Tests failed:** Check test logs, fix failing tests
+- **NuGet push failed:**
+  - Check if version already exists on NuGet
+  - Verify NUGET_API_KEY secret is set
+  - Check NuGet.org status
+
+### Wrong Version Published
+
+1. Unlist the incorrect version on NuGet.org
+2. Fix the version locally
+3. Create new release with correct version
+
+### Missing Framework in Package
+
+Verify .csproj has:
+```xml
+<TargetFrameworks>net8.0;net10.0</TargetFrameworks>
 ```
 
-### See What Changed in a Commit
+Check build output for both frameworks:
 ```bash
-git show abc1234
+dotnet build -c Release
+# Should see:
+# BulkUpload -> ...bin/Release/net8.0/BulkUpload.dll
+# BulkUpload -> ...bin/Release/net10.0/BulkUpload.dll
 ```
 
-### Find Which Branch Contains a Commit
-```bash
-git branch -a --contains abc1234
-```
+## Version History
 
-## Version Mapping
-
-| BulkUpload | Umbraco | Branch | Status |
-|-----------|---------|--------|--------|
-| 1.x.x | 13.x | `release/v13.x` | Active |
-| 2.x.x | 17.x | `release/v17.x` | Planned |
+| Version | Release Date | Umbraco Support | Notes |
+|---------|-------------|-----------------|-------|
+| 2.0.0+ | 2025-01-15 | 13 & 17 | Multi-targeting architecture |
+| 1.x.x | Before 2025 | 13 only | Legacy single-target releases |
 
 ## Useful Links
 
-- **Full Release Process:** [RELEASE_PROCESS.md](./RELEASE_PROCESS.md)
-- **Branching Strategy:** [BRANCHING_STRATEGY.md](./BRANCHING_STRATEGY.md)
-- **Workflow Diagrams:** [WORKFLOW_DIAGRAM.md](./WORKFLOW_DIAGRAM.md)
 - **NuGet Package:** https://www.nuget.org/packages/Umbraco.Community.BulkUpload
 - **GitHub Releases:** https://github.com/ClerksWell-Ltd/BulkUpload/releases
 - **GitHub Actions:** https://github.com/ClerksWell-Ltd/BulkUpload/actions
+- **Release Workflow:** `.github/workflows/release.yml`
 
 ## GitHub Secrets Required
 

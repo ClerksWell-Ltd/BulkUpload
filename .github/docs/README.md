@@ -70,23 +70,18 @@ Documentation for developers contributing to BulkUpload.
 ### Architecture & Development
 
 #### Current Architecture (v2.0.0+)
-- **[Multi-Targeting Architecture](developer-guides/MULTI_TARGETING.md)** - **Complete guide** to how multi-targeting works
-  - Single codebase supporting Umbraco 13 & 17
-  - Multi-targeting configuration
-  - Conditional compilation
-  - RCL and static assets
-  - Frontend build process
+- **[Branching Strategy](developer-guides/BRANCHING_STRATEGY.md)** - **Main-branch workflow with multi-targeting**
+  - Single branch, single codebase
+  - Multi-targeting configuration (net8.0 and net10.0)
+  - Conditional compilation for framework-specific code
   - Development workflows
-  - Migration from multi-branch strategy
+  - Best practices
 
 - **[Multi-Targeting Quick Start](developer-guides/MULTI_TARGETING_QUICK_START.md)** - **Quick reference** for multi-targeting
-  - Essential commands
+  - Essential build and test commands
   - Framework-specific code patterns
   - Common workflows
   - Troubleshooting
-
-#### Legacy Architecture (v1.x)
-- **[Branching Strategy](developer-guides/BRANCHING_STRATEGY.md)** - Multi-version branching and release strategy (legacy, pre-v2.0.0)
   - Branch structure and purposes
   - Version-specific workflows
   - Cherry-picking guide
@@ -157,13 +152,10 @@ Internal documentation for package maintainers and planning.
 - [Custom Resolvers Guide](custom-resolvers-guide.md)
 
 ### Development & Release
-- [Multi-Targeting Architecture](developer-guides/MULTI_TARGETING.md) - **Complete guide (v2.0.0+)**
-- [Multi-Targeting Quick Start](developer-guides/MULTI_TARGETING_QUICK_START.md) - **Quick reference (v2.0.0+)**
-- [Branching Strategy](developer-guides/BRANCHING_STRATEGY.md) - Legacy (pre-v2.0.0)
-- [Release Process](developer-guides/RELEASE_PROCESS.md)
-- [Quick Reference](developer-guides/QUICK_REFERENCE.md)
-- [Quick Reference: Release](developer-guides/QUICK_REFERENCE_RELEASE.md)
-- [Workflow Diagrams](developer-guides/WORKFLOW_DIAGRAM.md)
+- [Branching Strategy](developer-guides/BRANCHING_STRATEGY.md) - **Main-branch workflow with multi-targeting (v2.0.0+)**
+- [Multi-Targeting Quick Start](developer-guides/MULTI_TARGETING_QUICK_START.md) - **Quick reference for multi-targeting**
+- [Release Process](developer-guides/RELEASE_PROCESS.md) - Releasing from main branch
+- [Workflow Diagrams](developer-guides/WORKFLOW_DIAGRAM.md) - Visual workflow guides
 
 ### Troubleshooting
 - [Troubleshooting Guide](troubleshooting.md)
@@ -205,6 +197,6 @@ Automated workflows in `.github/workflows/`:
 
 - **Users**: Check the [Main README](../../README.md) and [Media Import Guide](user-guides/media-import-guide.md)
 - **Developers**: See [Custom Resolvers Guide](custom-resolvers-guide.md) and [Troubleshooting](troubleshooting.md)
-- **Contributors**: Start with [Contributing Guidelines](../CONTRIBUTING.md) and [Multi-Targeting Architecture](developer-guides/MULTI_TARGETING.md)
+- **Contributors**: Start with [Contributing Guidelines](../CONTRIBUTING.md) and [Multi-Targeting Quick Start](developer-guides/MULTI_TARGETING_QUICK_START.md)
 - **Issues**: Report at [GitHub Issues](https://github.com/ClerksWell-Ltd/BulkUpload/issues)
 - **Discussions**: Ask questions at [GitHub Discussions](https://github.com/ClerksWell-Ltd/BulkUpload/discussions)

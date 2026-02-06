@@ -70,7 +70,7 @@ In the umbraco backoffice, go to the users section and add the Bulk Upload secti
 
 ## Using the tool
 
-- You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv?raw=true" download>download this sample CSV file</a>
+- You can <a href="https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-sample.csv?raw=true" download>download this sample CSV file</a>
 
 - In the Bulk Upload section, click on the upload button, choose your CSV file and then click on the import button.
 
@@ -104,7 +104,7 @@ public class DateTimeResolver : IResolver
 }
 ```
 
-In our [example CSV file](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv) there is a column called `articleDate` and it uses the `dateTime` resolver. The way we tell it to use it is by making the column header look like this:
+In our [example CSV file](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-sample.csv) there is a column called `articleDate` and it uses the `dateTime` resolver. The way we tell it to use it is by making the column header look like this:
 
 `articleDate|dateTime`
 

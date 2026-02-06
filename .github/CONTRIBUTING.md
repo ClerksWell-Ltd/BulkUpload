@@ -93,7 +93,7 @@ dotnet test --logger "console;verbosity=detailed"
 
 ### 5. Test with Local Sites
 
-#### Option A: Use Existing Test Sites
+#### Use Existing Test Sites
 
 The repository includes pre-configured test sites:
 
@@ -115,28 +115,6 @@ dotnet run
 - Password: `1234567890`
 
 **Note:** The test site databases are included in the repository (SQLite). If you encounter issues, delete the `umbraco.db` file and restart to trigger a fresh install.
-
-#### Option B: Create a New Test Site
-
-```bash
-# Install Umbraco templates
-dotnet new install Umbraco.Templates::13.10.0 --force
-
-# Create a new site
-dotnet new umbraco -n "MyTestSite" \
-  --friendly-name "Administrator" \
-  --email "admin@example.com" \
-  --password "1234567890" \
-  --development-database-type SQLite
-
-cd MyTestSite
-
-# Reference the local BulkUpload project
-dotnet add reference ../BulkUpload/src/BulkUpload/BulkUpload.csproj
-
-# Run the site
-dotnet run
-```
 
 Then:
 1. Navigate to the backoffice
@@ -165,7 +143,7 @@ BulkUpload v2.0.0+ uses **multi-targeting** to support both Umbraco 13 and 17 fr
 5. **Frontend (V13)** - AngularJS dashboard in `ClientV13/`
 6. **Frontend (V17)** - Lit web components with Vite bundling in `ClientV17/`
 
-For detailed architecture documentation, see [Multi-Targeting Architecture](../docs/MULTI_TARGETING.md).
+For detailed architecture documentation, see [Branching Strategy](.github/docs/developer-guides/BRANCHING_STRATEGY.md) and [Multi-Targeting Quick Start](.github/docs/developer-guides/MULTI_TARGETING_QUICK_START.md).
 
 ## Development Workflow
 
@@ -379,21 +357,22 @@ perf: optimize CSV processing
 
 ## Release Process
 
-Releases are managed by maintainers. The process is automated via GitHub Actions:
+Releases are managed by maintainers and published from the `main` branch. The process is automated via GitHub Actions:
 
 1. Update version in `src/BulkUpload/BulkUpload.csproj`
 2. Update `CHANGELOG.md` with release notes
 3. Commit changes: `git commit -m "chore: prepare release v2.1.0"`
-4. Create a GitHub Release with tag `v2.1.0`
-5. GitHub Actions automatically builds and publishes to NuGet
+4. Push to `main`: `git push origin main`
+5. Create a GitHub Release from `main` branch with tag `v2.1.0`
+6. GitHub Actions automatically builds for both net8.0 (Umbraco 13) and net10.0 (Umbraco 17), runs tests, and publishes to NuGet
 
-For detailed release instructions, see [Release Process](../docs/RELEASE_PROCESS.md).
+For detailed release instructions, see [Release Process](.github/docs/developer-guides/RELEASE_PROCESS.md) or [Quick Release Reference](.github/docs/developer-guides/QUICK_REFERENCE_RELEASE.md).
 
 ## Need Help?
 
 - **Questions?** Open a [Discussion](https://github.com/ClerksWell-Ltd/BulkUpload/discussions)
 - **Found a bug?** Open an [Issue](https://github.com/ClerksWell-Ltd/BulkUpload/issues)
-- **Documentation:** See the [docs](../docs/) folder
+- **Documentation:** See the [docs](.github/docs/) folder
 - **Examples:** Check the [samples](../samples/) folder
 
 ## License

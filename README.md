@@ -38,7 +38,7 @@ Want to try it out quickly? This script creates a new Umbraco site with the Clea
 
 ```bash
 # Install Umbraco templates
-dotnet new install Umbraco.Templates::13.10.0 --force
+dotnet new install Umbraco.Templates --force
 
 # Create solution and project
 dotnet new sln --name "MySolution"
@@ -51,7 +51,7 @@ dotnet new umbraco --force -n "MyProject" \
 dotnet sln add "MyProject"
 
 # Add Clean Starter Kit and BulkUpload
-dotnet add "MyProject" package clean --version 4.2.2
+dotnet add "MyProject" package clean
 dotnet add "MyProject" package Umbraco.Community.BulkUpload
 
 # Run the site
@@ -68,11 +68,11 @@ Then:
 Download our sample CSV files to quickly test the package:
 
 #### Content Import Sample
-- [📄 Basic Content Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-sample.csv?raw=true) - Article import with various property types
+- [📄 Basic Content Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-sample.csv?raw=true) - Article import with various property types
 
 #### Media Import Samples
-- [🖼️ Media with ZIP](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-sample.csv?raw=true) - For importing media files from a ZIP
-- [🌐 Media from URLs](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/docs/bulk-upload-media-url-sample.csv?raw=true) - For downloading media from URLs
+- [🖼️ Media with ZIP](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-sample.csv?raw=true) - For importing media files from a ZIP
+- [🌐 Media from URLs](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-url-sample.csv?raw=true) - For downloading media from URLs
 
 For more examples, explore the [samples directory](samples/).
 
@@ -183,7 +183,7 @@ See the [Custom Resolvers Guide](.github/docs/custom-resolvers-guide.md) for mor
 
 ### Developer Guides
 - [🔧 Custom Resolvers Guide](.github/docs/custom-resolvers-guide.md) - Create custom data transformers
-- [🏗️ Multi-Targeting Architecture](.github/docs/developer-guides/MULTI_TARGETING.md) - How multi-targeting works (v2.0.0+)
+- [🌿 Branching Strategy](.github/docs/developer-guides/BRANCHING_STRATEGY.md) - Main-branch workflow with multi-targeting (v2.0.0+)
 - [⚡ Multi-Targeting Quick Start](.github/docs/developer-guides/MULTI_TARGETING_QUICK_START.md) - Essential commands and workflows
 - [🔄 Release Process](.github/docs/developer-guides/RELEASE_PROCESS.md) - Release workflow and checklist
 - [📊 Workflow Diagrams](.github/docs/developer-guides/WORKFLOW_DIAGRAM.md) - Visual development workflows
@@ -203,7 +203,7 @@ BulkUpload v2.0.0+ uses **multi-targeting** to support both Umbraco 13 and 17 fr
 - **Dual Frontend** - AngularJS for V13, Lit web components for V17
 - **Service Layer** - Shared business logic across both versions
 
-Learn more in the [Multi-Targeting Architecture Guide](.github/docs/MULTI_TARGETING.md).
+Learn more in the [Multi-Targeting Quick Start](.github/docs/developer-guides/MULTI_TARGETING_QUICK_START.md) and [Branching Strategy](.github/docs/developer-guides/BRANCHING_STRATEGY.md).
 
 ## Contributing
 
