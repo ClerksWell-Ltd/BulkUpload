@@ -529,7 +529,8 @@ public class MediaImportControllerTests
 
         var value = okResult.Value;
         var successCountProp = value.GetType().GetProperty("successCount");
-        var successCount = (int)successCountProp!.GetValue(value)!;
+        Assert.NotNull(successCountProp);
+        var successCount = (int)successCountProp.GetValue(value)!;
         Assert.Equal(1, successCount);
     }
 
@@ -575,7 +576,8 @@ public class MediaImportControllerTests
 
         var value = okResult.Value;
         var successCountProp = value.GetType().GetProperty("successCount");
-        var successCount = (int)successCountProp!.GetValue(value)!;
+        Assert.NotNull(successCountProp);
+        var successCount = (int)successCountProp.GetValue(value)!;
         Assert.Equal(1, successCount);
     }
 
@@ -621,7 +623,8 @@ public class MediaImportControllerTests
 
         var value = okResult.Value;
         var successCountProp = value.GetType().GetProperty("successCount");
-        var successCount = (int)successCountProp!.GetValue(value)!;
+        Assert.NotNull(successCountProp);
+        var successCount = (int)successCountProp.GetValue(value)!;
         Assert.Equal(1, successCount);
     }
 
