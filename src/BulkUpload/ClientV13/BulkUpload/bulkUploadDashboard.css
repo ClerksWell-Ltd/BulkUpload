@@ -80,7 +80,31 @@
     background: var(--umb-accent);
 }
 
-/* ── Tab panel ── */
+/* ── Detection Badge ── */
+.detection-badge-container {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.detection-badge-container uui-badge {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* ── Results Container ── */
+.results-container {
+    animation: fadeIn 0.3s ease-in;
+    margin-bottom: 20px;
+}
+
+.results-container > .upload-card {
+    margin-bottom: 20px;
+}
+
+.results-container > .upload-card:last-child {
+    margin-bottom: 0;
+}
+
+/* ── Tab panel (legacy, kept for compatibility) ── */
 .tab-panel {
     animation: fadeIn 0.3s ease-in;
 }

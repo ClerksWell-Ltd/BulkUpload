@@ -1,11 +1,13 @@
 /**
- * Bulk Upload Service
+ * Bulk Upload Service - Unified Version
  * TypeScript version for Umbraco 17 (Lit)
  *
- * Framework-agnostic business logic and state management
+ * Framework-agnostic business logic with unified upload support.
+ * Handles both content and media in one upload field with automatic detection.
  */
 
-import type { BulkUploadApiClient, ImportResultResponse } from '../api/bulk-upload-api';
+import type { BulkUploadApiClient, ImportResultResponse, MediaPreprocessingResult } from '../api/bulk-upload-api';
+import type { UploadDetection } from '../utils/file.utils';
 
 /**
  * Notification object
@@ -17,22 +19,18 @@ export interface Notification {
 }
 
 /**
- * Import tab state
+ * Unified application state
  */
-export interface ImportTabState {
+export interface BulkUploadState {
   loading: boolean;
   file: File | null;
   fileElement: HTMLInputElement | null;
-  results: ImportResultResponse | null;
-}
-
-/**
- * Application state
- */
-export interface BulkUploadState {
-  activeTab: 'content' | 'media';
-  content: ImportTabState;
-  media: ImportTabState;
+  detection: UploadDetection | null;
+  results: {
+    content: ImportResultResponse | null;
+    media: ImportResultResponse | null;
+    mediaPreprocessing: MediaPreprocessingResult[] | null;
+  };
 }
 
 /**
@@ -75,22 +73,18 @@ export class BulkUploadService {
   }
 
   /**
-   * Creates initial state structure
+   * Creates initial state structure for unified upload
    */
   private createInitialState(): BulkUploadState {
     return {
-      activeTab: 'content',
-      content: {
-        loading: false,
-        file: null,
-        fileElement: null,
-        results: null
-      },
-      media: {
-        loading: false,
-        file: null,
-        fileElement: null,
-        results: null
+      loading: false,
+      file: null,
+      fileElement: null,
+      detection: null,
+      results: {
+        content: null,
+        media: null,
+        mediaPreprocessing: null
       }
     };
   }
@@ -105,52 +99,23 @@ export class BulkUploadService {
   }
 
   /**
-   * Sets the active tab
+   * Sets file with detection results
    */
-  setActiveTab(tab: 'content' | 'media'): void {
-    if (tab !== 'content' && tab !== 'media') {
-      throw new Error('Invalid tab name. Must be "content" or "media"');
-    }
-    this.state.activeTab = tab;
+  public setFile(file: File, fileElement: HTMLInputElement | null, detection: UploadDetection | null): void {
+    this.state.file = file;
+    this.state.fileElement = fileElement;
+    this.state.detection = detection;
     this.emitStateChange();
   }
 
   /**
-   * Sets content file and file element
+   * Clears file
    */
-  setContentFile(file: File, fileElement?: HTMLInputElement): void {
-    this.state.content.file = file;
-    this.state.content.fileElement = fileElement || null;
-    this.emitStateChange();
-  }
-
-  /**
-   * Sets media file and file element
-   */
-  setMediaFile(file: File, fileElement?: HTMLInputElement): void {
-    this.state.media.file = file;
-    this.state.media.fileElement = fileElement || null;
-    this.emitStateChange();
-  }
-
-  /**
-   * Clears content file
-   */
-  clearContentFile(): void {
-    this.state.content.file = null;
-    if (this.state.content.fileElement) {
-      this.state.content.fileElement.value = '';
-    }
-    this.emitStateChange();
-  }
-
-  /**
-   * Clears media file
-   */
-  clearMediaFile(): void {
-    this.state.media.file = null;
-    if (this.state.media.fileElement) {
-      this.state.media.fileElement.value = '';
+  public clearFile(): void {
+    this.state.file = null;
+    this.state.detection = null;
+    if (this.state.fileElement) {
+      this.state.fileElement.value = '';
     }
     this.emitStateChange();
   }
@@ -158,24 +123,31 @@ export class BulkUploadService {
   /**
    * Clears content results
    */
-  clearContentResults(): void {
-    this.state.content.results = null;
+  public clearContentResults(): void {
+    this.state.results.content = null;
+    this.state.results.mediaPreprocessing = null;
     this.emitStateChange();
   }
 
   /**
    * Clears media results
    */
-  clearMediaResults(): void {
-    this.state.media.results = null;
+  public clearMediaResults(): void {
+    this.state.results.media = null;
     this.emitStateChange();
   }
 
   /**
-   * Imports content from selected file
+   * Unified import that handles media-first processing
+   * Processes media CSV first (if present), then content CSV (if present)
    */
-  async importContent(): Promise<ImportResultResponse | null> {
-    const file = this.state.content.file;
+  public async importUnified(): Promise<{
+    content: ImportResultResponse | null;
+    media: ImportResultResponse | null;
+    mediaPreprocessing: MediaPreprocessingResult[] | null;
+  } | null> {
+    const file = this.state.file;
+    const detection = this.state.detection;
 
     if (!file) {
       this.notify({
@@ -202,156 +174,174 @@ export class BulkUploadService {
     }
 
     // Start import
-    this.state.content.loading = true;
-    this.state.content.results = null;
+    this.state.loading = true;
+    this.state.results.content = null;
+    this.state.results.media = null;
+    this.state.results.mediaPreprocessing = null;
     this.emitStateChange();
 
     try {
-      const response = await this.apiClient.importContent(file);
+      const hasMediaCSV = detection?.hasMediaCSV ?? false;
+      const hasContentCSV = detection?.hasContentCSV ?? false;
 
-      // Clear file after successful upload
-      this.clearContentFile();
-
-      // Store results
-      this.state.content.results = response.data;
-
-      // Use pre-calculated stats from API response
-      const stats = {
-        total: response.data.totalCount || 0,
-        success: response.data.successCount || 0,
-        failed: response.data.failureCount || 0
-      };
-
-      // Create summary message
-      let message: string;
-      if (stats.total === 0) {
-        message = 'No content items to import.';
-      } else if (stats.failed === 0) {
-        message = `All ${stats.total} content items imported successfully.`;
-      } else if (stats.success === 0) {
-        message = `All ${stats.total} content items failed to import.`;
-      } else {
-        message = `${stats.success} of ${stats.total} content items imported successfully. ${stats.failed} failed.`;
+      // Process based on detection
+      // Media CSV is always processed first (if present)
+      if (hasMediaCSV) {
+        await this.processMediaImport(file);
       }
 
-      this.notify({
-        type: stats.failed > 0 ? 'warning' : 'success',
-        headline: 'Content Import Complete',
-        message
-      });
+      // Then process content CSV (if present)
+      if (hasContentCSV) {
+        await this.processContentImport(file);
+      }
 
-      return response.data;
+      // If detection failed or neither CSV type was found, try content import as fallback
+      if (!hasMediaCSV && !hasContentCSV) {
+        await this.processContentImport(file);
+      }
+
+      // Clear file after successful upload
+      this.clearFile();
+
+      // Build combined success message
+      this.showCombinedSuccessMessage();
+
+      return {
+        content: this.state.results.content,
+        media: this.state.results.media,
+        mediaPreprocessing: this.state.results.mediaPreprocessing
+      };
 
     } catch (error) {
       this.notify({
         type: 'error',
         headline: 'Import Failed',
-        message: (error as Error).message || 'An error occurred during content import.'
+        message: error instanceof Error ? error.message : 'An error occurred during import.'
       });
       throw error;
 
     } finally {
-      this.state.content.loading = false;
+      this.state.loading = false;
       this.emitStateChange();
     }
   }
 
   /**
-   * Imports media from selected file
+   * Process media import
    */
-  async importMedia(): Promise<ImportResultResponse | null> {
-    const file = this.state.media.file;
-
-    if (!file) {
-      this.notify({
-        type: 'warning',
-        headline: 'No File Selected',
-        message: 'Please select a CSV or ZIP file to import.'
-      });
-      return null;
-    }
-
-    // Validate file
-    const validation = this.apiClient.validateFile(file, {
-      acceptedTypes: ['.csv', '.zip'],
-      maxSizeInMB: 100
-    });
-
-    if (!validation.valid) {
-      this.notify({
-        type: 'error',
-        headline: 'Invalid File',
-        message: validation.errors.join(', ')
-      });
-      return null;
-    }
-
-    // Start import
-    this.state.media.loading = true;
-    this.state.media.results = null;
-    this.emitStateChange();
-
+  private async processMediaImport(file: File): Promise<void> {
     try {
       const response = await this.apiClient.importMedia(file);
-
-      // Clear file after successful upload
-      this.clearMediaFile();
-
-      // Store results
-      this.state.media.results = response.data;
-
-      // Use pre-calculated stats from API response
-      const stats = {
-        total: response.data.totalCount || 0,
-        success: response.data.successCount || 0,
-        failed: response.data.failureCount || 0
-      };
-
-      // Create summary message
-      let message: string;
-      if (stats.total === 0) {
-        message = 'No media items to import.';
-      } else if (stats.failed === 0) {
-        message = `All ${stats.total} media items imported successfully.`;
-      } else if (stats.success === 0) {
-        message = `All ${stats.total} media items failed to import.`;
-      } else {
-        message = `${stats.success} of ${stats.total} media items imported successfully. ${stats.failed} failed.`;
-      }
-
-      this.notify({
-        type: stats.failed > 0 ? 'warning' : 'success',
-        headline: 'Media Import Complete',
-        message
-      });
-
-      return response.data;
-
+      this.state.results.media = response.data;
     } catch (error) {
       this.notify({
         type: 'error',
-        headline: 'Import Failed',
-        message: (error as Error).message || 'An error occurred during media import.'
+        headline: 'Media Import Failed',
+        message: error instanceof Error ? error.message : 'An error occurred during media import.'
       });
       throw error;
-
-    } finally {
-      this.state.media.loading = false;
-      this.emitStateChange();
     }
+  }
+
+  /**
+   * Process content import
+   */
+  private async processContentImport(file: File): Promise<void> {
+    try {
+      const response = await this.apiClient.importContent(file);
+      this.state.results.content = response.data;
+
+      // Store media preprocessing results if present (from ZIP with media files)
+      if (response.data?.mediaPreprocessingResults) {
+        this.state.results.mediaPreprocessing = response.data.mediaPreprocessingResults;
+      }
+    } catch (error) {
+      this.notify({
+        type: 'error',
+        headline: 'Content Import Failed',
+        message: error instanceof Error ? error.message : 'An error occurred during content import.'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Shows combined success message based on what was imported
+   */
+  private showCombinedSuccessMessage(): void {
+    const messages: string[] = [];
+    let hasErrors = false;
+
+    // Media import results
+    if (this.state.results.media) {
+      const mediaStats = {
+        total: this.state.results.media.totalCount || 0,
+        success: this.state.results.media.successCount || 0,
+        failed: this.state.results.media.failureCount || 0
+      };
+
+      if (mediaStats.total > 0) {
+        if (mediaStats.failed === 0) {
+          messages.push(`✓ Media: All ${mediaStats.total} items imported successfully.`);
+        } else {
+          messages.push(`⚠ Media: ${mediaStats.success} of ${mediaStats.total} items imported. ${mediaStats.failed} failed.`);
+          hasErrors = true;
+        }
+      }
+    }
+
+    // Content import results
+    if (this.state.results.content) {
+      const contentStats = {
+        total: this.state.results.content.totalCount || 0,
+        success: this.state.results.content.successCount || 0,
+        failed: this.state.results.content.failureCount || 0
+      };
+
+      if (contentStats.total > 0) {
+        if (contentStats.failed === 0) {
+          messages.push(`✓ Content: All ${contentStats.total} items imported successfully.`);
+        } else {
+          messages.push(`⚠ Content: ${contentStats.success} of ${contentStats.total} items imported. ${contentStats.failed} failed.`);
+          hasErrors = true;
+        }
+      }
+    }
+
+    // Media preprocessing results (from content import with media files)
+    if (this.state.results.mediaPreprocessing && this.state.results.mediaPreprocessing.length > 0) {
+      const mediaPreprocessingSuccess = this.state.results.mediaPreprocessing.filter(r => r.success).length;
+      const mediaPreprocessingFailed = this.state.results.mediaPreprocessing.filter(r => !r.success).length;
+
+      if (mediaPreprocessingFailed === 0) {
+        messages.push(`✓ Media Files: All ${this.state.results.mediaPreprocessing.length} files processed successfully.`);
+      } else {
+        messages.push(`⚠ Media Files: ${mediaPreprocessingSuccess} of ${this.state.results.mediaPreprocessing.length} files processed. ${mediaPreprocessingFailed} failed.`);
+        hasErrors = true;
+      }
+    }
+
+    const headline = hasErrors ? 'Import Completed with Warnings' : 'Import Successful';
+    const message = messages.length > 0 ? messages.join('\n') : 'Import completed.';
+
+    this.notify({
+      type: hasErrors ? 'warning' : 'success',
+      headline,
+      message
+    });
   }
 
   /**
    * Exports content import results to CSV
    */
-  async exportContentResults(): Promise<Response | null> {
-    const results = this.state.content.results;
+  public async exportContentResults(): Promise<Response | null> {
+    const results = this.state.results.content;
 
-    if (!results || !results.results) {
+    if (!results?.results) {
       this.notify({
         type: 'warning',
         headline: 'No Results',
-        message: 'No results available to export.'
+        message: 'No content results available to export.'
       });
       return null;
     }
@@ -362,7 +352,7 @@ export class BulkUploadService {
       this.notify({
         type: 'success',
         headline: 'Export Successful',
-        message: 'Results exported successfully.'
+        message: 'Content results exported successfully.'
       });
 
       return response;
@@ -371,7 +361,7 @@ export class BulkUploadService {
       this.notify({
         type: 'error',
         headline: 'Export Failed',
-        message: 'Failed to export results.'
+        message: 'Failed to export content results.'
       });
       throw error;
     }
@@ -380,14 +370,14 @@ export class BulkUploadService {
   /**
    * Exports media import results to CSV
    */
-  async exportMediaResults(): Promise<Response | null> {
-    const results = this.state.media.results;
+  public async exportMediaResults(): Promise<Response | null> {
+    const results = this.state.results.media;
 
-    if (!results || !results.results) {
+    if (!results?.results) {
       this.notify({
         type: 'warning',
         headline: 'No Results',
-        message: 'No results available to export.'
+        message: 'No media results available to export.'
       });
       return null;
     }
@@ -398,7 +388,7 @@ export class BulkUploadService {
       this.notify({
         type: 'success',
         headline: 'Export Successful',
-        message: 'Results exported successfully.'
+        message: 'Media results exported successfully.'
       });
 
       return response;
@@ -407,7 +397,43 @@ export class BulkUploadService {
       this.notify({
         type: 'error',
         headline: 'Export Failed',
-        message: 'Failed to export results.'
+        message: 'Failed to export media results.'
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Exports media preprocessing results to CSV
+   */
+  public async exportMediaPreprocessingResults(): Promise<Response | null> {
+    const results = this.state.results.mediaPreprocessing;
+
+    if (!results || results.length === 0) {
+      this.notify({
+        type: 'warning',
+        headline: 'No Results',
+        message: 'No media preprocessing results available to export.'
+      });
+      return null;
+    }
+
+    try {
+      const response = await this.apiClient.exportMediaPreprocessingResults(results);
+
+      this.notify({
+        type: 'success',
+        headline: 'Export Successful',
+        message: 'Media preprocessing results exported successfully.'
+      });
+
+      return response;
+
+    } catch (error) {
+      this.notify({
+        type: 'error',
+        headline: 'Export Failed',
+        message: 'Failed to export media preprocessing results.'
       });
       throw error;
     }
@@ -416,14 +442,14 @@ export class BulkUploadService {
   /**
    * Gets current state (for debugging or serialization)
    */
-  getState(): BulkUploadState {
+  public getState(): BulkUploadState {
     return { ...this.state };
   }
 
   /**
    * Resets service to initial state
    */
-  reset(): void {
+  public reset(): void {
     this.state = this.createInitialState();
     this.emitStateChange();
   }
