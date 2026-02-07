@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@umbraco-cms/backoffice": "^17.1.0",
+    "jszip": "^3.10.1",
     "lit": "^3.0.0"
   },
   "devDependencies": {
