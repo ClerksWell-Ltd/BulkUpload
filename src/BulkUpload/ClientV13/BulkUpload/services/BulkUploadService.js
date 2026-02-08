@@ -185,14 +185,23 @@
       // Clear file after successful upload
       this.clearContentFile();
 
-      // Store results
-      this.state.content.results = response.data;
+      // Normalize response data to camelCase (handles both Umbraco 13 PascalCase and Umbraco 17 camelCase)
+      var normalizedData = {
+        totalCount: response.data.totalCount || response.data.TotalCount || 0,
+        successCount: response.data.successCount || response.data.SuccessCount || 0,
+        failureCount: response.data.failureCount || response.data.FailureCount || 0,
+        results: response.data.results || response.data.Results || [],
+        mediaPreprocessingResults: response.data.mediaPreprocessingResults || response.data.MediaPreprocessingResults || null
+      };
 
-      // Use pre-calculated stats from API response
+      // Store normalized results
+      this.state.content.results = normalizedData;
+
+      // Use pre-calculated stats from normalized data
       var stats = {
-        total: response.data.totalCount || 0,
-        success: response.data.successCount || 0,
-        failed: response.data.failureCount || 0
+        total: normalizedData.totalCount,
+        success: normalizedData.successCount,
+        failed: normalizedData.failureCount
       };
 
       // Create summary message
@@ -272,14 +281,22 @@
       // Clear file after successful upload
       this.clearMediaFile();
 
-      // Store results
-      this.state.media.results = response.data;
+      // Normalize response data to camelCase (handles both Umbraco 13 PascalCase and Umbraco 17 camelCase)
+      var normalizedData = {
+        totalCount: response.data.totalCount || response.data.TotalCount || 0,
+        successCount: response.data.successCount || response.data.SuccessCount || 0,
+        failureCount: response.data.failureCount || response.data.FailureCount || 0,
+        results: response.data.results || response.data.Results || []
+      };
 
-      // Use pre-calculated stats from API response
+      // Store normalized results
+      this.state.media.results = normalizedData;
+
+      // Use pre-calculated stats from normalized data
       var stats = {
-        total: response.data.totalCount || 0,
-        success: response.data.successCount || 0,
-        failed: response.data.failureCount || 0
+        total: normalizedData.totalCount,
+        success: normalizedData.successCount,
+        failed: normalizedData.failureCount
       };
 
       // Create summary message
