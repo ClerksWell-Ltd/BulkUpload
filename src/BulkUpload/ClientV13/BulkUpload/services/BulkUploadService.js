@@ -250,7 +250,17 @@
 
       // Store media preprocessing results if present (from ZIP with media files)
       if (normalizedData.mediaPreprocessingResults) {
-        this.state.results.mediaPreprocessing = normalizedData.mediaPreprocessingResults;
+        // Normalize individual result properties from PascalCase to camelCase
+        this.state.results.mediaPreprocessing = normalizedData.mediaPreprocessingResults.map(function(result) {
+          return {
+            success: result.success !== undefined ? result.success : result.Success,
+            fileName: result.fileName || result.FileName || '',
+            value: result.value || result.Value || null,
+            errorMessage: result.errorMessage || result.ErrorMessage || null,
+            key: result.key || result.Key || '',
+            sourceCsvFileName: result.sourceCsvFileName || result.SourceCsvFileName || null
+          };
+        });
       }
     } catch (error) {
       this.notify({

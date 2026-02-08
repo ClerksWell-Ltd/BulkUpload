@@ -530,7 +530,7 @@ export class BulkUploadDashboardElement extends LitElement {
       max-width: 960px;
       margin: 0 auto;
       animation: fadeUp 0.5s ease both;
-      margin-top: 10px;
+      margin-top: 40px;
       margin-bottom: 14px;
     }
 
@@ -917,7 +917,7 @@ export class BulkUploadDashboardElement extends LitElement {
 
     /* Footer */
     .plugin-footer {
-      margin-top: 40px;
+      margin-top: 20px;
       padding-top: 24px;
     }
 
