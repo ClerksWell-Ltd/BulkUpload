@@ -202,14 +202,16 @@
 
     <!-- Requirements Card -->
     <div class="requirements-card" ng-if="!state.loading">
-        <div class="card-header">
-            <div class="icon-circle blue">ℹ</div>
-            <div>
-                <h2>Requirements & Help</h2>
-                <span class="subtitle">Everything you need to format your import file correctly</span>
-            </div>
-        </div>
-        <div class="card-body">
+        <details class="requirements-details">
+            <summary class="card-header">
+                <div class="icon-circle blue">ℹ</div>
+                <div>
+                    <h2>Requirements & Help</h2>
+                    <span class="subtitle">Everything you need to format your import file correctly</span>
+                </div>
+                <div class="toggle-icon">▼</div>
+            </summary>
+            <div class="card-body">
             <!-- Supported Upload Types -->
             <div class="req-section">
                 <div class="req-label">Supported Upload Types</div>
@@ -334,7 +336,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </details>
     </div>
 
     <!-- ClerksWell Branding Footer -->

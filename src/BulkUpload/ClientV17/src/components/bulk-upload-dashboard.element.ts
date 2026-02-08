@@ -350,14 +350,16 @@ export class BulkUploadDashboardElement extends LitElement {
   private renderUnifiedRequirements() {
     return html`
       <div class="requirements-card">
-        <div class="card-header">
-          <div class="icon-circle blue">ℹ</div>
-          <div>
-            <h2>Requirements & Help</h2>
-            <span class="subtitle">Everything you need to format your import file correctly</span>
-          </div>
-        </div>
-        <div class="card-body">
+        <details class="requirements-details">
+          <summary class="card-header">
+            <div class="icon-circle blue">ℹ</div>
+            <div>
+              <h2>Requirements & Help</h2>
+              <span class="subtitle">Everything you need to format your import file correctly</span>
+            </div>
+            <div class="toggle-icon">▼</div>
+          </summary>
+          <div class="card-body">
           <!-- Supported Upload Types -->
           <div class="req-section">
             <div class="req-label">Supported Upload Types</div>
@@ -482,7 +484,7 @@ export class BulkUploadDashboardElement extends LitElement {
               </div>
             </div>
           </div>
-        </div>
+        </details>
       </div>
     `;
   }
@@ -950,6 +952,52 @@ export class BulkUploadDashboardElement extends LitElement {
     .heart {
       color: var(--umb-danger);
       font-size: 14px;
+    }
+
+    /* Collapsible requirements */
+    .requirements-details {
+      all: unset;
+      display: block;
+    }
+
+    .requirements-details > summary {
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+
+    .requirements-details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .requirements-details > summary {
+      position: relative;
+    }
+
+    .requirements-details > summary .toggle-icon {
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      transition: transform 0.3s ease;
+      color: var(--umb-text-muted);
+      font-size: 12px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(27,38,79,0.05);
+    }
+
+    .requirements-details[open] > summary .toggle-icon {
+      transform: translateY(-50%) rotate(0deg);
+    }
+
+    .requirements-details > summary:hover .toggle-icon {
+      background: rgba(27,38,79,0.1);
+      color: var(--umb-blue);
     }
   `;
 }

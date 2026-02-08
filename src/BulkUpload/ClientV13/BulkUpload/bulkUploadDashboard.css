@@ -548,6 +548,52 @@ uui-button[look="primary"]:active {
     margin-top: 10px;
 }
 
+/* Collapsible requirements */
+.requirements-details {
+    all: unset;
+    display: block;
+}
+
+.requirements-details > summary {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.requirements-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.requirements-details > summary {
+    position: relative;
+}
+
+.requirements-details > summary .toggle-icon {
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    transition: transform 0.3s ease;
+    color: var(--umb-text-muted);
+    font-size: 12px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(27,38,79,0.05);
+}
+
+.requirements-details[open] > summary .toggle-icon {
+    transform: translateY(-50%) rotate(0deg);
+}
+
+.requirements-details > summary:hover .toggle-icon {
+    background: rgba(27,38,79,0.1);
+    color: var(--umb-blue);
+}
+
 /* Accessibility improvements */
 uui-button:focus-visible,
 input:focus-visible {
