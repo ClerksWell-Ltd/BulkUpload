@@ -135,9 +135,9 @@ public class BulkUploadController : ControllerBase
     /// </code>
     /// </example>
     [HttpPost]
+    [Consumes("multipart/form-data")]
 #if !NET8_0
     [Route("importall")]
-    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ContentImportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -403,10 +403,10 @@ public class BulkUploadController : ControllerBase
     /// </list>
     /// </remarks>
     [HttpPost]
-#if !NET8_0
-    [Route("exportresults")]
     [Consumes("application/json")]
     [Produces("text/csv", "application/zip")]
+#if !NET8_0
+    [Route("exportresults")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 #endif
@@ -589,12 +589,12 @@ public class BulkUploadController : ControllerBase
     /// - bulkUploadErrorMessage: Error details if failed
     /// </remarks>
     [HttpPost]
+    [Consumes("application/json")]
+    [Produces("text/csv", "application/zip")]
 #if !NET8_0
     [Route("exportmediapreprocessingresults")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
-    [Consumes("application/json")]
-    [Produces("text/csv", "application/zip")]
 #endif
     public IActionResult ExportMediaPreprocessingResults([FromBody] List<MediaPreprocessingResult> results)
     {

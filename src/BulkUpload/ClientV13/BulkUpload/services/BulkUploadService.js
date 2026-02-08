@@ -204,7 +204,18 @@
   BulkUploadService.prototype.processMediaImport = async function(file) {
     try {
       var response = await this.apiClient.importMedia(file);
-      this.state.results.media = response.data;
+
+      // Normalize response data to camelCase (handles both Umbraco 13 PascalCase and Umbraco 17 camelCase)
+      var normalizedData = {
+        totalCount: response.data.totalCount || response.data.TotalCount || 0,
+        successCount: response.data.successCount || response.data.SuccessCount || 0,
+        failureCount: response.data.failureCount || response.data.FailureCount || 0,
+        results: response.data.results || response.data.Results || []
+      };
+
+      // Store normalized results
+      this.state.results.media = normalizedData;
+
     } catch (error) {
       // Store error but continue to content import if applicable
       this.notify({
@@ -224,11 +235,22 @@
   BulkUploadService.prototype.processContentImport = async function(file) {
     try {
       var response = await this.apiClient.importContent(file);
-      this.state.results.content = response.data;
+
+      // Normalize response data to camelCase (handles both Umbraco 13 PascalCase and Umbraco 17 camelCase)
+      var normalizedData = {
+        totalCount: response.data.totalCount || response.data.TotalCount || 0,
+        successCount: response.data.successCount || response.data.SuccessCount || 0,
+        failureCount: response.data.failureCount || response.data.FailureCount || 0,
+        results: response.data.results || response.data.Results || [],
+        mediaPreprocessingResults: response.data.mediaPreprocessingResults || response.data.MediaPreprocessingResults || null
+      };
+
+      // Store normalized results
+      this.state.results.content = normalizedData;
 
       // Store media preprocessing results if present (from ZIP with media files)
-      if (response.data && response.data.mediaPreprocessingResults) {
-        this.state.results.mediaPreprocessing = response.data.mediaPreprocessingResults;
+      if (normalizedData.mediaPreprocessingResults) {
+        this.state.results.mediaPreprocessing = normalizedData.mediaPreprocessingResults;
       }
     } catch (error) {
       this.notify({

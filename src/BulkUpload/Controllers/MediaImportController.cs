@@ -130,9 +130,9 @@ public class MediaImportController : ControllerBase
     /// </code>
     /// </example>
     [HttpPost]
+    [Consumes("multipart/form-data")]
 #if !NET8_0
     [Route("importmedia")]
-    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(MediaImportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -617,10 +617,10 @@ public class MediaImportController : ControllerBase
     /// </list>
     /// </remarks>
     [HttpPost]
-#if !NET8_0
-    [Route("exportresults")]
     [Consumes("application/json")]
     [Produces("text/csv")]
+#if !NET8_0
+    [Route("exportresults")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
 #endif
