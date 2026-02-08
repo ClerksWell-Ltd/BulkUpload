@@ -179,7 +179,8 @@
     background: var(--umb-surface);
 }
 
-.drop-zone:hover {
+.drop-zone:hover,
+.drop-zone-active {
     border-color: var(--umb-accent);
     background: var(--umb-accent-soft);
 }

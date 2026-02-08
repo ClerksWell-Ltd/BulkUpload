@@ -15,6 +15,7 @@ import type { ImportResultResponse, MediaPreprocessingResult } from '../api/bulk
 @customElement('bulk-upload-dashboard')
 export class BulkUploadDashboardElement extends LitElement {
   @state() private dashboardState: BulkUploadState;
+  @state() private isDragOver = false;
   private service: BulkUploadService;
 
   constructor() {
@@ -61,6 +62,39 @@ export class BulkUploadDashboardElement extends LitElement {
     const input = this.shadowRoot?.getElementById('unified-file-input') as HTMLInputElement;
     if (input) {
       input.click();
+    }
+  }
+
+  private handleDragOver(e: DragEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    this.isDragOver = true;
+  }
+
+  private handleDragLeave(e: DragEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    this.isDragOver = false;
+  }
+
+  private async handleDrop(e: DragEvent): Promise<void> {
+    e.preventDefault();
+    e.stopPropagation();
+    this.isDragOver = false;
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      try {
+        const detection = await analyzeUploadFile(file);
+        this.service.setFile(file, null, detection);
+      } catch (error) {
+        console.error('Error analyzing file:', error);
+        this.service.setFile(file, null, null);
+      }
     }
   }
 
@@ -306,7 +340,12 @@ export class BulkUploadDashboardElement extends LitElement {
 
   private renderDropZone() {
     return html`
-      <div class="drop-zone" @click=${this.triggerFileInput}>
+      <div
+        class="drop-zone ${this.isDragOver ? 'drop-zone-active' : ''}"
+        @click=${this.triggerFileInput}
+        @dragover=${this.handleDragOver}
+        @dragleave=${this.handleDragLeave}
+        @drop=${this.handleDrop}>
         <div class="upload-icon">▲</div>
         <h3>Drag files here or <em>browse</em></h3>
         <p>Select a CSV or ZIP file to start your import</p>
@@ -810,7 +849,8 @@ export class BulkUploadDashboardElement extends LitElement {
       background: var(--umb-surface);
     }
 
-    .drop-zone:hover {
+    .drop-zone:hover,
+    .drop-zone-active {
       border-color: var(--umb-accent);
       background: var(--umb-accent-soft);
     }

@@ -146,7 +146,16 @@
         </div>
         <div class="card-body">
             <!-- Drop Zone -->
-            <div class="drop-zone" ng-click="triggerFileInput()" ng-if="!state.file">
+            <div class="drop-zone"
+                 ng-click="triggerFileInput()"
+                 ng-if="!state.file"
+                 ngf-drop
+                 ngf-select
+                 ng-model="uploadFile"
+                 ngf-change="onFileSelected(uploadFile, $event)"
+                 ngf-drag-over-class="'drop-zone-active'"
+                 ngf-accept="'.csv,.zip'"
+                 ngf-pattern="'.csv,.zip'">
                 <div class="upload-icon">▲</div>
                 <h3>Drag files here or <em>browse</em></h3>
                 <p>Select a CSV or ZIP file to start your import</p>
