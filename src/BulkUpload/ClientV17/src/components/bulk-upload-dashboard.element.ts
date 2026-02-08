@@ -399,60 +399,154 @@ export class BulkUploadDashboardElement extends LitElement {
             </div>
           </div>
 
-          <!-- Content CSV Requirements -->
+          <!-- Content Import Requirements -->
           <div class="req-section">
-            <div class="req-label">Content CSV - Required Columns</div>
-            <div class="req-grid">
-              <div class="req-item">
-                <code>parent</code>
-                <div class="desc">Parent ID, GUID, or content path</div>
-                <div class="examples">
-                  <span>1050</span>
-                  <span>71332aa7-…</span>
-                  <span>/news/2024/</span>
+            <div class="req-label">Content Import - Required Columns</div>
+
+            <!-- Create Mode -->
+            <div class="mode-subsection">
+              <div class="mode-header">
+                <span class="mode-badge create">Create Mode</span>
+                <span class="mode-desc">Creating new content items</span>
+              </div>
+              <div class="req-grid">
+                <div class="req-item">
+                  <code>parent</code>
+                  <div class="desc">Parent ID, GUID, or content path</div>
+                  <div class="examples">
+                    <span>1050</span>
+                    <span>71332aa7-…</span>
+                    <span>/news/2024/</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>docTypeAlias</code>
+                  <div class="desc">Content type alias</div>
+                  <div class="examples">
+                    <span>articlePage</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>name</code>
+                  <div class="desc">Content item name</div>
+                  <div class="examples">
+                    <span>My Article</span>
+                  </div>
                 </div>
               </div>
-              <div class="req-item">
-                <code>docTypeAlias</code>
-                <div class="desc">Content type alias</div>
-                <div class="examples">
-                  <span>articlePage</span>
-                </div>
+            </div>
+
+            <!-- Update Mode -->
+            <div class="mode-subsection">
+              <div class="mode-header">
+                <span class="mode-badge update">Update Mode</span>
+                <span class="mode-desc">Updating existing content items</span>
               </div>
-              <div class="req-item">
-                <code>name</code>
-                <div class="desc">Content item name</div>
-                <div class="examples">
-                  <span>My Article</span>
+              <div class="req-grid">
+                <div class="req-item">
+                  <code>bulkUploadShouldUpdate</code>
+                  <div class="desc">Set to true to enable update mode</div>
+                  <div class="examples">
+                    <span>true</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>bulkUploadContentGuid</code>
+                  <div class="desc">GUID of the content item to update</div>
+                  <div class="examples">
+                    <span>71332aa7-…</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>parent</code>
+                  <div class="desc">Parent ID, GUID, or content path (used to locate item)</div>
+                  <div class="examples">
+                    <span>1050</span>
+                    <span>/news/2024/</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>name</code>
+                  <div class="desc">Name to match existing item</div>
+                  <div class="examples">
+                    <span>My Article</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Media CSV Requirements -->
+          <!-- Media Import Requirements -->
           <div class="req-section">
-            <div class="req-label">Media CSV - Required Columns (depends on import type)</div>
-            <div class="req-grid">
-              <div class="req-item">
-                <code>fileName</code>
-                <div class="desc">For ZIP uploads: path to file within ZIP</div>
-                <div class="examples">
-                  <span>image.jpg</span>
-                  <span>photos/pic.png</span>
+            <div class="req-label">Media Import - Required Columns</div>
+
+            <!-- Create Mode -->
+            <div class="mode-subsection">
+              <div class="mode-header">
+                <span class="mode-badge create">Create Mode</span>
+                <span class="mode-desc">Creating new media items</span>
+              </div>
+              <div class="req-grid">
+                <div class="req-item">
+                  <code>fileName</code>
+                  <div class="desc">For ZIP uploads: path to file within ZIP</div>
+                  <div class="examples">
+                    <span>image.jpg</span>
+                    <span>photos/pic.png</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>mediaSource|urlToStream</code>
+                  <div class="desc">For URL imports</div>
+                  <div class="examples">
+                    <span>https://...</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>mediaSource|pathToStream</code>
+                  <div class="desc">For file path imports</div>
+                  <div class="examples">
+                    <span>C:\\Images\\...</span>
+                  </div>
                 </div>
               </div>
-              <div class="req-item">
-                <code>mediaSource|urlToStream</code>
-                <div class="desc">For URL imports</div>
-                <div class="examples">
-                  <span>https://...</span>
-                </div>
+            </div>
+
+            <!-- Update Mode -->
+            <div class="mode-subsection">
+              <div class="mode-header">
+                <span class="mode-badge update">Update Mode</span>
+                <span class="mode-desc">Updating existing media items</span>
               </div>
-              <div class="req-item">
-                <code>mediaSource|pathToStream</code>
-                <div class="desc">For file path imports</div>
-                <div class="examples">
-                  <span>C:\\Images\\...</span>
+              <div class="req-grid">
+                <div class="req-item">
+                  <code>bulkUploadShouldUpdate</code>
+                  <div class="desc">Set to true to enable update mode</div>
+                  <div class="examples">
+                    <span>true</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>bulkUploadMediaGuid</code>
+                  <div class="desc">GUID of the media item to update</div>
+                  <div class="examples">
+                    <span>a4f8bc21-…</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>parent</code>
+                  <div class="desc">Parent folder ID, GUID, or path (used to locate item)</div>
+                  <div class="examples">
+                    <span>1050</span>
+                    <span>/media/images/</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>name</code>
+                  <div class="desc">Name to match existing media item</div>
+                  <div class="examples">
+                    <span>hero-image</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -475,12 +569,8 @@ export class BulkUploadDashboardElement extends LitElement {
                 Add extra CSV columns for any property on your doc type or media type
               </div>
               <div class="media-tip">
-                <div class="tip-icon">🔄</div>
-                Update mode: Use <code>bulkUploadShouldUpdate</code> column to update existing items
-              </div>
-              <div class="media-tip">
                 <div class="tip-icon">📁</div>
-                <code>parent</code> column for folders (auto-creates folders for both content and media)
+                Auto-creates parent folders for both content and media hierarchies
               </div>
             </div>
           </div>
@@ -827,9 +917,51 @@ export class BulkUploadDashboardElement extends LitElement {
       font-size: 14px;
       font-weight: 700;
       color: var(--umb-text);
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+
+    .mode-subsection {
+      margin-bottom: 20px;
+    }
+
+    .mode-subsection:last-child {
+      margin-bottom: 0;
+    }
+
+    .mode-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .mode-badge.create {
+      background: var(--umb-accent-soft);
+      color: var(--umb-accent-hover);
+    }
+
+    .mode-badge.update {
+      background: #e6f2ff;
+      color: #006eff;
+    }
+
+    .mode-desc {
+      font-size: 13px;
+      color: var(--umb-text-muted);
+      font-weight: 500;
     }
 
     .req-grid {
