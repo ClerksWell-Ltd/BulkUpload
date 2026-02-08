@@ -19,11 +19,11 @@
   function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 Bytes';
 
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    var k = 1024;
+    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
   /**
@@ -45,11 +45,11 @@
   function isValidFileType(file, acceptedTypes) {
     if (!file || !acceptedTypes || acceptedTypes.length === 0) return true;
 
-    const ext = getFileExtension(file.name).toLowerCase();
+    var ext = getFileExtension(file.name).toLowerCase();
 
-    return acceptedTypes.some(type => {
+    return acceptedTypes.some(function(type) {
       // Handle both '.csv' and 'csv' formats
-      const normalizedType = type.startsWith('.') ? type.slice(1) : type;
+      var normalizedType = type.charAt(0) === '.' ? type.slice(1) : type;
       return normalizedType.toLowerCase() === ext;
     });
   }
@@ -62,7 +62,7 @@
    */
   function isValidFileSize(file, maxSizeInMB) {
     if (!file || !maxSizeInMB) return true;
-    const maxBytes = maxSizeInMB * 1024 * 1024;
+    var maxBytes = maxSizeInMB * 1024 * 1024;
     return file.size <= maxBytes;
   }
 
@@ -74,9 +74,9 @@
   function getFileTypeDescription(file) {
     if (!file) return 'Unknown';
 
-    const ext = getFileExtension(file.name).toLowerCase();
+    var ext = getFileExtension(file.name).toLowerCase();
 
-    const typeMap = {
+    var typeMap = {
       'csv': 'CSV Spreadsheet',
       'zip': 'ZIP Archive',
       'xlsx': 'Excel Spreadsheet',
@@ -94,28 +94,28 @@
    * @returns {Promise<string[]>} Promise resolving to array of header names
    */
    function readCSVHeaders(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
 
       reader.onload = function(e) {
         try {
-          const text = e.target.result;
+          var text = e.target.result;
           if (!text) {
             resolve([]);
             return;
           }
 
           // Get first line (headers)
-          const firstLine = text.split('\n')[0];
+          var firstLine = text.split('\n')[0];
           if (!firstLine) {
             resolve([]);
             return;
           }
 
           // Parse CSV headers (handle quoted fields)
-          const headers = firstLine
+          var headers = firstLine
             .split(',')
-            .map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+            .map(function(h) { return h.trim().replace(/^["']|["']$/g, '').toLowerCase(); });
 
           resolve(headers);
         } catch (error) {
@@ -142,20 +142,20 @@
     }
 
     // Normalize headers (remove resolver syntax, lowercase)
-    const normalizedHeaders = headers.map(h =>
-      h.split('|')[0].trim().toLowerCase()
-    );
+    var normalizedHeaders = headers.map(function(h) {
+      return h.split('|')[0].trim().toLowerCase();
+    });
 
     // Content CSV identifiers - requires all three
-    const hasContentHeaders =
+    var hasContentHeaders =
       normalizedHeaders.indexOf('parent') !== -1 &&
       normalizedHeaders.indexOf('doctypealias') !== -1 &&
       normalizedHeaders.indexOf('name') !== -1;
 
     // Media CSV identifiers - requires at least one
-    const hasMediaHeaders =
+    var hasMediaHeaders =
       normalizedHeaders.indexOf('filename') !== -1 ||
-      normalizedHeaders.some(h => h.indexOf('mediasource') === 0);
+      normalizedHeaders.some(function(h) { return h.indexOf('mediasource') === 0; });
 
     // Content takes priority if both are present
     if (hasContentHeaders) {
@@ -175,10 +175,10 @@
    * @returns {Promise<Object>} Promise resolving to upload detection results
    */
   function analyzeUploadFile(file) {
-    const ext = getFileExtension(file.name).toLowerCase();
+    var ext = getFileExtension(file.name).toLowerCase();
 
     // Initialize detection result
-    const detection = {
+    var detection = {
       hasMediaCSV: false,
       hasContentCSV: false,
       hasMediaFiles: false,
@@ -190,8 +190,8 @@
 
     if (ext === 'csv') {
       // Single CSV file
-      return readCSVHeaders(file).then(headers => {
-        const type = detectCSVType(headers);
+      return readCSVHeaders(file).then(function(headers) {
+        var type = detectCSVType(headers);
 
         if (type === 'content') {
           detection.hasContentCSV = true;
@@ -206,7 +206,7 @@
         }
 
         return detection;
-      }).catch(error => {
+      }).catch(function(error) {
         console.error('Error analyzing CSV file:', error);
         detection.summary = 'Error Analyzing File';
         return detection;
@@ -219,23 +219,23 @@
         return Promise.resolve(detection);
       }
 
-      return JSZip.loadAsync(file).then(zip => {
-        const csvFiles = [];
-        const mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'pdf', 'mp4', 'mov', 'avi', 'mp3', 'wav'];
-        const promises = [];
+      return JSZip.loadAsync(file).then(function(zip) {
+        var csvFiles = [];
+        var mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'pdf', 'mp4', 'mov', 'avi', 'mp3', 'wav'];
+        var promises = [];
 
         // Analyze each file in ZIP
-        Object.keys(zip.files).forEach(filename => {
-          const zipEntry = zip.files[filename];
+        Object.keys(zip.files).forEach(function(filename) {
+          var zipEntry = zip.files[filename];
           if (zipEntry.dir) return;
 
-          const fileExt = getFileExtension(filename).toLowerCase();
+          var fileExt = getFileExtension(filename).toLowerCase();
 
           if (fileExt === 'csv') {
             // Read and detect CSV type
-            const promise = zipEntry.async('blob').then(csvContent => {
-              return readCSVHeaders(csvContent).then(headers => {
-                const type = detectCSVType(headers);
+            var promise = zipEntry.async('blob').then(function(csvContent) {
+              return readCSVHeaders(csvContent).then(function(headers) {
+                var type = detectCSVType(headers);
                 csvFiles.push({ name: filename, type: type, headers: headers });
 
                 if (type === 'content') {
@@ -255,9 +255,9 @@
           }
         });
 
-        return Promise.all(promises).then(() => {
+        return Promise.all(promises).then(function() {
           // Generate summary
-          const parts = [];
+          var parts = [];
           if (detection.hasMediaCSV) parts.push('Media CSV');
           if (detection.hasContentCSV) parts.push('Content CSV');
           if (detection.hasMediaFiles) {
@@ -270,7 +270,7 @@
 
           return detection;
         });
-      }).catch(error => {
+      }).catch(function(error) {
         console.error('Error analyzing ZIP file:', error);
         detection.summary = 'Error Analyzing File';
         return detection;

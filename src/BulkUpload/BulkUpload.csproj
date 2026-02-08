@@ -137,8 +137,10 @@
     <Message Text="[BulkUpload V13] Copying shared assets..." Importance="high" />
     <ItemGroup>
       <SharedImages Include="ClientShared\images\*.*" />
+      <SharedLib Include="ClientShared\lib\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(SharedImages)" DestinationFolder="wwwroot\BulkUpload\images" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SharedLib)" DestinationFolder="wwwroot\BulkUpload\lib" SkipUnchangedFiles="true" />
   </Target>
 
   <!-- Build V17 frontend only for net10.0 -->
@@ -156,10 +158,13 @@
     <!-- Copy shared assets for V17 -->
     <Message Text="[BulkUpload V17] Copying shared assets..." Importance="high" />
     <MakeDir Directories="wwwroot\images" Condition="!Exists('wwwroot\images')" />
+    <MakeDir Directories="wwwroot\lib" Condition="!Exists('wwwroot\lib')" />
     <ItemGroup>
       <SharedImagesV17 Include="ClientShared\images\*.*" />
+      <SharedLibV17 Include="ClientShared\lib\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(SharedImagesV17)" DestinationFolder="wwwroot\images" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SharedLibV17)" DestinationFolder="wwwroot\lib" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
