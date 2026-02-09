@@ -255,9 +255,18 @@ export async function analyzeUploadFile(file: File): Promise<UploadDetection> {
 
       // Generate summary
       const parts: string[] = [];
-      if (detection.hasMediaCSV) parts.push('Media CSV');
-      if (detection.hasContentCSV) parts.push('Content CSV');
-      if (detection.hasMediaFiles) parts.push(`${detection.mediaFiles.length} Media File${detection.mediaFiles.length !== 1 ? 's' : ''}`);
+
+      if (detection.mediaCSVFiles.length > 0) {
+        parts.push(`${detection.mediaCSVFiles.length} Media CSV${detection.mediaCSVFiles.length !== 1 ? 's' : ''}`);
+      }
+
+      if (detection.contentCSVFiles.length > 0) {
+        parts.push(`${detection.contentCSVFiles.length} Content CSV${detection.contentCSVFiles.length !== 1 ? 's' : ''}`);
+      }
+
+      if (detection.hasMediaFiles) {
+        parts.push(`${detection.mediaFiles.length} Media File${detection.mediaFiles.length !== 1 ? 's' : ''}`);
+      }
 
       detection.summary = parts.length > 0
         ? `ZIP: ${parts.join(' + ')}`
