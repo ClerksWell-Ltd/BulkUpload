@@ -146,9 +146,8 @@
       return h.split('|')[0].trim().toLowerCase();
     });
 
-    // Content CSV identifiers - requires all three
+    // Content CSV identifiers - requires name and doctypealias (parent is optional for root-level content or legacy migration)
     var hasContentHeaders =
-      normalizedHeaders.indexOf('parent') !== -1 &&
       normalizedHeaders.indexOf('doctypealias') !== -1 &&
       normalizedHeaders.indexOf('name') !== -1;
 
@@ -221,6 +220,7 @@
 
       return JSZip.loadAsync(file).then(function(zip) {
         var csvFiles = [];
+        var unknownCSVFiles = [];
         var mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'pdf', 'mp4', 'mov', 'avi', 'mp3', 'wav'];
         var promises = [];
 
@@ -244,6 +244,8 @@
                 } else if (type === 'media') {
                   detection.hasMediaCSV = true;
                   detection.mediaCSVFiles.push(filename);
+                } else {
+                  unknownCSVFiles.push(filename);
                 }
               });
             });
@@ -258,13 +260,11 @@
         return Promise.all(promises).then(function() {
           // Generate summary
           var parts = [];
+          var totalCSVCount = detection.mediaCSVFiles.length + detection.contentCSVFiles.length + unknownCSVFiles.length;
 
-          if (detection.mediaCSVFiles.length > 0) {
-            parts.push(detection.mediaCSVFiles.length + ' Media CSV' + (detection.mediaCSVFiles.length !== 1 ? 's' : ''));
-          }
-
-          if (detection.contentCSVFiles.length > 0) {
-            parts.push(detection.contentCSVFiles.length + ' Content CSV' + (detection.contentCSVFiles.length !== 1 ? 's' : ''));
+          if (totalCSVCount > 0) {
+            // Show total CSV count first
+            parts.push(totalCSVCount + ' CSV' + (totalCSVCount !== 1 ? ' Files' : ' File'));
           }
 
           if (detection.hasMediaFiles) {

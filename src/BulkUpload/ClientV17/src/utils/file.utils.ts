@@ -160,9 +160,8 @@ export function detectCSVType(headers: string[]): CSVType {
     h.split('|')[0].trim().toLowerCase()
   );
 
-  // Content CSV identifiers - requires all three
+  // Content CSV identifiers - requires name and doctypealias (parent is optional for root-level content or legacy migration)
   const hasContentHeaders =
-    normalizedHeaders.includes('parent') &&
     normalizedHeaders.includes('doctypealias') &&
     normalizedHeaders.includes('name');
 
@@ -223,6 +222,7 @@ export async function analyzeUploadFile(file: File): Promise<UploadDetection> {
       // ZIP file - extract and analyze contents
       const zip = await JSZip.loadAsync(file);
       const csvFiles: CSVFileInfo[] = [];
+      const unknownCSVFiles: string[] = [];
       const mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'pdf', 'mp4', 'mov', 'avi', 'mp3', 'wav'];
 
       // Analyze each file in ZIP
@@ -245,6 +245,8 @@ export async function analyzeUploadFile(file: File): Promise<UploadDetection> {
           } else if (type === 'media') {
             detection.hasMediaCSV = true;
             detection.mediaCSVFiles.push(filename);
+          } else {
+            unknownCSVFiles.push(filename);
           }
         } else if (mediaExtensions.includes(fileExt)) {
           // Media file
@@ -255,13 +257,11 @@ export async function analyzeUploadFile(file: File): Promise<UploadDetection> {
 
       // Generate summary
       const parts: string[] = [];
+      const totalCSVCount = detection.mediaCSVFiles.length + detection.contentCSVFiles.length + unknownCSVFiles.length;
 
-      if (detection.mediaCSVFiles.length > 0) {
-        parts.push(`${detection.mediaCSVFiles.length} Media CSV${detection.mediaCSVFiles.length !== 1 ? 's' : ''}`);
-      }
-
-      if (detection.contentCSVFiles.length > 0) {
-        parts.push(`${detection.contentCSVFiles.length} Content CSV${detection.contentCSVFiles.length !== 1 ? 's' : ''}`);
+      if (totalCSVCount > 0) {
+        // Show total CSV count first
+        parts.push(`${totalCSVCount} CSV${totalCSVCount !== 1 ? ' Files' : ' File'}`);
       }
 
       if (detection.hasMediaFiles) {
