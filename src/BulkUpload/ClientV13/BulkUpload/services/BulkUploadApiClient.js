@@ -112,6 +112,28 @@
   };
 
   /**
+   * Exports media preprocessing results to CSV
+   * @param {Array} results - Array of media preprocessing result objects
+   * @returns {Promise<Object>} Promise resolving to file data with headers
+   */
+  BulkUploadApiClient.prototype.exportMediaPreprocessingResults = async function(results) {
+    if (!results || !Array.isArray(results)) {
+      throw new Error('Results array is required for export');
+    }
+
+    try {
+      var response = await this.http.post(
+        '/Umbraco/backoffice/Api/BulkUpload/ExportMediaPreprocessingResults',
+        results,
+        { responseType: 'blob' }
+      );
+      return response;
+    } catch (error) {
+      throw new Error('Export failed: ' + error.message);
+    }
+  };
+
+  /**
    * Validates a file before import
    * @param {File} file - The file to validate
    * @param {Object} options - Validation options

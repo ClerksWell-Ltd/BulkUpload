@@ -16,7 +16,9 @@ internal class BulkUploadManifestFilter : IManifestFilter
             Version = assembly.GetName()?.Version?.ToString(3) ?? "0.1.0",
             AllowPackageTelemetry = true,
             Scripts = new string[] {
-                // Utilities (no dependencies)
+                // Third-party libraries (local copy)
+                "/App_Plugins/BulkUpload/lib/jszip.min.js",
+                // Utilities (depends on jszip.min.js)
                 "/App_Plugins/BulkUpload/utils/fileUtils.js",
                 "/App_Plugins/BulkUpload/utils/resultUtils.js",
                 // HTTP Adapters (no dependencies)

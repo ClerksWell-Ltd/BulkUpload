@@ -3,8 +3,7 @@
  * Thin wrapper around framework-agnostic BulkUploadService
  *
  * This controller acts as a bridge between AngularJS and the business logic.
- * In Umbraco 17, this file will be replaced by a Lit component that uses
- * the same BulkUploadService directly.
+ * Unified upload version - handles both content and media in one upload field.
  *
  * NOTE: This file is written in ES5/IIFE format for Umbraco 13 compatibility.
  * In v17, this will be replaced with a Lit component using Vite.
@@ -62,36 +61,44 @@ angular
       $scope.formatFileSize = window.BulkUploadUtils.formatFileSize;
       $scope.getFileTypeDescription = window.BulkUploadUtils.getFileTypeDescription;
 
-      // Tab management
-      $scope.setActiveTab = function(tab) {
-        service.setActiveTab(tab);
-      };
-
       // File input trigger for drop zone
-      $scope.triggerFileInput = function(type) {
-        var inputId = type === 'content' ? 'content-file-input' : 'media-file-input';
-        var fileInput = document.getElementById(inputId);
+      $scope.triggerFileInput = function() {
+        var fileInput = document.getElementById('unified-file-input');
         if (fileInput) {
           fileInput.click();
         }
       };
 
-      // Content import handlers
-      $scope.onFileSelected = function(file, evt) {
-        service.setContentFile(file, evt ? evt.target : null);
+      // Unified file handler with detection
+      $scope.onFileSelected = async function(file, evt) {
+        if (!file) return;
+
+        try {
+          // Analyze file to detect contents
+          var detection = await window.BulkUploadUtils.analyzeUploadFile(file);
+          service.setFile(file, evt ? evt.target : null, detection);
+        } catch (error) {
+          console.error('Error analyzing file:', error);
+          service.setFile(file, evt ? evt.target : null, null);
+        }
       };
 
-      $scope.clearContentFile = function() {
-        service.clearContentFile();
+      $scope.clearFile = function() {
+        service.clearFile();
       };
 
       $scope.clearContentResults = function() {
         service.clearContentResults();
       };
 
+      $scope.clearMediaResults = function() {
+        service.clearMediaResults();
+      };
+
+      // Unified upload handler (processes media first, then content)
       $scope.onUploadClicked = async function() {
         try {
-          await service.importContent();
+          await service.importUnified();
           angularHelper.getCurrentForm($scope).$setPristine();
           // Scroll to top to show results
           setTimeout(function() {
@@ -103,6 +110,7 @@ angular
         }
       };
 
+      // Export handlers
       $scope.onExportContentResultsClicked = async function() {
         try {
           var response = await service.exportContentResults();
@@ -116,34 +124,7 @@ angular
         }
       };
 
-      // Media import handlers
-      $scope.onMediaFileSelected = function(file, evt) {
-        service.setMediaFile(file, evt ? evt.target : null);
-      };
-
-      $scope.clearMediaFile = function() {
-        service.clearMediaFile();
-      };
-
-      $scope.clearMediaResults = function() {
-        service.clearMediaResults();
-      };
-
-      $scope.onMediaUploadClicked = async function() {
-        try {
-          await service.importMedia();
-          angularHelper.getCurrentForm($scope).$setPristine();
-          // Scroll to top to show results
-          setTimeout(function() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }, 100);
-        } catch (error) {
-          // Error already handled by service
-          console.error('Import failed:', error);
-        }
-      };
-
-      $scope.onExportResultsClicked = async function() {
+      $scope.onExportMediaResultsClicked = async function() {
         try {
           var response = await service.exportMediaResults();
           if (response) {
@@ -154,6 +135,30 @@ angular
           // Error already handled by service
           console.error('Export failed:', error);
         }
+      };
+
+      $scope.onExportMediaPreprocessingResultsClicked = async function() {
+        try {
+          var response = await service.exportMediaPreprocessingResults();
+          if (response) {
+            // Automatically detect and download ZIP or CSV based on Content-Type
+            window.BulkUploadUtils.downloadResponseFile(response, 'media-preprocessing-results.csv');
+          }
+        } catch (error) {
+          // Error already handled by service
+          console.error('Export failed:', error);
+        }
+      };
+
+      // Helper functions for media preprocessing results
+      $scope.countSuccessfulMedia = function() {
+        if (!$scope.state.results.mediaPreprocessing) return 0;
+        return $scope.state.results.mediaPreprocessing.filter(function(r) { return r.success; }).length;
+      };
+
+      $scope.countFailedMedia = function() {
+        if (!$scope.state.results.mediaPreprocessing) return 0;
+        return $scope.state.results.mediaPreprocessing.filter(function(r) { return !r.success; }).length;
       };
     }
   );

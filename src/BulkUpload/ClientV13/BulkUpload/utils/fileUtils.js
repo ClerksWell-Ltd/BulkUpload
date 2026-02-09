@@ -19,11 +19,11 @@
   function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 Bytes';
 
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    var k = 1024;
+    var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
   /**
@@ -45,11 +45,11 @@
   function isValidFileType(file, acceptedTypes) {
     if (!file || !acceptedTypes || acceptedTypes.length === 0) return true;
 
-    const ext = getFileExtension(file.name).toLowerCase();
+    var ext = getFileExtension(file.name).toLowerCase();
 
-    return acceptedTypes.some(type => {
+    return acceptedTypes.some(function(type) {
       // Handle both '.csv' and 'csv' formats
-      const normalizedType = type.startsWith('.') ? type.slice(1) : type;
+      var normalizedType = type.charAt(0) === '.' ? type.slice(1) : type;
       return normalizedType.toLowerCase() === ext;
     });
   }
@@ -62,7 +62,7 @@
    */
   function isValidFileSize(file, maxSizeInMB) {
     if (!file || !maxSizeInMB) return true;
-    const maxBytes = maxSizeInMB * 1024 * 1024;
+    var maxBytes = maxSizeInMB * 1024 * 1024;
     return file.size <= maxBytes;
   }
 
@@ -74,9 +74,9 @@
   function getFileTypeDescription(file) {
     if (!file) return 'Unknown';
 
-    const ext = getFileExtension(file.name).toLowerCase();
+    var ext = getFileExtension(file.name).toLowerCase();
 
-    const typeMap = {
+    var typeMap = {
       'csv': 'CSV Spreadsheet',
       'zip': 'ZIP Archive',
       'xlsx': 'Excel Spreadsheet',
@@ -88,11 +88,214 @@
     return typeMap[ext] || ext.toUpperCase() + ' File';
   }
 
+  /**
+   * Reads CSV headers from a file or blob
+   * @param {File|Blob} file - The CSV file to read
+   * @returns {Promise<string[]>} Promise resolving to array of header names
+   */
+   function readCSVHeaders(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+
+      reader.onload = function(e) {
+        try {
+          var text = e.target.result;
+          if (!text) {
+            resolve([]);
+            return;
+          }
+
+          // Get first line (headers)
+          var firstLine = text.split('\n')[0];
+          if (!firstLine) {
+            resolve([]);
+            return;
+          }
+
+          // Parse CSV headers (handle quoted fields)
+          var headers = firstLine
+            .split(',')
+            .map(function(h) { return h.trim().replace(/^["']|["']$/g, '').toLowerCase(); });
+
+          resolve(headers);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      reader.onerror = function() {
+        reject(reader.error);
+      };
+
+      reader.readAsText(file);
+    });
+  }
+
+  /**
+   * Detects if CSV is content or media based on headers
+   * @param {string[]} headers - Array of CSV header names
+   * @returns {string} CSV type ('content', 'media', or 'unknown')
+   */
+  function detectCSVType(headers) {
+    if (!headers || headers.length === 0) {
+      return 'unknown';
+    }
+
+    // Normalize headers (remove resolver syntax, lowercase)
+    var normalizedHeaders = headers.map(function(h) {
+      return h.split('|')[0].trim().toLowerCase();
+    });
+
+    // Content CSV identifiers - requires name and doctypealias (parent is optional for root-level content or legacy migration)
+    var hasContentHeaders =
+      normalizedHeaders.indexOf('doctypealias') !== -1 &&
+      normalizedHeaders.indexOf('name') !== -1;
+
+    // Media CSV identifiers - requires at least one
+    var hasMediaHeaders =
+      normalizedHeaders.indexOf('filename') !== -1 ||
+      normalizedHeaders.some(function(h) { return h.indexOf('mediasource') === 0; });
+
+    // Content takes priority if both are present
+    if (hasContentHeaders) {
+      return 'content';
+    }
+
+    if (hasMediaHeaders) {
+      return 'media';
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Analyzes an uploaded file to detect its contents
+   * @param {File} file - The uploaded file (CSV or ZIP)
+   * @returns {Promise<Object>} Promise resolving to upload detection results
+   */
+  function analyzeUploadFile(file) {
+    var ext = getFileExtension(file.name).toLowerCase();
+
+    // Initialize detection result
+    var detection = {
+      hasMediaCSV: false,
+      hasContentCSV: false,
+      hasMediaFiles: false,
+      mediaCSVFiles: [],
+      contentCSVFiles: [],
+      mediaFiles: [],
+      summary: ''
+    };
+
+    if (ext === 'csv') {
+      // Single CSV file
+      return readCSVHeaders(file).then(function(headers) {
+        var type = detectCSVType(headers);
+
+        if (type === 'content') {
+          detection.hasContentCSV = true;
+          detection.contentCSVFiles.push(file.name);
+          detection.summary = 'Content CSV';
+        } else if (type === 'media') {
+          detection.hasMediaCSV = true;
+          detection.mediaCSVFiles.push(file.name);
+          detection.summary = 'Media CSV';
+        } else {
+          detection.summary = 'Unknown CSV';
+        }
+
+        return detection;
+      }).catch(function(error) {
+        console.error('Error analyzing CSV file:', error);
+        detection.summary = 'Error Analyzing File';
+        return detection;
+      });
+    } else if (ext === 'zip') {
+      // ZIP file - extract and analyze contents
+      if (typeof JSZip === 'undefined') {
+        console.error('JSZip library not loaded');
+        detection.summary = 'ZIP Archive';
+        return Promise.resolve(detection);
+      }
+
+      return JSZip.loadAsync(file).then(function(zip) {
+        var csvFiles = [];
+        var unknownCSVFiles = [];
+        var mediaExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'pdf', 'mp4', 'mov', 'avi', 'mp3', 'wav'];
+        var promises = [];
+
+        // Analyze each file in ZIP
+        Object.keys(zip.files).forEach(function(filename) {
+          var zipEntry = zip.files[filename];
+          if (zipEntry.dir) return;
+
+          var fileExt = getFileExtension(filename).toLowerCase();
+
+          if (fileExt === 'csv') {
+            // Read and detect CSV type
+            var promise = zipEntry.async('blob').then(function(csvContent) {
+              return readCSVHeaders(csvContent).then(function(headers) {
+                var type = detectCSVType(headers);
+                csvFiles.push({ name: filename, type: type, headers: headers });
+
+                if (type === 'content') {
+                  detection.hasContentCSV = true;
+                  detection.contentCSVFiles.push(filename);
+                } else if (type === 'media') {
+                  detection.hasMediaCSV = true;
+                  detection.mediaCSVFiles.push(filename);
+                } else {
+                  unknownCSVFiles.push(filename);
+                }
+              });
+            });
+            promises.push(promise);
+          } else if (mediaExtensions.indexOf(fileExt) !== -1) {
+            // Media file
+            detection.hasMediaFiles = true;
+            detection.mediaFiles.push(filename);
+          }
+        });
+
+        return Promise.all(promises).then(function() {
+          // Generate summary
+          var parts = [];
+          var totalCSVCount = detection.mediaCSVFiles.length + detection.contentCSVFiles.length + unknownCSVFiles.length;
+
+          if (totalCSVCount > 0) {
+            // Show total CSV count first
+            parts.push(totalCSVCount + ' CSV' + (totalCSVCount !== 1 ? ' Files' : ' File'));
+          }
+
+          if (detection.hasMediaFiles) {
+            parts.push(detection.mediaFiles.length + ' Media File' + (detection.mediaFiles.length !== 1 ? 's' : ''));
+          }
+
+          detection.summary = parts.length > 0
+            ? 'ZIP: ' + parts.join(' + ')
+            : 'ZIP Archive';
+
+          return detection;
+        });
+      }).catch(function(error) {
+        console.error('Error analyzing ZIP file:', error);
+        detection.summary = 'Error Analyzing File';
+        return detection;
+      });
+    } else {
+      detection.summary = 'Unsupported File Type';
+      return Promise.resolve(detection);
+    }
+  }
+
   // Expose functions
   window.BulkUploadUtils.formatFileSize = formatFileSize;
   window.BulkUploadUtils.getFileExtension = getFileExtension;
   window.BulkUploadUtils.isValidFileType = isValidFileType;
   window.BulkUploadUtils.isValidFileSize = isValidFileSize;
   window.BulkUploadUtils.getFileTypeDescription = getFileTypeDescription;
+  window.BulkUploadUtils.readCSVHeaders = readCSVHeaders;
+  window.BulkUploadUtils.detectCSVType = detectCSVType;
+  window.BulkUploadUtils.analyzeUploadFile = analyzeUploadFile;
 
 })(window);

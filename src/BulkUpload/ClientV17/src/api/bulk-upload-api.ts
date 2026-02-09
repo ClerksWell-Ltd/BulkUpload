@@ -25,6 +25,17 @@ export interface ImportResultResponse {
   successCount: number;
   failureCount: number;
   results: ImportResult[];
+  mediaPreprocessingResults?: MediaPreprocessingResult[];
+}
+
+/**
+ * Media preprocessing result
+ */
+export interface MediaPreprocessingResult {
+  success: boolean;
+  fileName: string;
+  value: string | null;
+  errorMessage: string | null;
 }
 
 /**
@@ -123,6 +134,27 @@ export class BulkUploadApiClient {
     try {
       const response = await this.postForBlob(
         '/api/v1/media/exportresults',
+        results
+      );
+      return response;
+    } catch (error) {
+      throw new Error('Export failed: ' + (error as Error).message);
+    }
+  }
+
+  /**
+   * Exports media preprocessing results to CSV
+   * @param results - Array of media preprocessing result objects
+   * @returns Promise resolving to Response object for file download
+   */
+  async exportMediaPreprocessingResults(results: MediaPreprocessingResult[]): Promise<Response> {
+    if (!results || !Array.isArray(results)) {
+      throw new Error('Results array is required for export');
+    }
+
+    try {
+      const response = await this.postForBlob(
+        '/api/v1/content/exportmediapreprocessingresults',
         results
       );
       return response;
