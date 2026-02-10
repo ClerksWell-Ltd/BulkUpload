@@ -146,22 +146,34 @@
       return h.split('|')[0].trim().toLowerCase();
     });
 
-    // Content CSV identifiers - requires name and doctypealias (parent is optional for root-level content or legacy migration)
-    var hasContentHeaders =
+    // Content CSV identifiers
+    // CREATE MODE: requires name and doctypealias (parent is optional for root-level content or legacy migration)
+    var hasContentCreateHeaders =
       normalizedHeaders.indexOf('doctypealias') !== -1 &&
       normalizedHeaders.indexOf('name') !== -1;
 
-    // Media CSV identifiers - requires at least one
-    var hasMediaHeaders =
+    // UPDATE MODE: requires bulkUploadContentGuid and bulkUploadShouldUpdate
+    var hasContentUpdateHeaders =
+      normalizedHeaders.indexOf('bulkuploadcontentguid') !== -1 &&
+      normalizedHeaders.indexOf('bulkuploadshouldupdate') !== -1;
+
+    // Media CSV identifiers
+    // CREATE MODE: requires at least one
+    var hasMediaCreateHeaders =
       normalizedHeaders.indexOf('filename') !== -1 ||
       normalizedHeaders.some(function(h) { return h.indexOf('mediasource') === 0; });
 
+    // UPDATE MODE: requires bulkUploadMediaGuid and bulkUploadShouldUpdate
+    var hasMediaUpdateHeaders =
+      normalizedHeaders.indexOf('bulkuploadmediaguid') !== -1 &&
+      normalizedHeaders.indexOf('bulkuploadshouldupdate') !== -1;
+
     // Content takes priority if both are present
-    if (hasContentHeaders) {
+    if (hasContentCreateHeaders || hasContentUpdateHeaders) {
       return 'content';
     }
 
-    if (hasMediaHeaders) {
+    if (hasMediaCreateHeaders || hasMediaUpdateHeaders) {
       return 'media';
     }
 
