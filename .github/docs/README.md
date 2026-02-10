@@ -20,6 +20,12 @@ Documentation for content editors and site administrators using BulkUpload.
 - **[Package README](../README.md)** - Detailed usage instructions and resolver guide
 
 ### User Guides
+- **[Update Mode Guide](user-guides/UPDATE_MODE_GUIDE.md)** - Complete guide for updating existing content and media
+  - Update content and media by GUID
+  - Partial property updates
+  - Best practices and common scenarios
+  - Troubleshooting update issues
+
 - **[Media Import Guide](user-guides/media-import-guide.md)** - Comprehensive guide for bulk media imports
   - Single and multi-CSV support
   - Media deduplication
@@ -140,12 +146,14 @@ Internal documentation for package maintainers and planning.
 
 ### Content Import
 - [Package README - Content Import](../README.md#content-import)
+- [Update Mode Guide](user-guides/UPDATE_MODE_GUIDE.md) - Update existing content and media
 - [Legacy Hierarchy Mapping](user-guides/LEGACY_HIERARCHY_MAPPING.md)
 - [Content Picker Legacy IDs](user-guides/CONTENT_PICKER_LEGACY_IDS.md)
 
 ### Media Import
 - [Media Import Guide](user-guides/media-import-guide.md)
 - [Package README - Media Import](../README.md#media-import)
+- [Update Mode Guide](user-guides/UPDATE_MODE_GUIDE.md) - Update existing media items
 
 ### Custom Resolvers
 - [Package README - Resolvers](../README.md#resolvers)
