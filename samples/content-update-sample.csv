@@ -1,0 +1,4 @@
+bulkUploadShouldUpdate,bulkUploadContentGuid,parent,name,title,description|text,publishDate|dateTime
+true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,1100,My Article,Updated Article Title,This article content has been updated with new information,2024-02-10
+true,b2c3d4e5-f6a7-8901-bcde-f12345678901,1100,Another Article,Fresh New Title,Content updated in bulk,2024-02-11
+true,c3d4e5f6-a7b8-9012-cdef-012345678912,/News/2024/,Tech News,Latest Tech Updates,Breaking tech news updated via bulk upload,2024-02-12

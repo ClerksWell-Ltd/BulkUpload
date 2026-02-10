@@ -234,6 +234,7 @@ public class ImportUtilityService : IImportUtilityService
         {
             IContent? contentItem;
             var parentContentGuid = importObject.BulkUploadParentGuid;
+            var changesApplied = false;
 
             // Check if this is an update operation (bulkUploadContentGuid is present)
             if (importObject.BulkUploadContentGuid.HasValue)
@@ -264,6 +265,7 @@ public class ImportUtilityService : IImportUtilityService
                 if (!string.IsNullOrWhiteSpace(importObject.Name) && contentItem.Name != importObject.Name)
                 {
                     contentItem.Name = importObject.Name;
+                    changesApplied = true;
                 }
 
                 // Move to new parent if bulkUploadParentGuid is specified
@@ -304,6 +306,7 @@ public class ImportUtilityService : IImportUtilityService
                     {
                         _contentService.Move(contentItem, newParentId);
                         _logger.LogDebug("Moved content '{Name}' to new parent {ParentId}", importObject.Name, newParentId);
+                        changesApplied = true;
                     }
                 }
             }
@@ -385,6 +388,7 @@ public class ImportUtilityService : IImportUtilityService
                 foreach (var property in importObject.Properties)
                 {
                     contentItem.SetValue(property.Key, property.Value);
+                    changesApplied = true;
                 }
             }
 
@@ -407,6 +411,7 @@ public class ImportUtilityService : IImportUtilityService
                         if (resolvedValue != null)
                         {
                             contentItem.SetValue(propertyAlias, resolvedValue);
+                            changesApplied = true;
                         }
                     }
                 }
@@ -457,6 +462,14 @@ public class ImportUtilityService : IImportUtilityService
                 bulkUploadParentGuid = parentContent?.Key;
             }
 
+            // Determine if we need to add an info message for update mode with no changes
+            string? infoMessage = null;
+            if (importObject.BulkUploadContentGuid.HasValue && !changesApplied)
+            {
+                infoMessage = "No properties were updated";
+                _logger.LogInformation("Content update for GUID {Guid}: No properties were changed", importObject.BulkUploadContentGuid.Value);
+            }
+
             // Return success result
             return new ContentImportResult
             {
@@ -469,7 +482,8 @@ public class ImportUtilityService : IImportUtilityService
                 BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
                 BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
                 OriginalCsvData = importObject.OriginalCsvData,
-                SourceCsvFileName = importObject.SourceCsvFileName
+                SourceCsvFileName = importObject.SourceCsvFileName,
+                BulkUploadInfoMessage = infoMessage
             };
         }
         catch (Exception ex)

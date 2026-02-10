@@ -160,22 +160,34 @@ export function detectCSVType(headers: string[]): CSVType {
     h.split('|')[0].trim().toLowerCase()
   );
 
-  // Content CSV identifiers - requires name and doctypealias (parent is optional for root-level content or legacy migration)
-  const hasContentHeaders =
+  // Content CSV identifiers
+  // CREATE MODE: requires name and doctypealias (parent is optional for root-level content or legacy migration)
+  const hasContentCreateHeaders =
     normalizedHeaders.includes('doctypealias') &&
     normalizedHeaders.includes('name');
 
-  // Media CSV identifiers - requires at least one
-  const hasMediaHeaders =
+  // UPDATE MODE: requires bulkUploadContentGuid and bulkUploadShouldUpdate
+  const hasContentUpdateHeaders =
+    normalizedHeaders.includes('bulkuploadcontentguid') &&
+    normalizedHeaders.includes('bulkuploadshouldupdate');
+
+  // Media CSV identifiers
+  // CREATE MODE: requires at least one
+  const hasMediaCreateHeaders =
     normalizedHeaders.includes('filename') ||
     normalizedHeaders.some(h => h.startsWith('mediasource'));
 
+  // UPDATE MODE: requires bulkUploadMediaGuid and bulkUploadShouldUpdate
+  const hasMediaUpdateHeaders =
+    normalizedHeaders.includes('bulkuploadmediaguid') &&
+    normalizedHeaders.includes('bulkuploadshouldupdate');
+
   // Content takes priority if both are present
-  if (hasContentHeaders) {
+  if (hasContentCreateHeaders || hasContentUpdateHeaders) {
     return 'content';
   }
 
-  if (hasMediaHeaders) {
+  if (hasMediaCreateHeaders || hasMediaUpdateHeaders) {
     return 'media';
   }
 

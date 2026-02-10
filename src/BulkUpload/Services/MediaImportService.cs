@@ -269,6 +269,7 @@ public class MediaImportService : IMediaImportService
             }
 
             IMedia? mediaItem;
+            var changesApplied = false;
 
             // Determine operation mode based on row values
             // If bulkUploadShouldUpdate column existed in CSV (per-file), then update mode is available
@@ -293,6 +294,7 @@ public class MediaImportService : IMediaImportService
                     mediaItem.Name = importObject.Name;
                     _logger.LogInformation("Updated media name from '{OldName}' to '{NewName}'",
                         oldName, importObject.Name);
+                    changesApplied = true;
                 }
 
                 // Move to new parent if specified
@@ -334,6 +336,7 @@ public class MediaImportService : IMediaImportService
                         _mediaService.Move(mediaItem, newParentId);
                         _logger.LogInformation("Moved media '{Name}' to new parent {ParentId}",
                             mediaItem.Name, newParentId);
+                        changesApplied = true;
                     }
                 }
 
@@ -345,6 +348,7 @@ public class MediaImportService : IMediaImportService
                         _contentTypeBaseServiceProvider, UmbracoConstants.Conventions.Media.File,
                         importObject.FileName, fileStream);
                     _logger.LogDebug("Updated media file for '{Name}'", mediaItem.Name);
+                    changesApplied = true;
                 }
                 else
                 {
@@ -448,6 +452,7 @@ public class MediaImportService : IMediaImportService
                     try
                     {
                         mediaItem.SetValue(property.Key, property.Value);
+                        changesApplied = true;
                     }
                     catch (Exception ex)
                     {
@@ -464,6 +469,14 @@ public class MediaImportService : IMediaImportService
                 result.BulkUploadSuccess = true;
                 result.BulkUploadMediaGuid = mediaItem.Key;
                 result.BulkUploadMediaUdi = Udi.Create(UmbracoConstants.UdiEntityType.Media, mediaItem.Key).ToString();
+
+                // Add info message if update mode with no changes
+                if (importObject.BulkUploadShouldUpdate && importObject.BulkUploadMediaGuid.HasValue && !changesApplied)
+                {
+                    result.BulkUploadInfoMessage = "No properties were updated";
+                    _logger.LogInformation("Media update for GUID {Guid}: No properties were changed", importObject.BulkUploadMediaGuid.Value);
+                }
+
                 _logger.LogInformation("Successfully imported media: {Name} (ID: {Id}), Umbraco Media Name: {SavedName}", importObject.DisplayName, mediaItem.Id, mediaItem.Name);
             }
             else
