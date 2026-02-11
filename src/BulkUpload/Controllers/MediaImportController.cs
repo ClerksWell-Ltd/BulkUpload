@@ -748,6 +748,243 @@ public class MediaImportController : ControllerBase
     }
 
     /// <summary>
+    /// Imports media files from a ZIP archive without requiring a CSV file.
+    /// Automatically creates media items based on the folder structure within the ZIP.
+    /// </summary>
+    /// <param name="model">Request model containing the ZIP file to import.</param>
+    /// <param name="cancellationToken">Cancellation token to cancel the import operation.</param>
+    /// <returns>
+    /// Import results CSV file containing information for each imported media item including GUIDs, filenames, and parent paths.
+    /// This CSV can be used in future content imports to reference the media items.
+    /// </returns>
+    /// <remarks>
+    /// <para>This endpoint processes ZIP files containing only media files (no CSV required).</para>
+    ///
+    /// <para><strong>How it works:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description><strong>Folder structure:</strong> Files in the root of the ZIP are placed in the root media section. Files in folders inherit the folder path as their parent.</description></item>
+    ///   <item><description><strong>Naming:</strong> The media item name is derived from the filename (without extension).</description></item>
+    ///   <item><description><strong>Parent path:</strong> For files in folders like "/folder name/sub folder/image.jpg", the parent value will be "/folder name/sub folder/".</description></item>
+    ///   <item><description><strong>Auto-type detection:</strong> Media type is automatically detected from the file extension.</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Example ZIP structure:</strong></para>
+    /// <code>
+    /// media-files.zip
+    /// ├── logo.png (goes to root media)
+    /// ├── Products/
+    /// │   ├── product-1.jpg (parent: "/Products")
+    /// │   └── product-2.jpg (parent: "/Products")
+    /// └── Documents/
+    ///     └── Brochures/
+    ///         └── brochure.pdf (parent: "/Documents/Brochures")
+    /// </code>
+    ///
+    /// <para><strong>Result CSV columns:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description><strong>bulkUploadMediaGuid</strong> - GUID of the created media item</description></item>
+    ///   <item><description><strong>bulkUploadMediaUdi</strong> - UDI for content references</description></item>
+    ///   <item><description><strong>fileName</strong> - Original filename</description></item>
+    ///   <item><description><strong>name</strong> - Display name (filename without extension)</description></item>
+    ///   <item><description><strong>parent</strong> - Parent folder path</description></item>
+    ///   <item><description><strong>relativePath</strong> - Full relative path within the ZIP</description></item>
+    /// </list>
+    ///
+    /// <para><strong>Benefits:</strong></para>
+    /// <list type="bullet">
+    ///   <item><description>No CSV required - just upload a ZIP with your media files</description></item>
+    ///   <item><description>Automatic folder structure creation based on ZIP contents</description></item>
+    ///   <item><description>Results CSV can be used for future content imports to reference media</description></item>
+    ///   <item><description>Results CSV can be used for bulk updates to media properties</description></item>
+    /// </list>
+    /// </remarks>
+    [HttpPost]
+    [Consumes("multipart/form-data")]
+#if !NET8_0
+    [Route("importmediafromzip")]
+    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+#endif
+    public async Task<IActionResult> ImportMediaFromZipOnly([FromForm] ImportMediaRequestModel model, CancellationToken cancellationToken = default)
+    {
+        // Clear all caches at the start of each import to ensure fresh state
+        _parentLookupCache.Clear();
+        _mediaItemCache.Clear();
+        _legacyIdCache.Clear();
+        _logger.LogInformation("Bulk Upload Media: Cleared all caches for new ZIP-only import");
+
+        string? tempDirectory = null;
+
+        try
+        {
+            var file = model.File;
+            if (file == null || file.Length == 0)
+            {
+                _logger.LogError("Bulk Upload Media: Uploaded file is not valid");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid File",
+                    Detail = "Uploaded file is not valid or is empty.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
+            }
+
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (extension != ".zip")
+            {
+                _logger.LogError("Bulk Upload Media: File is not a ZIP file");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Invalid File Type",
+                    Detail = "Please upload a ZIP file containing media files.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
+            }
+
+            // Create temporary directory for extraction
+            tempDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDirectory);
+
+            // Extract ZIP file
+            using (var fileStream = file.OpenReadStream())
+            {
+                using var archive = new ZipArchive(fileStream, ZipArchiveMode.Read);
+                archive.ExtractToDirectory(tempDirectory);
+            }
+
+            _logger.LogInformation("Bulk Upload Media: Extracted ZIP file to temporary directory");
+
+            // Process the ZIP directory and import media files
+            var results = await _mediaImportService.ProcessZipMediaUploadWithoutCsv(tempDirectory, publish: false);
+
+            if (results == null || !results.Any())
+            {
+                _logger.LogWarning("Bulk Upload Media: No media files found in ZIP archive");
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "No Media Files",
+                    Detail = "No valid media files found in the ZIP archive.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1"
+                });
+            }
+
+            // Generate results CSV
+            var csv = GenerateResultsCsv(results);
+            var bytes = Encoding.UTF8.GetBytes(csv);
+
+            _logger.LogInformation("Bulk Upload Media: ZIP-only import completed. Total: {Total}, Success: {Success}, Failed: {Failed}",
+                results.Count, results.Count(r => r.BulkUploadSuccess), results.Count(r => !r.BulkUploadSuccess));
+
+            return File(bytes, "text/csv", "media-import-results.csv");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Bulk Upload Media: Error during ZIP-only media import");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Import Failed",
+                Detail = "An unexpected error occurred during the media import. Please check the logs for details.",
+                Status = StatusCodes.Status500InternalServerError,
+                Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+            });
+        }
+        finally
+        {
+            // Clean up temporary directory
+            if (!string.IsNullOrWhiteSpace(tempDirectory) && Directory.Exists(tempDirectory))
+            {
+                try
+                {
+                    Directory.Delete(tempDirectory, recursive: true);
+                    _logger.LogDebug("Bulk Upload Media: Cleaned up temporary directory");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Bulk Upload Media: Failed to clean up temporary directory: {TempDirectory}", tempDirectory);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Generates a CSV string from media import results.
+    /// </summary>
+    private string GenerateResultsCsv(List<MediaImportResult> results)
+    {
+        // Collect all unique original column names from all results
+        var originalColumns = new List<string>();
+        foreach (var result in results)
+        {
+            if (result.OriginalCsvData != null)
+            {
+                foreach (var key in result.OriginalCsvData.Keys)
+                {
+                    if (!originalColumns.Contains(key) && !key.StartsWith("bulkUpload", StringComparison.OrdinalIgnoreCase))
+                    {
+                        originalColumns.Add(key);
+                    }
+                }
+            }
+        }
+
+        // Determine which optional columns to include
+        bool hasAnyErrors = results.Any(r => !string.IsNullOrWhiteSpace(r.BulkUploadErrorMessage));
+
+        var csv = new StringBuilder();
+
+        // Build header
+        var headerParts = new List<string>
+        {
+            "bulkUploadSuccess",
+            "bulkUploadMediaGuid",
+            "bulkUploadMediaUdi"
+        };
+
+        if (hasAnyErrors)
+        {
+            headerParts.Add("bulkUploadErrorMessage");
+        }
+
+        headerParts.AddRange(originalColumns);
+        csv.AppendLine(string.Join(",", headerParts));
+
+        // Build each row
+        foreach (var result in results)
+        {
+            var rowParts = new List<string>
+            {
+                result.BulkUploadSuccess.ToString(),
+                $"\"{result.BulkUploadMediaGuid}\"",
+                $"\"{result.BulkUploadMediaUdi}\""
+            };
+
+            if (hasAnyErrors)
+            {
+                rowParts.Add($"\"{(result.BulkUploadErrorMessage?.Replace("\"", "\"\"") ?? "")}\"");
+            }
+
+            // Original CSV columns
+            foreach (var columnName in originalColumns)
+            {
+                string value = "";
+                if (result.OriginalCsvData != null && result.OriginalCsvData.TryGetValue(columnName, out var csvValue))
+                {
+                    value = csvValue?.ToString()?.Replace("\"", "\"\"") ?? "";
+                }
+                rowParts.Add($"\"{value}\"");
+            }
+
+            csv.AppendLine(string.Join(",", rowParts));
+        }
+
+        return csv.ToString();
+    }
+
+    /// <summary>
     /// Validates that a URL is safe to download from (basic SSRF prevention).
     /// </summary>
     private bool IsAllowedUrl(string url)
