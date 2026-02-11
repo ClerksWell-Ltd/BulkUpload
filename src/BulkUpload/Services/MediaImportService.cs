@@ -781,7 +781,7 @@ public class MediaImportService : IMediaImportService
                     var result = ImportSingleMediaItem(importObject, fileStream, publish);
 
                     // Add original file information to result for CSV export
-                    result.OriginalCsvData = new Dictionary<string, object>
+                    result.OriginalCsvData = new Dictionary<string, string>
                     {
                         { "fileName", fileName },
                         { "name", fileNameWithoutExtension },
@@ -810,7 +810,7 @@ public class MediaImportService : IMediaImportService
                         BulkUploadFileName = Path.GetFileName(filePath),
                         BulkUploadSuccess = false,
                         BulkUploadErrorMessage = $"Error processing file: {ex.Message}",
-                        OriginalCsvData = new Dictionary<string, object>
+                        OriginalCsvData = new Dictionary<string, string>
                         {
                             { "fileName", Path.GetFileName(filePath) },
                             { "error", ex.Message }
