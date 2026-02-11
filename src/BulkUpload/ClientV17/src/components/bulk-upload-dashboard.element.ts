@@ -126,6 +126,16 @@ export class BulkUploadDashboardElement extends LitElement {
     }
   }
 
+  private async handleZipOnlyMediaImport(): Promise<void> {
+    const response = await this.service.importMediaFromZipOnly();
+    if (response) {
+      await downloadResponseFile(response, 'media-import-results.csv');
+    }
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  }
+
   private countSuccessfulMedia(): number {
     return this.dashboardState.results.mediaPreprocessing?.filter(r => r.success).length ?? 0;
   }
@@ -332,6 +342,17 @@ export class BulkUploadDashboardElement extends LitElement {
               style="--uui-button-padding: 12px 28px;">
               ${loading ? 'Processing...' : '▲ Import'}
             </uui-button>
+            ${file && file.name.endsWith('.zip') ? html`
+              <uui-button
+                label="Import Media Only (No CSV)"
+                look="outline"
+                color="positive"
+                ?disabled=${loading}
+                @click=${this.handleZipOnlyMediaImport}
+                style="--uui-button-padding: 12px 28px;">
+                📦 Import ZIP Media Only
+              </uui-button>
+            ` : nothing}
           </div>
         </div>
       </div>
@@ -410,6 +431,10 @@ export class BulkUploadDashboardElement extends LitElement {
               <div class="media-tip">
                 <div class="tip-icon">📄</div>
                 <strong>Content CSV:</strong> Import content nodes
+              </div>
+              <div class="media-tip">
+                <div class="tip-icon">📦</div>
+                <strong>ZIP with Media Files Only (No CSV):</strong> Auto-import all media files based on folder structure
               </div>
               <div class="media-tip">
                 <div class="tip-icon">📦</div>
