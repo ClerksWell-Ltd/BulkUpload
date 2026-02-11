@@ -101,6 +101,57 @@ export class BulkUploadApiClient {
   }
 
   /**
+   * Imports media from a ZIP file without requiring a CSV.
+   * Automatically creates media items based on the folder structure in the ZIP.
+   * Returns a CSV with the results including media GUIDs, filenames, and parent paths.
+   * @param file - The ZIP file containing media files
+   * @returns Promise resolving to Response object for CSV download
+   */
+  async importMediaFromZipOnly(file: File): Promise<Response> {
+    if (!file) {
+      throw new Error('File is required for ZIP-only media import');
+    }
+
+    // Validate that it's a ZIP file
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+    if (fileExt !== 'zip') {
+      throw new Error('Only ZIP files are accepted for ZIP-only media import');
+    }
+
+    try {
+      // Get auth headers from context
+      const authHeaders = await apiContext.getAuthHeaders();
+      const headers: Record<string, string> = {
+        ...authHeaders
+      };
+
+      // Wrap File in FormData
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Get base URL and build full URL
+      const baseUrl = apiContext.getBaseUrl();
+      const fullUrl = baseUrl ? `${baseUrl}/api/v1/media/importmediafromzip` : '/api/v1/media/importmediafromzip';
+      const credentials = apiContext.getCredentials();
+
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        body: formData,
+        headers,
+        credentials
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return response;
+    } catch (error) {
+      throw new Error('ZIP-only media import failed: ' + (error as Error).message);
+    }
+  }
+
+  /**
    * Exports content import results to CSV or ZIP
    * @param results - Array of import result objects
    * @returns Promise resolving to Response object for file download

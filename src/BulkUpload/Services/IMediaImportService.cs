@@ -7,4 +7,6 @@ public interface IMediaImportService
     public MediaImportObject CreateMediaImportObject(dynamic? record);
 
     public MediaImportResult ImportSingleMediaItem(MediaImportObject importObject, Stream fileStream, bool publish = false);
+
+    public Task<List<MediaImportResult>> ProcessZipMediaUploadWithoutCsv(string zipTempDirectory, bool publish = false);
 }
