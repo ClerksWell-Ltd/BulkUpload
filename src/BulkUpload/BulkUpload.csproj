@@ -23,7 +23,6 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>icon.png</PackageIcon>
     <PackageReleaseNotes>See https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/CHANGELOG.md</PackageReleaseNotes>
-
     <!-- Modern Build Best Practices -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -35,25 +34,22 @@
     <EnablePackageValidation>false</EnablePackageValidation>
     <EnablePackageBaselineValidation>false</EnablePackageBaselineValidation>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn><!-- Suppress missing XML comment warnings -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- Suppress missing XML comment warnings -->
   </PropertyGroup>
-
   <!-- Conditional StaticWebAssetBasePath per framework -->
   <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <StaticWebAssetBasePath>App_Plugins</StaticWebAssetBasePath>
   </PropertyGroup>
-
   <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <StaticWebAssetBasePath>/App_Plugins/BulkUpload</StaticWebAssetBasePath>
   </PropertyGroup>
-
   <!-- Exclude V17 frontend files from net8.0 build -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <Content Remove="wwwroot\bulkupload.js" />
     <Content Remove="wwwroot\bulkupload.js.map" />
     <Content Remove="wwwroot\umbraco-package.json" />
   </ItemGroup>
-
   <!-- Include V17 frontend files in net10.0 package using contentFiles -->
   <!-- Include V17 frontend files for net10.0: both as static web assets and content files -->
   <ItemGroup>
@@ -65,28 +61,24 @@
     <None Include="buildTransitive\Umbraco.Community.BulkUpload.props" Pack="true" PackagePath="buildTransitive" />
     <None Include="build\Umbraco.Community.BulkUpload.targets" Pack="true" PackagePath="build;buildTransitive" />
   </ItemGroup>
-
   <!-- Package dependencies -->
   <ItemGroup>
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
-
   <!-- Umbraco 13 dependencies -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="13.13.0" />
     <PackageReference Include="Umbraco.Cms.Web.BackOffice" Version="13.13.0" />
   </ItemGroup>
-
   <!-- Umbraco 17 dependencies -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
     <!-- Swashbuckle and OpenAPI for Swagger documentation -->
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.0.1" />
-    <PackageReference Include="Microsoft.OpenApi" Version="2.3.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.3" />
+    <PackageReference Include="Microsoft.OpenApi" Version="2.6.1" />
   </ItemGroup>
-
   <ItemGroup>
     <None Include="../../.github/docs/README_nuget.md">
       <Pack>True</Pack>
@@ -94,16 +86,13 @@
     </None>
     <None Include="..\..\images\logo.png" Pack="true" PackagePath="icon.png" />
   </ItemGroup>
-
   <!-- Exclude auto-generated props files so our custom ones are used -->
   <ItemGroup>
     <None Remove="$(BaseIntermediateOutputPath)**\build\*.props" />
     <None Remove="$(BaseIntermediateOutputPath)**\buildMultiTargeting\*.props" />
     <None Remove="$(BaseIntermediateOutputPath)**\buildTransitive\*.props" />
   </ItemGroup>
-
   <!-- RCL automatically includes wwwroot as static web assets -->
-
   <!-- Exclude node_modules and other frontend build artifacts from MSBuild processing -->
   <ItemGroup>
     <Compile Remove="ClientV13\**" />
@@ -119,20 +108,16 @@
   <ItemGroup>
     <Content Include="ClientShared\images\cw-logo-primary-blue.png" />
   </ItemGroup>
-
   <!-- Build V13 frontend only for net8.0 -->
   <Target Name="BuildFrontendV13" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net8.0'">
     <Message Text="[BulkUpload V13] Copying V13 frontend files to wwwroot..." Importance="high" />
-
     <!-- Create wwwroot/BulkUpload directory if it doesn't exist -->
     <MakeDir Directories="wwwroot\BulkUpload" Condition="!Exists('wwwroot\BulkUpload')" />
-
     <!-- Copy V13 source files -->
     <ItemGroup>
       <V13Files Include="ClientV13\BulkUpload\**\*.*" />
     </ItemGroup>
     <Copy SourceFiles="@(V13Files)" DestinationFolder="wwwroot\BulkUpload\%(RecursiveDir)" SkipUnchangedFiles="true" />
-
     <!-- Copy shared assets -->
     <Message Text="[BulkUpload V13] Copying shared assets..." Importance="high" />
     <ItemGroup>
@@ -142,19 +127,15 @@
     <Copy SourceFiles="@(SharedImages)" DestinationFolder="wwwroot\BulkUpload\images" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(SharedLib)" DestinationFolder="wwwroot\BulkUpload\lib" SkipUnchangedFiles="true" />
   </Target>
-
   <!-- Build V17 frontend only for net10.0 -->
   <Target Name="BuildFrontendV17" BeforeTargets="BeforeBuild" Condition="'$(TargetFramework)' == 'net10.0'">
     <!-- Clean only V17 files from wwwroot, preserve V13 BulkUpload folder -->
     <Message Text="[BulkUpload V17] Cleaning previous V17 bundle..." Importance="high" />
     <Delete Files="wwwroot\bulkupload.js;wwwroot\bulkupload.js.map;wwwroot\umbraco-package.json" />
-
     <Message Text="[BulkUpload V17] Installing frontend dependencies..." Importance="high" />
     <Exec Command="npm install" WorkingDirectory="ClientV17" Condition="!Exists('ClientV17/node_modules')" />
-
     <Message Text="[BulkUpload V17] Building frontend bundle..." Importance="high" />
     <Exec Command="npm run build" WorkingDirectory="ClientV17" />
-
     <!-- Copy shared assets for V17 -->
     <Message Text="[BulkUpload V17] Copying shared assets..." Importance="high" />
     <MakeDir Directories="wwwroot\images" Condition="!Exists('wwwroot\images')" />
@@ -166,5 +147,4 @@
     <Copy SourceFiles="@(SharedImagesV17)" DestinationFolder="wwwroot\images" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(SharedLibV17)" DestinationFolder="wwwroot\lib" SkipUnchangedFiles="true" />
   </Target>
-
 </Project>
