@@ -110,7 +110,7 @@ public class ImportObject
     public string? SourceCsvFileName { get; set; }
 
 
-    // Updated: allow import when updating by GUID and update flag even if Name or ContentTypeAlais are missing
-    public bool CanImport => (BulkUploadContentGuid.HasValue && BulkUploadShouldUpdate)
+    // Updated: allow import when GUID present with update or publish flag, even if Name or ContentTypeAlais are missing
+    public bool CanImport => (BulkUploadContentGuid.HasValue && (BulkUploadShouldUpdate || BulkUploadShouldPublish))
         || (!string.IsNullOrWhiteSpace(Name) && !string.IsNullOrWhiteSpace(ContentTypeAlais));
 }

@@ -280,4 +280,82 @@ public class ImportObjectTests
         // Assert
         Assert.True(result);
     }
+
+    [Fact]
+    public void CanImport_ReturnsTrue_WhenGuidAndShouldUpdate()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = null!,
+            ContentTypeAlais = null!,
+            BulkUploadContentGuid = Guid.NewGuid(),
+            BulkUploadShouldUpdate = true
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CanImport_ReturnsTrue_WhenGuidAndShouldPublish()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = null!,
+            ContentTypeAlais = null!,
+            BulkUploadContentGuid = Guid.NewGuid(),
+            BulkUploadShouldPublish = true
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CanImport_ReturnsTrue_WhenGuidAndBothUpdateAndPublish()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = null!,
+            ContentTypeAlais = null!,
+            BulkUploadContentGuid = Guid.NewGuid(),
+            BulkUploadShouldUpdate = true,
+            BulkUploadShouldPublish = true
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void CanImport_ReturnsFalse_WhenGuidOnly()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = null!,
+            ContentTypeAlais = null!,
+            BulkUploadContentGuid = Guid.NewGuid(),
+            BulkUploadShouldUpdate = false,
+            BulkUploadShouldPublish = false
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.False(result);
+    }
 }

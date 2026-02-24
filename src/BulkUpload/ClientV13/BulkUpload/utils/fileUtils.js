@@ -152,10 +152,11 @@
       normalizedHeaders.indexOf('doctypealias') !== -1 &&
       normalizedHeaders.indexOf('name') !== -1;
 
-    // UPDATE MODE: requires bulkUploadContentGuid and bulkUploadShouldUpdate
+    // UPDATE/PUBLISH MODE: requires bulkUploadContentGuid and (bulkUploadShouldUpdate or bulkUploadShouldPublish)
     var hasContentUpdateHeaders =
       normalizedHeaders.indexOf('bulkuploadcontentguid') !== -1 &&
-      normalizedHeaders.indexOf('bulkuploadshouldupdate') !== -1;
+      (normalizedHeaders.indexOf('bulkuploadshouldupdate') !== -1 ||
+       normalizedHeaders.indexOf('bulkuploadshouldpublish') !== -1);
 
     // Media CSV identifiers
     // CREATE MODE: requires at least one

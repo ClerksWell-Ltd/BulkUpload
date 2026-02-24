@@ -166,10 +166,11 @@ export function detectCSVType(headers: string[]): CSVType {
     normalizedHeaders.includes('doctypealias') &&
     normalizedHeaders.includes('name');
 
-  // UPDATE MODE: requires bulkUploadContentGuid and bulkUploadShouldUpdate
+  // UPDATE/PUBLISH MODE: requires bulkUploadContentGuid and (bulkUploadShouldUpdate or bulkUploadShouldPublish)
   const hasContentUpdateHeaders =
     normalizedHeaders.includes('bulkuploadcontentguid') &&
-    normalizedHeaders.includes('bulkuploadshouldupdate');
+    (normalizedHeaders.includes('bulkuploadshouldupdate') ||
+     normalizedHeaders.includes('bulkuploadshouldpublish'));
 
   // Media CSV identifiers
   // CREATE MODE: requires at least one
