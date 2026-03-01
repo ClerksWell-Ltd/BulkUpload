@@ -137,6 +137,7 @@ public class BulkUploadController : ControllerBase
     [HttpPost]
     [Consumes("multipart/form-data")]
 #if !NET8_0
+    [IgnoreAntiforgeryToken]
     [Route("importall")]
     [ProducesResponseType(typeof(ContentImportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -416,6 +417,7 @@ public class BulkUploadController : ControllerBase
     [Consumes("application/json")]
     [Produces("text/csv", "application/zip")]
 #if !NET8_0
+    [IgnoreAntiforgeryToken]
     [Route("exportresults")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -602,6 +604,7 @@ public class BulkUploadController : ControllerBase
     [Consumes("application/json")]
     [Produces("text/csv", "application/zip")]
 #if !NET8_0
+    [IgnoreAntiforgeryToken]
     [Route("exportmediapreprocessingresults")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]

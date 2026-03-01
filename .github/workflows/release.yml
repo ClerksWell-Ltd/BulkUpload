@@ -5,8 +5,12 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 jobs:
   release:
+    if: github.repository == 'ClerksWell-Ltd/BulkUpload'
     runs-on: ubuntu-latest
 
     steps:

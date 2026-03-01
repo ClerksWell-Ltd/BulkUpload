@@ -5,8 +5,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
+    if: github.repository == 'ClerksWell-Ltd/BulkUpload'
     runs-on: ubuntu-latest
 
     steps:
