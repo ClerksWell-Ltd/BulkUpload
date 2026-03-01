@@ -5,7 +5,7 @@ Complete documentation for the BulkUpload package, organized by audience and pur
 ## Quick Links
 
 - [Main README](../../README.md) - Package overview, installation, and quick start
-- [Package README](.github/README.md) - Detailed usage guide (legacy location)
+- [Package README](../README.md) - Detailed usage guide
 - [Changelog](../../CHANGELOG.md) - Version history and release notes
 - [Contributing Guidelines](../CONTRIBUTING.md) - How to contribute to the project
 
@@ -121,19 +121,6 @@ Documentation for developers contributing to BulkUpload.
   - Conflict resolution flow
 
 ---
-
-## For Maintainers
-
-Internal documentation for package maintainers and planning.
-
-### Internal Documentation
-- **[Bulk Upload Improvements](internal/BULK_UPLOAD_IMPROVEMENTS.md)** - Analysis of PathToMediaResolver and UrlToMediaResolver integration
-- **[Implementation Recommendations](internal/IMPLEMENTATION_RECOMMENDATIONS.md)** - Technical recommendations for improvements
-- **[Core Package Implementation](internal/CORE_PACKAGE_IMPLEMENTATION.md)** - Core package implementation details
-- **[Redesign Implementation](internal/REDESIGN_IMPLEMENTATION.md)** - UI redesign implementation
-- **[UI Improvements V2](internal/UI_IMPROVEMENTS_V2.md)** - UI improvements documentation
-- **[Umbraco 17 Compatibility Review](internal/UMBRACO_17_COMPATIBILITY_REVIEW.md)** - Compatibility analysis
-- **[Umbraco 17 Migration Strategy](internal/UMBRACO_17_MIGRATION_STRATEGY.md)** - Migration plan for Umbraco 17 support
 
 ---
 

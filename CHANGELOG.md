@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added troubleshooting guide
 - Mermaid diagrams for import processes
 - Updated all documentation to reflect multi-targeting
+- Removed stale BulkUpload.Core references across all documentation
 
 ## [2.0.0] - 2025-01-XX
 
@@ -30,6 +31,14 @@ Version 2.0.0 represents a significant architectural change, moving from a multi
 - **Multi-targeting support** - Single package now supports both Umbraco 13 (net8.0) and Umbraco 17 (net10.0)
 - **Dual frontend architecture** - AngularJS for V13, Lit web components for V17
 - **Umbraco 17 support** - Full compatibility with Umbraco 17.x
+- **Update mode for content** - Update existing content by GUID using `bulkUploadShouldUpdate` and `bulkUploadContentGuid` columns, with partial property updates and optional parent move via `bulkUploadParentGuid`
+- **Update mode for media** - Update existing media by GUID using `bulkUploadShouldUpdate` and `bulkUploadMediaGuid` columns, with per-row create/update decision
+- **Unified file upload for V13** - Single upload component for both CSV and ZIP files in Umbraco 13 frontend (ClientV13)
+- **Swagger/OpenAPI documentation** - API documentation for V17 endpoints via Swashbuckle
+- **CSV detection improvements** - Relaxed content CSV detection to require only `docTypeAlias` + `name` (parent optional), recognise update mode files
+- **No-property update tracking** - Tracking and reporting when update mode rows have no property changes
+- **New reserved columns** - `bulkUploadShouldUpdate`, `bulkUploadContentGuid`, `bulkUploadMediaGuid`, `bulkUploadParentGuid`, `bulkUploadSuccess`, `bulkUploadShouldPublish`
+- **Update mode sample files** - `content-update-sample.csv` and `media-update-sample.csv`
 - Automatic framework selection based on consuming project's target framework
 - Framework-specific conditional compilation for version-specific code
 - Separate test sites for Umbraco 13 and Umbraco 17
@@ -38,13 +47,16 @@ Version 2.0.0 represents a significant architectural change, moving from a multi
 ### Changed
 - **Breaking:** Package architecture moved from multi-branch to multi-targeting
 - **Breaking:** Single NuGet package ID for both versions (Umbraco.Community.BulkUpload)
+- **Breaking:** Merged `BulkUpload.Core` into `BulkUpload` - single project for all business logic
 - Package version numbering unified across Umbraco versions
 - Build process enhanced to support dual frontend builds
 - Static web assets handled differently for net8.0 vs net10.0
+- ZIP upload summary now shows total CSV count instead of breaking down by type
 
 ### Documentation
 - Multi-targeting architecture guide
 - Multi-targeting quick start guide
+- Update mode guide with examples and best practices
 - Updated branching strategy documentation (legacy reference)
 - Updated release process for multi-targeting
 - Enhanced workflow diagrams

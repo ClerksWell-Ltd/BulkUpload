@@ -65,14 +65,30 @@ BulkUpload includes these resolvers out of the box:
 | UrlToMedia | `urlToMedia` | Download media from URL | `https://example.com/img.jpg` | `umb://media/guid` |
 | PathToMedia | `pathToMedia` | Import media from file path | `C:\Images\hero.jpg` | `umb://media/guid` |
 | MediaIdToMediaUdi | `mediaIdToMediaUdi` | Convert media ID to UDI | `1234` | `umb://media/guid` |
+| MediaIdsToMediaUdis | `mediaIdsToMediaUdis` | Convert multiple media IDs to UDIs | `1234,5678` | `umb://media/guid1,umb://media/guid2` |
 | GuidToMediaUdi | `guidToMediaUdi` | Convert GUID to media UDI | `abc-123-...` | `umb://media/guid` |
+| GuidsToMediaUdis | `guidsToMediaUdis` | Convert multiple GUIDs to media UDIs | `guid1,guid2` | `umb://media/guid1,umb://media/guid2` |
 
 ### Content Resolvers
 
 | Resolver | Alias | Purpose | Input Example | Output Example |
 |----------|-------|---------|---------------|----------------|
 | ContentIdToContentUdi | `contentIdToContentUdi` | Convert content ID to UDI | `5678` | `umb://document/guid` |
+| ContentIdsToContentUdis | `contentIdsToContentUdis` | Convert multiple content IDs to UDIs | `5678,9012` | `umb://document/guid1,umb://document/guid2` |
 | GuidToContentUdi | `guidToContentUdi` | Convert GUID to content UDI | `abc-123-...` | `umb://document/guid` |
+| GuidsToContentUdis | `guidsToContentUdis` | Convert multiple GUIDs to content UDIs | `guid1,guid2` | `umb://document/guid1,umb://document/guid2` |
+| LegacyContentPicker | `legacyContentPicker` | Legacy CMS ID to Umbraco content (deferred) | `legacy-123` | `umb://document/guid` |
+| LegacyContentPickers | `legacyContentPickers` | Multiple legacy IDs (deferred) | `legacy-1,legacy-2` | `umb://document/guid1,umb://document/guid2` |
+
+### Complex Type Resolvers
+
+| Resolver | Alias | Purpose | Input Example | Output Example |
+|----------|-------|---------|---------------|----------------|
+| TextToLink | `textToLink` | Convert text to Umbraco link JSON | `https://example.com` | Link JSON |
+| MultiBlockList | `multiBlockList` | Create multi-block list JSON | Block data | Block list JSON |
+| SampleBlockListContent | `sampleBlockListContent` | Example block list resolver | Block data | Block list JSON |
+| SampleAuthorName | `sampleAuthorName` | Example custom resolver | Author data | Resolved author |
+| SampleCategoryNames | `sampleCategoryNames` | Example multi-value resolver | Category data | Resolved categories |
 
 ### Stream Resolvers
 

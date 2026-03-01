@@ -10,7 +10,7 @@ The BulkUpload V17 APIs are automatically documented using Umbraco 17's built-in
 
 ### 1. Controller Registration
 
-Controllers from `BulkUpload.Core` assembly are registered via `BulkUploadApplicationPartManagerConfigureOptions` in the `BulkUploadComposer`:
+Controllers from the `BulkUpload` assembly are registered via `BulkUploadApplicationPartManagerConfigureOptions` in the `BulkUploadComposer`:
 
 ```csharp
 // BulkUploadComposer.cs
@@ -21,14 +21,14 @@ This ensures controllers are discovered by ASP.NET Core MVC and included in the 
 
 ### 2. XML Documentation
 
-XML documentation comments are enabled in `BulkUpload.Core.csproj`:
+XML documentation comments are enabled in `BulkUpload.csproj`:
 
 ```xml
 <GenerateDocumentationFile>true</GenerateDocumentationFile>
 <NoWarn>$(NoWarn);1591</NoWarn>
 ```
 
-The generated `BulkUpload.Core.xml` file is automatically copied to the V17 output directory where Umbraco's OpenAPI system can read it.
+The generated `BulkUpload.xml` file is automatically available in the output directory where Umbraco's OpenAPI system can read it.
 
 ### 3. Controller Attributes
 
@@ -144,7 +144,7 @@ Supports:
 ### Endpoints not appearing in Swagger
 
 1. **Verify controllers are registered**: Check that `BulkUploadApplicationPartManagerConfigureOptions` is configured in the composer
-2. **Check XML documentation**: Ensure `BulkUpload.Core.xml` exists in the output directory
+2. **Check XML documentation**: Ensure `BulkUpload.xml` exists in the output directory
 3. **Rebuild the project**: Run `dotnet build -c Release` to regenerate XML documentation
 4. **Clear browser cache**: Force refresh Swagger UI (Ctrl+F5)
 
@@ -167,11 +167,10 @@ The Management API requires authentication. Use one of:
 
 ## Files Modified
 
-- `src/BulkUpload.Core/Controllers/ImportController.cs` - Added XML comments and OpenAPI attributes
-- `src/BulkUpload.Core/Controllers/MediaImportController.cs` - Added XML comments and OpenAPI attributes
-- `src/BulkUpload.Core/BulkUpload.Core.csproj` - Enabled XML documentation generation
-- `src/BulkUpload.V17/BulkUpload.V17.csproj` - Configured XML file copying
-- `src/BulkUpload.V17/BulkUploadMvcConfigureOptions.cs` - Controller registration
+- `src/BulkUpload/Controllers/ImportController.cs` - Added XML comments and OpenAPI attributes
+- `src/BulkUpload/Controllers/MediaImportController.cs` - Added XML comments and OpenAPI attributes
+- `src/BulkUpload/BulkUpload.csproj` - Enabled XML documentation generation
+- `src/BulkUpload/BulkUploadComposer.cs` - Swagger/OpenAPI configuration and controller registration
 
 ## See Also
 

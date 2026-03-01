@@ -44,7 +44,6 @@ BulkUpload/
 │   ├── BulkUpload.Tests/              # Unit tests
 │   ├── BulkUpload.TestSite13/         # Umbraco 13 test site
 │   └── BulkUpload.TestSite17/         # Umbraco 17 test site
-├── docs/                              # Documentation
 ├── samples/                           # Sample CSV files
 └── .github/                           # GitHub configuration and docs
 ```
@@ -250,7 +249,7 @@ dotnet test /p:CollectCoverage=true
 
 - Place unit tests in `src/BulkUpload.Tests/`
 - Use xUnit as the testing framework
-- Mock dependencies using Moq or NSubstitute
+- Mock dependencies using Moq
 - Test both net8.0 and net10.0 paths when using conditional compilation
 
 Example:

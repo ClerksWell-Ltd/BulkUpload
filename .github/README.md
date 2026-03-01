@@ -84,7 +84,7 @@ Sample files:
 
 **How it works:**
 
-1. **Prepare your content CSV** with required columns: `parentId`, `docTypeAlias`, `name`
+1. **Prepare your content CSV** with required columns: `parent` (or `parentId` for backward compatibility), `docTypeAlias`, `name`
 2. **For content with media:**
    - Add media references using resolvers: `heroImage|zipFileToMedia`, `heroImage|urlToMedia`, or `heroImage|pathToMedia`
    - Use `zipFileToMedia` for media files packaged in the ZIP
@@ -183,7 +183,7 @@ For more examples and detailed instructions, see the [samples directory](../samp
 
 After media import, download the results CSV which contains `mediaId`, `mediaGuid`, and `mediaUdi` for each imported item. You can then use these IDs in your content import CSV:
 
-For detailed instructions, see the [Media Import Guide](.github/docs/user-guides/media-import-guide.md).
+For detailed instructions, see the [Media Import Guide](docs/user-guides/media-import-guide.md).
 
 ## Resolvers
 
@@ -263,16 +263,17 @@ In your CSV file add a column e.g. `title` and get it to use the `example` resol
 
 ## Documentation
 
-For complete documentation, see the [Documentation Index](.github/docs/README.md) which includes:
+For complete documentation, see the [Documentation Index](docs/README.md) which includes:
 
-- **User Guides**: Media import, legacy hierarchy mapping, and advanced features
+- **User Guides**: Media import, legacy hierarchy mapping, update mode, and advanced features
 - **Developer Guides**: Branching strategy, release process, and workflow diagrams
 - **Sample Files**: Example CSV templates and use cases
 - **Contributing**: Development workflow and contribution guidelines
 
 Quick links:
-- [Media Import Guide](.github/docs/media-import-guide.md) - Comprehensive media import documentation
-- [Legacy Hierarchy Mapping](.github/docs/LEGACY_HIERARCHY_MAPPING.md) - Preserve CMS hierarchies during migration
+- [Media Import Guide](docs/user-guides/media-import-guide.md) - Comprehensive media import documentation
+- [Update Mode Guide](docs/user-guides/UPDATE_MODE_GUIDE.md) - Update existing content and media
+- [Legacy Hierarchy Mapping](docs/user-guides/LEGACY_HIERARCHY_MAPPING.md) - Preserve CMS hierarchies during migration
 - [Contributing Guidelines](./CONTRIBUTING.md) - How to contribute to the project
 - [Changelog](../CHANGELOG.md) - Version history and release notes
 
