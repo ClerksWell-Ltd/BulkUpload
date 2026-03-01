@@ -132,6 +132,7 @@ public class MediaImportController : ControllerBase
     [HttpPost]
     [Consumes("multipart/form-data")]
 #if !NET8_0
+    [IgnoreAntiforgeryToken]
     [Route("importmedia")]
     [ProducesResponseType(typeof(MediaImportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -620,6 +621,7 @@ public class MediaImportController : ControllerBase
     [Consumes("application/json")]
     [Produces("text/csv")]
 #if !NET8_0
+    [IgnoreAntiforgeryToken]
     [Route("exportresults")]
     [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
