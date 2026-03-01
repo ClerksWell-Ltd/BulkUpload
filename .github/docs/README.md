@@ -5,7 +5,7 @@ Complete documentation for the BulkUpload package, organized by audience and pur
 ## Quick Links
 
 - [Main README](../../README.md) - Package overview, installation, and quick start
-- [Package README](.github/README.md) - Detailed usage guide (legacy location)
+- [Package README](../README.md) - Detailed usage guide
 - [Changelog](../../CHANGELOG.md) - Version history and release notes
 - [Contributing Guidelines](../CONTRIBUTING.md) - How to contribute to the project
 
@@ -20,6 +20,12 @@ Documentation for content editors and site administrators using BulkUpload.
 - **[Package README](../README.md)** - Detailed usage instructions and resolver guide
 
 ### User Guides
+- **[Update Mode Guide](user-guides/UPDATE_MODE_GUIDE.md)** - Complete guide for updating existing content and media
+  - Update content and media by GUID
+  - Partial property updates
+  - Best practices and common scenarios
+  - Troubleshooting update issues
+
 - **[Media Import Guide](user-guides/media-import-guide.md)** - Comprehensive guide for bulk media imports
   - Single and multi-CSV support
   - Media deduplication
@@ -116,19 +122,6 @@ Documentation for developers contributing to BulkUpload.
 
 ---
 
-## For Maintainers
-
-Internal documentation for package maintainers and planning.
-
-### Internal Documentation
-- **[Bulk Upload Improvements](internal/BULK_UPLOAD_IMPROVEMENTS.md)** - Analysis of PathToMediaResolver and UrlToMediaResolver integration
-- **[Implementation Recommendations](internal/IMPLEMENTATION_RECOMMENDATIONS.md)** - Technical recommendations for improvements
-- **[Core Package Implementation](internal/CORE_PACKAGE_IMPLEMENTATION.md)** - Core package implementation details
-- **[Redesign Implementation](internal/REDESIGN_IMPLEMENTATION.md)** - UI redesign implementation
-- **[UI Improvements V2](internal/UI_IMPROVEMENTS_V2.md)** - UI improvements documentation
-- **[Umbraco 17 Compatibility Review](internal/UMBRACO_17_COMPATIBILITY_REVIEW.md)** - Compatibility analysis
-- **[Umbraco 17 Migration Strategy](internal/UMBRACO_17_MIGRATION_STRATEGY.md)** - Migration plan for Umbraco 17 support
-
 ---
 
 ## Documentation by Topic
@@ -140,12 +133,14 @@ Internal documentation for package maintainers and planning.
 
 ### Content Import
 - [Package README - Content Import](../README.md#content-import)
+- [Update Mode Guide](user-guides/UPDATE_MODE_GUIDE.md) - Update existing content and media
 - [Legacy Hierarchy Mapping](user-guides/LEGACY_HIERARCHY_MAPPING.md)
 - [Content Picker Legacy IDs](user-guides/CONTENT_PICKER_LEGACY_IDS.md)
 
 ### Media Import
 - [Media Import Guide](user-guides/media-import-guide.md)
 - [Package README - Media Import](../README.md#media-import)
+- [Update Mode Guide](user-guides/UPDATE_MODE_GUIDE.md) - Update existing media items
 
 ### Custom Resolvers
 - [Package README - Resolvers](../README.md#resolvers)

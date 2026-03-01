@@ -21,4 +21,9 @@ public class ContentImportResult
     /// Source CSV filename (without path) that this record came from
     /// </summary>
     public string? SourceCsvFileName { get; set; }
+
+    /// <summary>
+    /// Informational message about the import (e.g., "No properties were updated")
+    /// </summary>
+    public string? BulkUploadInfoMessage { get; set; }
 }

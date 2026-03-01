@@ -12,6 +12,7 @@ A powerful Umbraco package for importing large volumes of content and media usin
 ## Features
 
 ✨ **Content & Media Import** - Upload CSV files or ZIP files (CSV + media) to create or update content nodes and media items
+🔄 **Create & Update Modes** - Create new items or update existing ones by GUID with partial property updates
 📦 **Multi-CSV Support** - Import multiple CSV files in a single ZIP with automatic deduplication and cross-file hierarchy
 🔗 **Legacy Hierarchy Mapping** - Preserve parent-child relationships from legacy CMS systems
 🎨 **Flexible Media Sources** - Import from ZIP files, file paths, or URLs
@@ -67,12 +68,14 @@ Then:
 
 Download our sample CSV files to quickly test the package:
 
-#### Content Import Sample
+#### Content Import Samples
 - [📄 Basic Content Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-sample.csv?raw=true) - Article import with various property types
+- [🔄 Content Update Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/content-update-sample.csv?raw=true) - Update existing content by GUID
 
 #### Media Import Samples
 - [🖼️ Media with ZIP](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-sample.csv?raw=true) - For importing media files from a ZIP
 - [🌐 Media from URLs](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-url-sample.csv?raw=true) - For downloading media from URLs
+- [🔄 Media Update Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/media-update-sample.csv?raw=true) - Update existing media by GUID
 
 For more examples, explore the [samples directory](samples/).
 
@@ -92,10 +95,11 @@ graph TD
 
 ### Key Workflows
 
-1. **Media Preprocessing** - All media references are gathered from all CSVs and deduplicated
-2. **Hierarchy Sorting** - Parent-child relationships work across CSV files using topological sort
-3. **Legacy ID Mapping** - Cross-file parent references using `bulkUploadLegacyParentId`
-4. **Result Export** - Single CSV for one file, ZIP with separate CSVs for multi-file imports
+1. **Create & Update Modes** - Create new content/media or update existing items by GUID
+2. **Media Preprocessing** - All media references are gathered from all CSVs and deduplicated
+3. **Hierarchy Sorting** - Parent-child relationships work across CSV files using topological sort
+4. **Legacy ID Mapping** - Cross-file parent references using `bulkUploadLegacyParentId`
+5. **Result Export** - Single CSV for one file, ZIP with separate CSVs for multi-file imports
 
 ## Usage
 
@@ -115,6 +119,30 @@ parentId,docTypeAlias,name,title,heroImage|zipFileToMedia,publishDate|dateTime
 - **ZIP file** - Package CSV + media files together
 
 See the [Package README](.github/README.md#content-import) for detailed instructions.
+
+### Update Mode
+
+Update existing content or media items using their GUIDs:
+
+**Content Update CSV:**
+```csv
+bulkUploadShouldUpdate,bulkUploadContentGuid,parent,name,title,description|text
+true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,1100,My Article,Updated Title,New content
+```
+
+**Media Update CSV:**
+```csv
+bulkUploadShouldUpdate,bulkUploadMediaGuid,parent,name,altText|text
+true,d4e5f6a7-b8c9-0123-def0-123456789abc,1150,Logo,Updated alt text
+```
+
+**Key Points:**
+- Set `bulkUploadShouldUpdate=true` to enable update mode
+- Use `bulkUploadContentGuid` or `bulkUploadMediaGuid` to identify items
+- Only specified properties will be updated (partial updates supported)
+- Export results from create operations to get GUIDs for updates
+
+See [Update Mode Samples](samples/README.md#update-mode-samples) for examples.
 
 ### Media Import
 
@@ -177,6 +205,7 @@ See the [Custom Resolvers Guide](.github/docs/custom-resolvers-guide.md) for mor
 
 ### User Guides
 - [📘 Installation & Setup](.github/README.md#installation) - Getting started guide
+- [🔄 Update Mode Guide](.github/docs/user-guides/UPDATE_MODE_GUIDE.md) - Update existing content and media by GUID
 - [📸 Media Import Guide](.github/docs/user-guides/media-import-guide.md) - Comprehensive media import documentation
 - [🔗 Legacy Hierarchy Mapping](.github/docs/user-guides/LEGACY_HIERARCHY_MAPPING.md) - Preserve CMS hierarchies during migration
 - [📝 Content Picker Legacy IDs](.github/docs/user-guides/CONTENT_PICKER_LEGACY_IDS.md) - Handle legacy content pickers

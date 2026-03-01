@@ -301,6 +301,16 @@ public class BulkUploadController : ControllerBase
                     continue;
                 }
 
+                // In PUBLISH-ONLY MODE (no bulkUploadShouldUpdate column), skip rows where bulkUploadShouldPublish = false
+                if (!importObject.BulkUploadShouldUpdateColumnExisted
+                    && importObject.BulkUploadShouldPublishColumnExisted
+                    && !importObject.BulkUploadShouldPublish)
+                {
+                    skippedCount++;
+                    _logger.LogDebug("Skipping row '{Name}' - bulkUploadShouldPublish is false", importObject.Name);
+                    continue;
+                }
+
                 if (importObject.CanImport)
                 {
                     allImportObjects.Add(importObject);

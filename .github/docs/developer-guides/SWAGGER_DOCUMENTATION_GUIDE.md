@@ -273,13 +273,6 @@ public class ConfigureBulkUploadSwaggerGenOptions : IConfigureOptions<SwaggerGen
             swaggerGenOptions.IncludeXmlComments(xmlPath);
         }
 
-        // Optionally include XML comments from BulkUpload.Core if it generates them
-        var coreXmlFile = "BulkUpload.Core.xml";
-        var coreXmlPath = Path.Combine(AppContext.BaseDirectory, coreXmlFile);
-        if (File.Exists(coreXmlPath))
-        {
-            swaggerGenOptions.IncludeXmlComments(coreXmlPath);
-        }
     }
 }
 #endif

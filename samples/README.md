@@ -1,10 +1,62 @@
-# Bulk Upload Media - Sample CSV Files
+# Bulk Upload - Sample CSV Files
 
-This directory contains sample CSV files demonstrating the different ways to use the bulk media upload functionality.
+This directory contains sample CSV files demonstrating the different ways to use the bulk upload functionality, including both create and update modes for content and media.
+
+## Create Mode vs Update Mode
+
+BulkUpload supports two distinct modes of operation:
+
+### Create Mode (Default)
+Creates new content or media items. Requires:
+- **Content**: `parent`, `docTypeAlias`, `name`
+- **Media**: `fileName` (for ZIP uploads) or `mediaSource|urlToStream` / `mediaSource|pathToStream` (for external sources)
+
+### Update Mode
+Updates existing content or media items. Requires:
+- **Content**: `bulkUploadShouldUpdate=true`, `bulkUploadContentGuid`, `parent`, `name`
+- **Media**: `bulkUploadShouldUpdate=true`, `bulkUploadMediaGuid`, `parent`, `name`
+
+**Key Points:**
+- Update mode uses the GUID to locate the specific item to update
+- The `parent` and `name` fields help verify you're updating the correct item
+- Any additional property columns will update those properties on the existing item
+- Missing columns won't be modified (partial updates are supported)
 
 ## Sample Files
 
-### 1. bulk-upload-mixed-sources.csv
+### Update Mode Samples
+
+#### content-update-sample.csv
+Demonstrates updating existing content items:
+- Uses `bulkUploadShouldUpdate=true` to enable update mode
+- Uses `bulkUploadContentGuid` to identify the specific content item
+- Updates properties like title, description, and publish date
+- Parent and name fields verify you're updating the correct item
+
+**Usage:**
+1. Replace the sample GUIDs with actual content item GUIDs from your Umbraco instance
+2. Update the property values as needed
+3. Create a ZIP file containing only this CSV file
+4. Upload through the Bulk Upload interface
+5. Existing content items will be updated with the new values
+
+#### media-update-sample.csv
+Demonstrates updating existing media items:
+- Uses `bulkUploadShouldUpdate=true` to enable update mode
+- Uses `bulkUploadMediaGuid` to identify the specific media item
+- Updates properties like altText and tags
+- Parent and name fields verify you're updating the correct item
+
+**Usage:**
+1. Replace the sample GUIDs with actual media item GUIDs from your Umbraco instance
+2. Update the property values as needed
+3. Create a ZIP file containing only this CSV file
+4. Upload through the Bulk Upload interface
+5. Existing media items will be updated with the new values
+
+### Create Mode Samples
+
+#### 1. bulk-upload-mixed-sources.csv
 Demonstrates importing media from multiple sources in a single upload:
 - Files from the ZIP archive (using `fileName` column)
 - Files from local/network paths (using `mediaSource|pathToStream`)
@@ -58,14 +110,34 @@ Demonstrates the enhanced MultiBlockListResolver that creates images directly fr
 
 ## CSV Column Reference
 
-### Required Columns
+### Create Mode - Required Columns
 
+**Content CSV:**
+- **parent**: Parent content ID, GUID, or path (e.g., `1100`, `a1b2c3d4-...`, `/News/2024/`)
+- **docTypeAlias**: Content type alias (e.g., `articlePage`, `productPage`)
+- **name**: Content item name
+
+**Media CSV:**
 - **fileName**: Name of file in ZIP archive (optional if using external source)
 - **parent**: Parent folder specification - supports three formats:
   - Integer ID: `1150`
   - GUID: `a1b2c3d4-e5f6-7890-abcd-ef1234567890`
   - Path: `/Products/Images/` (auto-creates folders if they don't exist)
   - **Note**: Legacy `parentId` column is still supported for backward compatibility
+
+### Update Mode - Required Columns
+
+**Content CSV:**
+- **bulkUploadShouldUpdate**: Must be set to `true` to enable update mode
+- **bulkUploadContentGuid**: GUID of the content item to update
+- **parent**: Parent ID, GUID, or path (used to verify correct item)
+- **name**: Name to match existing item (used to verify correct item)
+
+**Media CSV:**
+- **bulkUploadShouldUpdate**: Must be set to `true` to enable update mode
+- **bulkUploadMediaGuid**: GUID of the media item to update
+- **parent**: Parent folder ID, GUID, or path (used to verify correct item)
+- **name**: Name to match existing item (used to verify correct item)
 
 ### Optional Columns
 
@@ -108,28 +180,44 @@ Any additional columns can be used to set properties on media items using resolv
 
 ## Examples
 
-### Example 1: Simple ZIP Upload with Folder Paths
+### Update Mode Examples
+
+#### Example 1: Update Content Properties
+```csv
+bulkUploadShouldUpdate,bulkUploadContentGuid,parent,name,title,description|text
+true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,1100,My Article,Updated Title,New description text
+```
+
+#### Example 2: Update Media Properties
+```csv
+bulkUploadShouldUpdate,bulkUploadMediaGuid,parent,name,altText|text,tags|stringArray
+true,d4e5f6a7-b8c9-0123-def0-123456789abc,1150,Logo,New alt text,"tag1,tag2,tag3"
+```
+
+### Create Mode Examples
+
+#### Example 3: Simple ZIP Upload with Folder Paths
 ```csv
 fileName,parent,name
 logo.png,/Brand/Logos/,Company Logo
 banner.jpg,/Marketing/Banners/,Homepage Banner
 ```
 
-### Example 2: Import from Network Share with Auto-Created Folders
+#### Example 4: Import from Network Share with Auto-Created Folders
 ```csv
 mediaSource|pathToStream,parent,name
 \\\\nas.company.local\\assets\\logo.png,/Brand/Logos/,Company Logo
 \\\\nas.company.local\\assets\\banner.jpg,/Marketing/Banners/,Homepage Banner
 ```
 
-### Example 3: Import from CDN with Integer Parent ID
+#### Example 5: Import from CDN with Integer Parent ID
 ```csv
 mediaSource|urlToStream,parent,name
 https://cdn.example.com/images/logo.png,1150,Company Logo
 https://cdn.example.com/images/banner.jpg,1150,Homepage Banner
 ```
 
-### Example 4: Mixed Sources with Properties
+#### Example 6: Mixed Sources with Properties
 ```csv
 fileName,mediaSource|pathToStream,mediaSource|urlToStream,parent,name,altText|text,tags|stringArray
 local.jpg,,,/Gallery/Featured/,Local Image,From ZIP,"featured,homepage"
@@ -137,7 +225,7 @@ local.jpg,,,/Gallery/Featured/,Local Image,From ZIP,"featured,homepage"
 ,,https://example.com/cdn.jpg,/Stock/External/,CDN Image,From CDN,"external,stock"
 ```
 
-### Example 5: Organize with GUID Parent Reference
+#### Example 7: Organize with GUID Parent Reference
 ```csv
 mediaSource|pathToStream,parent,name,altText|text
 C:/Assets/Headers/tech-post.jpg,a1b2c3d4-e5f6-7890-abcd-ef1234567890,Tech Blog Header,Technology article header

@@ -63,7 +63,7 @@ dotnet run
 
 ```bash
 # V13 (AngularJS) - No build needed
-# Edit files directly in: BulkUpload/wwwroot/BulkUpload/
+# Edit files in: BulkUpload/ClientV13/BulkUpload/
 
 # V17 (Lit + Vite) - Watch mode
 cd src/BulkUpload/ClientV17
@@ -101,18 +101,19 @@ Use conditional compilation for version-specific code:
 ## Project Structure
 
 ```
-BulkUpload.Core/              # Core business logic
+BulkUpload/                   # Main package (multi-targeted RCL)
 ├── TargetFrameworks: net8.0;net10.0
-└── Conditional dependencies per framework
-
-BulkUpload/                   # Umbraco integration (RCL)
-├── TargetFrameworks: net8.0;net10.0
-├── wwwroot/
-│   ├── BulkUpload/          # V13 AngularJS (static)
-│   ├── bulkupload.js        # V17 bundle (built)
+├── Controllers/              # API controllers
+├── Services/                 # Business logic services
+├── Resolvers/                # CSV value resolvers
+├── Models/                   # Data models
+├── Constants/                # Reserved columns and constants
+├── wwwroot/                  # Build output (GENERATED - DO NOT EDIT)
+│   ├── BulkUpload/          # V13 AngularJS (copied from ClientV13)
+│   ├── bulkupload.js        # V17 bundle (built from ClientV17)
 │   └── umbraco-package.json # V17 manifest
-├── ClientV13/               # V13 source (not built)
-└── ClientV17/               # V17 source (Vite build)
+├── ClientV13/               # V13 source (edit these)
+└── ClientV17/               # V17 source (Vite build, edit these)
 ```
 
 ## Common Patterns
@@ -178,7 +179,6 @@ git push origin feature/my-feature
 
 ```bash
 # 1. Update versions
-# - src/BulkUpload.Core/BulkUpload.Core.csproj
 # - src/BulkUpload/BulkUpload.csproj
 # - src/BulkUpload/ClientV17/package.json
 # - src/BulkUpload/wwwroot/umbraco-package.json
@@ -222,7 +222,7 @@ git commit -m "chore: prepare release v2.1.0"
 - Check browser console for errors
 
 **API endpoints returning 404**
-- Verify controllers in `BulkUpload.Core` project
+- Verify controllers in `BulkUpload` project
 - Check `[ApiController]` and `[Route]` attributes
 
 ## Advantages

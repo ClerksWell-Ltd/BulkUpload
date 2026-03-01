@@ -8,16 +8,17 @@
 
 BulkUpload is an Umbraco package that enables content editors and site administrators to import large volumes of content into Umbraco using CSV files. Designed for efficiency and flexibility, BulkUpload streamlines the process of creating and updating content nodes, making it ideal for migrations, bulk updates, or onboarding new data.
 
-It currently just works with Umbraco 13, but we are looking at releasing it for Umbraco 16/17 soon.
+**Supports both Umbraco 13 and Umbraco 17** through a single multi-targeted NuGet package (v2.0.0+).
 
 ## Features
 
 - **CSV Import:** Upload and process CSV files to create or update Umbraco content nodes.
+- **Media Import:** Bulk import media files from ZIP, URLs, or file paths with automatic deduplication.
+- **Update Mode:** Update existing content and media by GUID with partial property updates.
 - **Multi-CSV Support:** Import multiple CSV files in a single ZIP upload with automatic deduplication and cross-file hierarchy management.
 - **Custom Mapping:** Supports mapping CSV columns to Umbraco content properties, including complex types.
 - **Content Type Support:** Import data for different content types by specifying aliases and parent nodes.
 - **Legacy Hierarchy Mapping:** Preserve parent-child relationships from legacy CMS systems across multiple CSV files.
-- **Media Import:** Bulk import media files with automatic deduplication across all CSV files.
 - **Extensible Resolvers:** Includes a set of resolvers for handling various property types (e.g., text, dates, media, block lists).
 - **Error Handling & Logging:** Provides feedback and logging for import operations to help diagnose issues.
 - **Separate Results Export:** When importing multiple CSVs, results are exported as separate files for easy tracking.
@@ -44,23 +45,19 @@ Or download from the [Umbraco Marketplace](https://marketplace.umbraco.com/packa
 This script will install the package with Clean Starter Kit so you can test it straight away
 
 ```ps1
-# Ensure we have the version specific Umbraco templates
-dotnet new install Umbraco.Templates::13.10.0 --force
+# Ensure we have the Umbraco templates
+dotnet new install Umbraco.Templates --force
 
 # Create solution/project
 dotnet new sln --name "MySolution"
 dotnet new umbraco --force -n "MyProject"  --friendly-name "Administrator" --email "admin@example.com" --password "1234567890" --development-database-type SQLite
 dotnet sln add "MyProject"
 
-
 #Add starter kit
-dotnet add "MyProject" package clean --version 4.2.2
+dotnet add "MyProject" package clean
 
 #Add BulkUpload package
 dotnet add "MyProject" package Umbraco.Community.BulkUpload
-
-#Add Packages
-#Ignored Clean as it was added as a starter kit
 
 dotnet run --project "MyProject"
 #Running

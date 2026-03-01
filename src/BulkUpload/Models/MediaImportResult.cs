@@ -15,4 +15,9 @@ public class MediaImportResult
     /// Original CSV row data with column names including resolver syntax (e.g., "tags|stringArray")
     /// </summary>
     public Dictionary<string, string>? OriginalCsvData { get; set; }
+
+    /// <summary>
+    /// Informational message about the import (e.g., "No properties were updated")
+    /// </summary>
+    public string? BulkUploadInfoMessage { get; set; }
 }
