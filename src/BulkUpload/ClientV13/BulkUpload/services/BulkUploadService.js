@@ -152,22 +152,28 @@
     try {
       var hasMediaCSV = detection && detection.hasMediaCSV;
       var hasContentCSV = detection && detection.hasContentCSV;
+      var isMediaOnlyZip = detection && detection.isMediaOnlyZip;
 
-      // Process based on detection
-      // Media CSV is always processed first (if present)
-      if (hasMediaCSV) {
-        await this.processMediaImport(file);
-      }
+      // If ZIP contains only media files (no CSVs), use the zip-only media import
+      if (isMediaOnlyZip) {
+        await this.processZipOnlyMediaImport(file);
+      } else {
+        // Process based on detection
+        // Media CSV is always processed first (if present)
+        if (hasMediaCSV) {
+          await this.processMediaImport(file);
+        }
 
-      // Then process content CSV (if present)
-      if (hasContentCSV) {
-        await this.processContentImport(file);
-      }
+        // Then process content CSV (if present)
+        if (hasContentCSV) {
+          await this.processContentImport(file);
+        }
 
-      // If detection failed or neither CSV type was found, try content import as fallback
-      if (!hasMediaCSV && !hasContentCSV) {
-        // Try content import as default fallback
-        await this.processContentImport(file);
+        // If detection failed or neither CSV type was found, try content import as fallback
+        if (!hasMediaCSV && !hasContentCSV) {
+          // Try content import as default fallback
+          await this.processContentImport(file);
+        }
       }
 
       // Clear file after successful upload
@@ -193,6 +199,35 @@
     } finally {
       this.state.loading = false;
       this.emitStateChange();
+    }
+  };
+
+  /**
+   * Process ZIP-only media import (ZIP with no CSV files)
+   * @private
+   * @param {File} file - The ZIP file to import
+   */
+  BulkUploadService.prototype.processZipOnlyMediaImport = async function(file) {
+    try {
+      var response = await this.apiClient.importMediaFromZipOnly(file);
+
+      // Normalize response data to camelCase (handles both Umbraco 13 PascalCase and Umbraco 17 camelCase)
+      var normalizedData = {
+        totalCount: response.data.totalCount || response.data.TotalCount || 0,
+        successCount: response.data.successCount || response.data.SuccessCount || 0,
+        failureCount: response.data.failureCount || response.data.FailureCount || 0,
+        results: response.data.results || response.data.Results || []
+      };
+
+      this.state.results.media = normalizedData;
+
+    } catch (error) {
+      this.notify({
+        type: 'error',
+        headline: 'ZIP Media Import Failed',
+        message: error.message || 'An error occurred during ZIP media import.'
+      });
+      throw error;
     }
   };
 

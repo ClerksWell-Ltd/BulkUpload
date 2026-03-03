@@ -874,14 +874,19 @@ public class MediaImportController : ControllerBase
                 });
             }
 
-            // Generate results CSV
-            var csv = GenerateResultsCsv(results);
-            var bytes = Encoding.UTF8.GetBytes(csv);
+            var successCount = results.Count(r => r.BulkUploadSuccess);
+            var failureCount = results.Count(r => !r.BulkUploadSuccess);
 
             _logger.LogInformation("Bulk Upload Media: ZIP-only import completed. Total: {Total}, Success: {Success}, Failed: {Failed}",
-                results.Count, results.Count(r => r.BulkUploadSuccess), results.Count(r => !r.BulkUploadSuccess));
+                results.Count, successCount, failureCount);
 
-            return File(bytes, "text/csv", "media-import-results.csv");
+            return Ok(new MediaImportResponse
+            {
+                TotalCount = results.Count,
+                SuccessCount = successCount,
+                FailureCount = failureCount,
+                Results = results
+            });
         }
         catch (Exception ex)
         {

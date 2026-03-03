@@ -68,6 +68,27 @@
   };
 
   /**
+   * Imports media from a ZIP file without requiring a CSV.
+   * @param {File} file - The ZIP file to import
+   * @returns {Promise<Object>} Promise resolving to import results
+   */
+  BulkUploadApiClient.prototype.importMediaFromZipOnly = async function(file) {
+    if (!file) {
+      throw new Error('File is required for ZIP-only media import');
+    }
+
+    try {
+      var response = await this.http.post(
+        '/Umbraco/backoffice/Api/MediaImport/ImportMediaFromZipOnly',
+        file
+      );
+      return response;
+    } catch (error) {
+      throw new Error('ZIP-only media import failed: ' + error.message);
+    }
+  };
+
+  /**
    * Exports content import results to CSV or ZIP
    * @param {Array} results - Array of import result objects
    * @returns {Promise<Object>} Promise resolving to file data with headers

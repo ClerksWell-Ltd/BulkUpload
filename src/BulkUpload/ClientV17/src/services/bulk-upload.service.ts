@@ -183,21 +183,27 @@ export class BulkUploadService {
     try {
       const hasMediaCSV = detection?.hasMediaCSV ?? false;
       const hasContentCSV = detection?.hasContentCSV ?? false;
+      const isMediaOnlyZip = detection?.isMediaOnlyZip ?? false;
 
-      // Process based on detection
-      // Media CSV is always processed first (if present)
-      if (hasMediaCSV) {
-        await this.processMediaImport(file);
-      }
+      // If ZIP contains only media files (no CSVs), use the zip-only media import
+      if (isMediaOnlyZip) {
+        await this.processZipOnlyMediaImport(file);
+      } else {
+        // Process based on detection
+        // Media CSV is always processed first (if present)
+        if (hasMediaCSV) {
+          await this.processMediaImport(file);
+        }
 
-      // Then process content CSV (if present)
-      if (hasContentCSV) {
-        await this.processContentImport(file);
-      }
+        // Then process content CSV (if present)
+        if (hasContentCSV) {
+          await this.processContentImport(file);
+        }
 
-      // If detection failed or neither CSV type was found, try content import as fallback
-      if (!hasMediaCSV && !hasContentCSV) {
-        await this.processContentImport(file);
+        // If detection failed or neither CSV type was found, try content import as fallback
+        if (!hasMediaCSV && !hasContentCSV) {
+          await this.processContentImport(file);
+        }
       }
 
       // Clear file after successful upload
@@ -227,55 +233,12 @@ export class BulkUploadService {
   }
 
   /**
-   * Imports media from a ZIP file without requiring a CSV.
-   * Automatically creates media items based on folder structure.
-   * Downloads the results CSV automatically.
+   * Process ZIP-only media import (ZIP with no CSV files)
    */
-  public async importMediaFromZipOnly(): Promise<Response | null> {
-    const file = this.state.file;
-
-    if (!file) {
-      this.notify({
-        type: 'warning',
-        headline: 'No File Selected',
-        message: 'Please select a ZIP file to import.'
-      });
-      return null;
-    }
-
-    // Validate file is a ZIP
-    const validation = this.apiClient.validateFile(file, {
-      acceptedTypes: ['.zip'],
-      maxSizeInMB: 100
-    });
-
-    if (!validation.valid) {
-      this.notify({
-        type: 'error',
-        headline: 'Invalid File',
-        message: validation.errors.join(', ')
-      });
-      return null;
-    }
-
-    // Start import
-    this.state.loading = true;
-    this.emitStateChange();
-
+  private async processZipOnlyMediaImport(file: File): Promise<void> {
     try {
       const response = await this.apiClient.importMediaFromZipOnly(file);
-
-      // Clear file after successful upload
-      this.clearFile();
-
-      this.notify({
-        type: 'success',
-        headline: 'ZIP Media Import Successful',
-        message: 'Media files have been imported from the ZIP archive. Results CSV will be downloaded automatically.'
-      });
-
-      return response;
-
+      this.state.results.media = response.data;
     } catch (error) {
       this.notify({
         type: 'error',
@@ -283,10 +246,6 @@ export class BulkUploadService {
         message: error instanceof Error ? error.message : 'An error occurred during ZIP media import.'
       });
       throw error;
-
-    } finally {
-      this.state.loading = false;
-      this.emitStateChange();
     }
   }
 

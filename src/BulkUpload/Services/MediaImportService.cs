@@ -755,7 +755,6 @@ public class MediaImportService : IMediaImportService
                 {
                     var relativePath = Path.GetRelativePath(zipTempDirectory, filePath);
                     var fileName = Path.GetFileName(filePath);
-                    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
 
                     // Normalize path separators to forward slashes
                     relativePath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
@@ -770,18 +769,23 @@ public class MediaImportService : IMediaImportService
                         parentSpec = "/" + parentPath; // Add leading slash for media path format
                     }
 
-                    _logger.LogDebug("Bulk Upload Media: Processing file '{FileName}' with parent path '{ParentPath}'",
-                        fileName, parentSpec ?? "(root)");
+                    // Use relative path as legacy ID (e.g., "image1.jpg" or "/foldername/image2.jpg")
+                    var legacyId = string.IsNullOrEmpty(parentPath)
+                        ? fileName
+                        : "/" + relativePath;
+
+                    _logger.LogDebug("Bulk Upload Media: Processing file '{FileName}' with parent path '{ParentPath}' and legacy ID '{LegacyId}'",
+                        fileName, parentSpec ?? "(root)", legacyId);
 
                     // Create MediaImportObject
                     var importObject = new MediaImportObject
                     {
                         FileName = fileName,
-                        Name = fileNameWithoutExtension, // Use filename without extension as display name
+                        Name = fileName, // Use filename with extension as display name
                         Parent = parentSpec,
                         MediaTypeAlias = null, // Will be auto-detected from file extension
                         Properties = new Dictionary<string, object>(),
-                        BulkUploadLegacyId = null,
+                        BulkUploadLegacyId = legacyId,
                         BulkUploadMediaGuid = null,
                         BulkUploadShouldUpdate = false,
                         BulkUploadShouldUpdateColumnExisted = false
@@ -797,9 +801,10 @@ public class MediaImportService : IMediaImportService
                     result.OriginalCsvData = new Dictionary<string, string>
                     {
                         { "fileName", fileName },
-                        { "name", fileNameWithoutExtension },
+                        { "name", fileName },
                         { "parent", parentSpec ?? "" },
-                        { "relativePath", relativePath }
+                        { "relativePath", relativePath },
+                        { "bulkUploadLegacyId", legacyId }
                     };
 
                     results.Add(result);
