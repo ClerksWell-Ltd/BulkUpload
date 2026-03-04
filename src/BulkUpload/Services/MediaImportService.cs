@@ -692,4 +692,155 @@ public class MediaImportService : IMediaImportService
         // Return everything after the last separator
         return path.Substring(lastSeparator + 1);
     }
+
+    /// <summary>
+    /// Processes a ZIP file containing only media files (no CSV required).
+    /// Automatically creates media items based on the folder structure in the ZIP.
+    /// Files in the root of the ZIP go to the root media section.
+    /// Files in folders inherit the folder structure as their parent path.
+    /// </summary>
+    /// <param name="zipTempDirectory">The temporary directory where the ZIP file has been extracted.</param>
+    /// <param name="publish">Whether to publish the media items after creation.</param>
+    /// <returns>List of MediaImportResult for each file processed.</returns>
+    public async Task<List<MediaImportResult>> ProcessZipMediaUploadWithoutCsv(string zipTempDirectory, bool publish = false)
+    {
+        var results = new List<MediaImportResult>();
+
+        if (string.IsNullOrWhiteSpace(zipTempDirectory) || !Directory.Exists(zipTempDirectory))
+        {
+            _logger.LogError("Bulk Upload Media: Invalid or missing ZIP temp directory");
+            return results;
+        }
+
+        // Get all files in the ZIP directory (excluding CSV files)
+        var allFiles = Directory.GetFiles(zipTempDirectory, "*.*", SearchOption.AllDirectories)
+            .Where(f => !f.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        _logger.LogInformation("Bulk Upload Media: Found {Count} media files in ZIP archive", allFiles.Count);
+
+        // Group files by their parent folder to process folders first
+        var filesByFolder = new Dictionary<string, List<string>>();
+        var createdFolders = new Dictionary<string, Guid>(); // Track created folders: path -> GUID
+
+        foreach (var filePath in allFiles)
+        {
+            // Get the relative path from the temp directory
+            var relativePath = Path.GetRelativePath(zipTempDirectory, filePath);
+            var directoryPath = Path.GetDirectoryName(relativePath) ?? "";
+
+            // Normalize path separators to forward slashes for consistency
+            directoryPath = directoryPath.Replace(Path.DirectorySeparatorChar, '/');
+
+            if (!filesByFolder.ContainsKey(directoryPath))
+            {
+                filesByFolder[directoryPath] = new List<string>();
+            }
+
+            filesByFolder[directoryPath].Add(filePath);
+        }
+
+        // Process files, ensuring parent folders are created first
+        foreach (var folderGroup in filesByFolder.OrderBy(f => f.Key.Length))
+        {
+            var folderPath = folderGroup.Key;
+            var filesInFolder = folderGroup.Value;
+
+            _logger.LogInformation("Bulk Upload Media: Processing folder '{FolderPath}' with {Count} files",
+                string.IsNullOrEmpty(folderPath) ? "(root)" : folderPath, filesInFolder.Count);
+
+            foreach (var filePath in filesInFolder)
+            {
+                try
+                {
+                    var relativePath = Path.GetRelativePath(zipTempDirectory, filePath);
+                    var fileName = Path.GetFileName(filePath);
+
+                    // Normalize path separators to forward slashes
+                    relativePath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+                    var parentPath = Path.GetDirectoryName(relativePath)?.Replace(Path.DirectorySeparatorChar, '/') ?? "";
+
+                    // Convert folder path to media parent specification
+                    // If in root, use empty/root parent
+                    // If in folders, use the folder path with leading slash (e.g., "/folder name/sub folder")
+                    string? parentSpec = null;
+                    if (!string.IsNullOrEmpty(parentPath))
+                    {
+                        parentSpec = "/" + parentPath; // Add leading slash for media path format
+                    }
+
+                    // Use relative path as legacy ID (e.g., "image1.jpg" or "/foldername/image2.jpg")
+                    var legacyId = string.IsNullOrEmpty(parentPath)
+                        ? fileName
+                        : "/" + relativePath;
+
+                    _logger.LogDebug("Bulk Upload Media: Processing file '{FileName}' with parent path '{ParentPath}' and legacy ID '{LegacyId}'",
+                        fileName, parentSpec ?? "(root)", legacyId);
+
+                    // Create MediaImportObject
+                    var importObject = new MediaImportObject
+                    {
+                        FileName = fileName,
+                        Name = fileName, // Use filename with extension as display name
+                        Parent = parentSpec,
+                        MediaTypeAlias = null, // Will be auto-detected from file extension
+                        Properties = new Dictionary<string, object>(),
+                        BulkUploadLegacyId = legacyId,
+                        BulkUploadMediaGuid = null,
+                        BulkUploadShouldUpdate = false,
+                        BulkUploadShouldUpdateColumnExisted = false
+                    };
+
+                    // Open file stream
+                    using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+
+                    // Import the media item
+                    var result = ImportSingleMediaItem(importObject, fileStream, publish);
+
+                    // Add original file information to result for CSV export
+                    result.OriginalCsvData = new Dictionary<string, string>
+                    {
+                        { "fileName", fileName },
+                        { "name", fileName },
+                        { "parent", parentSpec ?? "" },
+                        { "relativePath", relativePath },
+                        { "bulkUploadLegacyId", legacyId }
+                    };
+
+                    results.Add(result);
+
+                    if (result.BulkUploadSuccess)
+                    {
+                        _logger.LogInformation("Bulk Upload Media: Successfully imported '{FileName}' to '{ParentPath}'",
+                            fileName, parentSpec ?? "(root)");
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Bulk Upload Media: Failed to import '{FileName}': {Error}",
+                            fileName, result.BulkUploadErrorMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Bulk Upload Media: Error processing file '{FilePath}'", filePath);
+                    results.Add(new MediaImportResult
+                    {
+                        BulkUploadFileName = Path.GetFileName(filePath),
+                        BulkUploadSuccess = false,
+                        BulkUploadErrorMessage = $"Error processing file: {ex.Message}",
+                        OriginalCsvData = new Dictionary<string, string>
+                        {
+                            { "fileName", Path.GetFileName(filePath) },
+                            { "error", ex.Message }
+                        }
+                    });
+                }
+            }
+        }
+
+        _logger.LogInformation("Bulk Upload Media: Completed processing. Total: {Total}, Success: {Success}, Failed: {Failed}",
+            results.Count, results.Count(r => r.BulkUploadSuccess), results.Count(r => !r.BulkUploadSuccess));
+
+        return results;
+    }
 }

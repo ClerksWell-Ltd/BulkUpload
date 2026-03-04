@@ -183,21 +183,27 @@ export class BulkUploadService {
     try {
       const hasMediaCSV = detection?.hasMediaCSV ?? false;
       const hasContentCSV = detection?.hasContentCSV ?? false;
+      const isMediaOnlyZip = detection?.isMediaOnlyZip ?? false;
 
-      // Process based on detection
-      // Media CSV is always processed first (if present)
-      if (hasMediaCSV) {
-        await this.processMediaImport(file);
-      }
+      // If ZIP contains only media files (no CSVs), use the zip-only media import
+      if (isMediaOnlyZip) {
+        await this.processZipOnlyMediaImport(file);
+      } else {
+        // Process based on detection
+        // Media CSV is always processed first (if present)
+        if (hasMediaCSV) {
+          await this.processMediaImport(file);
+        }
 
-      // Then process content CSV (if present)
-      if (hasContentCSV) {
-        await this.processContentImport(file);
-      }
+        // Then process content CSV (if present)
+        if (hasContentCSV) {
+          await this.processContentImport(file);
+        }
 
-      // If detection failed or neither CSV type was found, try content import as fallback
-      if (!hasMediaCSV && !hasContentCSV) {
-        await this.processContentImport(file);
+        // If detection failed or neither CSV type was found, try content import as fallback
+        if (!hasMediaCSV && !hasContentCSV) {
+          await this.processContentImport(file);
+        }
       }
 
       // Clear file after successful upload
@@ -223,6 +229,23 @@ export class BulkUploadService {
     } finally {
       this.state.loading = false;
       this.emitStateChange();
+    }
+  }
+
+  /**
+   * Process ZIP-only media import (ZIP with no CSV files)
+   */
+  private async processZipOnlyMediaImport(file: File): Promise<void> {
+    try {
+      const response = await this.apiClient.importMediaFromZipOnly(file);
+      this.state.results.media = response.data;
+    } catch (error) {
+      this.notify({
+        type: 'error',
+        headline: 'ZIP Media Import Failed',
+        message: error instanceof Error ? error.message : 'An error occurred during ZIP media import.'
+      });
+      throw error;
     }
   }
 

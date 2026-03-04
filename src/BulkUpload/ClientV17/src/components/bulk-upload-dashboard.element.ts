@@ -413,6 +413,10 @@ export class BulkUploadDashboardElement extends LitElement {
               </div>
               <div class="media-tip">
                 <div class="tip-icon">📦</div>
+                <strong>ZIP with Media Files Only (No CSV):</strong> Automatically imports all media files preserving folder structure
+              </div>
+              <div class="media-tip">
+                <div class="tip-icon">📦</div>
                 <strong>ZIP with Media CSV:</strong> CSV for media import
               </div>
               <div class="media-tip">

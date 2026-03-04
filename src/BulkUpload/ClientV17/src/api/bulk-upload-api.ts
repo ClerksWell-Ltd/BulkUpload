@@ -101,6 +101,28 @@ export class BulkUploadApiClient {
   }
 
   /**
+   * Imports media from a ZIP file without requiring a CSV.
+   * Automatically creates media items based on the folder structure in the ZIP.
+   * @param file - The ZIP file containing media files
+   * @returns Promise resolving to import results
+   */
+  async importMediaFromZipOnly(file: File): Promise<ApiResponse<ImportResultResponse>> {
+    if (!file) {
+      throw new Error('File is required for ZIP-only media import');
+    }
+
+    try {
+      const response = await this.post<ImportResultResponse>(
+        '/api/v1/media/importmediafromzip',
+        file
+      );
+      return response;
+    } catch (error) {
+      throw new Error('ZIP-only media import failed: ' + (error as Error).message);
+    }
+  }
+
+  /**
    * Exports content import results to CSV or ZIP
    * @param results - Array of import result objects
    * @returns Promise resolving to Response object for file download

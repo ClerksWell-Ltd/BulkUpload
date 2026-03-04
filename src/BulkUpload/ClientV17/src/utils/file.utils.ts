@@ -16,6 +16,7 @@ export interface UploadDetection {
   hasMediaCSV: boolean;
   hasContentCSV: boolean;
   hasMediaFiles: boolean;
+  isMediaOnlyZip: boolean;
   mediaCSVFiles: string[];
   contentCSVFiles: string[];
   mediaFiles: string[];
@@ -208,6 +209,7 @@ export async function analyzeUploadFile(file: File): Promise<UploadDetection> {
     hasMediaCSV: false,
     hasContentCSV: false,
     hasMediaFiles: false,
+    isMediaOnlyZip: false,
     mediaCSVFiles: [],
     contentCSVFiles: [],
     mediaFiles: [],
@@ -272,18 +274,25 @@ export async function analyzeUploadFile(file: File): Promise<UploadDetection> {
       const parts: string[] = [];
       const totalCSVCount = detection.mediaCSVFiles.length + detection.contentCSVFiles.length + unknownCSVFiles.length;
 
-      if (totalCSVCount > 0) {
-        // Show total CSV count first
-        parts.push(`${totalCSVCount} CSV${totalCSVCount !== 1 ? ' Files' : ' File'}`);
-      }
+      // Detect ZIP with only media files (no CSVs)
+      detection.isMediaOnlyZip = totalCSVCount === 0 && detection.hasMediaFiles;
 
-      if (detection.hasMediaFiles) {
-        parts.push(`${detection.mediaFiles.length} Media File${detection.mediaFiles.length !== 1 ? 's' : ''}`);
-      }
+      if (detection.isMediaOnlyZip) {
+        detection.summary = `ZIP: ${detection.mediaFiles.length} Media File${detection.mediaFiles.length !== 1 ? 's' : ''} (No CSV)`;
+      } else {
+        if (totalCSVCount > 0) {
+          // Show total CSV count first
+          parts.push(`${totalCSVCount} CSV${totalCSVCount !== 1 ? ' Files' : ' File'}`);
+        }
 
-      detection.summary = parts.length > 0
-        ? `ZIP: ${parts.join(' + ')}`
-        : 'ZIP Archive';
+        if (detection.hasMediaFiles) {
+          parts.push(`${detection.mediaFiles.length} Media File${detection.mediaFiles.length !== 1 ? 's' : ''}`);
+        }
+
+        detection.summary = parts.length > 0
+          ? `ZIP: ${parts.join(' + ')}`
+          : 'ZIP Archive';
+      }
     } else {
       detection.summary = 'Unsupported File Type';
     }
