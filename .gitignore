@@ -364,12 +364,13 @@ src/.idea
 /src/BulkUpload.TestSite/wwwroot/media
 /.claude
 
-# BulkUpload: Ignore generated frontend files in wwwroot (built from ClientV13/ClientV17 sources)
-/src/BulkUpload/wwwroot/BulkUpload/
+# BulkUpload: Ignore V17 generated frontend files (these use explicit Pack/PackagePath in csproj)
 /src/BulkUpload/wwwroot/bulkupload.js
 /src/BulkUpload/wwwroot/bulkupload.js.map
 /src/BulkUpload/wwwroot/umbraco-package.json
+# BulkUpload: Ignore V17 shared assets (copied during V17 build)
 /src/BulkUpload/wwwroot/images/
-
-# BulkUpload: Keep source files (ClientV13, ClientV17, ClientShared) in git
-# These are the single source of truth and must be version controlled
+/src/BulkUpload/wwwroot/lib/
+# NOTE: wwwroot/BulkUpload/ is NOT gitignored - V13 files must be committed
+# so the RCL SDK discovers them at project evaluation time for NuGet packaging.
+# Source of truth is ClientV13/ - BuildFrontendV13 target regenerates wwwroot/BulkUpload/ on build.
