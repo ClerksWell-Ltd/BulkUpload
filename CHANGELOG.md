@@ -12,16 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Documentation
-- Comprehensive documentation overhaul
-- New top-level README.md with quick start guide
-- Completed CONTRIBUTING.md with development setup
-- Added troubleshooting guide
-- Mermaid diagrams for import processes
-- Updated all documentation to reflect multi-targeting
-- Removed stale BulkUpload.Core references across all documentation
-
-## [2.0.0] - 2025-01-XX
+## [2.0.0] - 2026-03-04
 
 ### 🎉 Major Release: Multi-Targeting Architecture
 
@@ -54,6 +45,11 @@ Version 2.0.0 represents a significant architectural change, moving from a multi
 - ZIP upload summary now shows total CSV count instead of breaking down by type
 
 ### Documentation
+- Comprehensive documentation overhaul for v2.0.0 launch
+- New top-level README.md with quick start guide
+- Completed CONTRIBUTING.md with development setup
+- Added troubleshooting guide
+- Mermaid diagrams for import processes
 - Multi-targeting architecture guide
 - Multi-targeting quick start guide
 - Update mode guide with examples and best practices
@@ -61,6 +57,11 @@ Version 2.0.0 represents a significant architectural change, moving from a multi
 - Updated release process for multi-targeting
 - Enhanced workflow diagrams
 - Framework-specific development guidelines
+- Updated all documentation to reflect multi-targeting
+- Removed stale BulkUpload.Core references across all documentation
+- Fixed `parentId` → `parent` across all user-facing docs and examples
+- Fixed release workflow docs to reflect main-branch strategy
+- Fixed broken links in Content Picker Legacy IDs guide
 
 ### Migration from v1.x
 

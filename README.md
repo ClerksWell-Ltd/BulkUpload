@@ -109,7 +109,7 @@ Import content with or without media:
 
 **CSV Format:**
 ```csv
-parentId,docTypeAlias,name,title,heroImage|zipFileToMedia,publishDate|dateTime
+parent,docTypeAlias,name,title,heroImage|zipFileToMedia,publishDate|dateTime
 1100,productPage,Red Widget,Amazing Red Widget,hero-red.jpg,2024-01-15
 1100,productPage,Blue Widget,Fantastic Blue Widget,hero-blue.jpg,2024-01-16
 ```

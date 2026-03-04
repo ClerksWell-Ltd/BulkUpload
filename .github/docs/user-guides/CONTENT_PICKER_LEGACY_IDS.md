@@ -266,9 +266,9 @@ The content picker feature uses a "deferred resolver" pattern:
 
 ## Related Features
 
-- [Legacy Hierarchy Import](./LEGACY_HIERARCHY_IMPORT.md) - Parent-child relationships using legacy IDs
-- [Resolver System](./RESOLVERS.md) - Complete guide to all property resolvers
-- [Multi-File Import](./MULTI_FILE_IMPORT.md) - Importing from multiple CSV files and ZIP archives
+- [Legacy Hierarchy Mapping](./LEGACY_HIERARCHY_MAPPING.md) - Parent-child relationships using legacy IDs
+- [Media Import Guide](./media-import-guide.md) - Comprehensive guide for bulk media imports
+- [Update Mode Guide](./UPDATE_MODE_GUIDE.md) - Update existing content and media by GUID
 
 ## Examples
 

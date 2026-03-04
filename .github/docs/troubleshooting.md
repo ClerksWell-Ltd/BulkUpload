@@ -165,19 +165,21 @@ Common issues and solutions for BulkUpload.
 **Solutions:**
 
 1. **Content import requires:**
-   - `parentId` - Parent node ID (integer or -1 for root)
+   - `parent` - Parent node (ID, GUID, or path; use `-1` for root)
    - `docTypeAlias` - Content type alias
    - `name` - Node name
 
 2. **Media import requires:**
    - `fileName` OR `mediaSource|urlToStream` OR `mediaSource|pathToStream`
-   - `parent` OR `parentId` - Parent folder (ID, GUID, or path)
+   - `parent` - Parent folder (ID, GUID, or path)
 
 3. **Example valid headers:**
    ```csv
-   parentId,docTypeAlias,name,title
+   parent,docTypeAlias,name,title
    1100,article,My Article,Article Title
    ```
+
+> **Note:** `parentId` is still supported for backward compatibility but `parent` is recommended.
 
 ### Column Headers Not Recognized
 
@@ -323,7 +325,7 @@ Common issues and solutions for BulkUpload.
    - Note the folder ID
    - Use ID in CSV:
    ```csv
-   parentId,name,fileName
+   parent,name,fileName
    1150,Hero Image,hero.jpg
    ```
 
@@ -349,7 +351,7 @@ Common issues and solutions for BulkUpload.
 
 2. **Use root for top-level:**
    ```csv
-   parentId,docTypeAlias,name
+   parent,docTypeAlias,name
    -1,homePage,Home
    ```
 
@@ -534,9 +536,9 @@ Common issues and solutions for BulkUpload.
 
 **Solutions:**
 
-1. **Verify exact filename match:**
-   - Case-sensitive: `logo.jpg` ≠ `Logo.jpg`
-   - Extra spaces: `logo.jpg ` ≠ `logo.jpg`
+1. **Verify filename match:**
+   - Matching is case-insensitive: `logo.jpg` and `Logo.jpg` are treated as the same file
+   - Extra spaces will cause issues: `logo.jpg ` ≠ `logo.jpg`
 
 2. **Check CSV structure:**
    - All CSVs must be in same ZIP
@@ -612,7 +614,7 @@ Use online CSV validators:
 Start with simplest possible CSV:
 
 ```csv
-parentId,docTypeAlias,name
+parent,docTypeAlias,name
 -1,homePage,Test
 ```
 
