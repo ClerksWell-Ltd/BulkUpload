@@ -803,8 +803,9 @@ public class MediaImportController : ControllerBase
     [HttpPost]
     [Consumes("multipart/form-data")]
 #if !NET8_0
+    [IgnoreAntiforgeryToken]
     [Route("importmediafromzip")]
-    [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(MediaImportResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 #endif
