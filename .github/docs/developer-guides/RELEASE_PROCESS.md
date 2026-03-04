@@ -132,8 +132,8 @@ git push origin main
 1. Go to [NuGet.org](https://www.nuget.org/packages/Umbraco.Community.BulkUpload)
 2. Verify the new version appears (may take 5-10 minutes to index)
 3. Check that both frameworks are included:
-   - Dependencies → .NETStandard 8.0
-   - Dependencies → .NETStandard 10.0
+   - Dependencies → .NET 8.0
+   - Dependencies → .NET 10.0
 4. Test installation:
    ```bash
    dotnet nuget locals http-cache --clear

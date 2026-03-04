@@ -52,11 +52,8 @@ public static class ReservedColumns
     public const string BulkUploadShouldUpdate = "bulkUploadShouldUpdate";
 
     /// <summary>
-    /// Column indicating whether to update the media item (per-row decision).
-    /// PRESENCE OF THIS COLUMN: Indicates the import file supports update mode (per-file).
-    /// VALUE ON EACH ROW: Determines if that specific row should update (true) or create (false).
-    /// When true with bulkUploadMediaGuid, updates the existing media item.
-    /// When false or missing bulkUploadMediaGuid, creates new media.
+    /// Result column indicating whether the import of this row was successful.
+    /// Added to the results CSV after import. Contains true/false.
     /// </summary>
     public const string BulkUploadSuccess = "bulkUploadSuccess";
 

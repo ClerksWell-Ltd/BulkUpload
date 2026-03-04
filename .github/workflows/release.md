@@ -2,44 +2,43 @@
 
 ## Overview
 
-The **Release to NuGet** workflow handles the complete release process for publishing the BulkUpload package to NuGet.org. It builds, tests, packages, and publishes the NuGet package when a GitHub release is created from a `release/*` branch.
+The **Release to NuGet** workflow handles the complete release process for publishing the BulkUpload package to NuGet.org. It builds, tests, packages, and publishes the multi-targeted NuGet package when a GitHub release is created from the `main` branch.
+
+Starting with v2.0.0, BulkUpload uses .NET multi-targeting to produce a **single NuGet package** containing both `net8.0` (Umbraco 13) and `net10.0` (Umbraco 17) assemblies.
 
 ## Trigger Events
 
 - **Release Published**: Automatically runs when a GitHub release is published
-- **Branch Restriction**: Only executes for releases from `release/*` branches
+- **Branch Restriction**: Only executes for releases from the `main` branch
 
 ## Workflow Steps
 
 ```mermaid
 flowchart TD
     A[Start: Release Published] --> B[Checkout Repository]
-    B --> C{From release/* branch?}
-    C -->|No| D[❌ Fail: Invalid Branch]
-    C -->|Yes| E[✓ Branch Verified]
-    E --> F[Setup .NET SDK 8.0.x]
+    B --> C{From main branch?}
+    C -->|No| D[Fail: Invalid Branch]
+    C -->|Yes| E[Branch Verified]
+    E --> F[Setup .NET SDK 8.0.x + 10.0.x]
     F --> G[Cache NuGet Packages]
-    G --> H[Extract .NET Version from csproj]
-    H --> I{.NET Version >= 10?}
-    I -->|Yes| J[Set use_npm=true]
-    I -->|No| K[Set use_npm=false]
-    J --> L[Restore Dependencies]
-    K --> L
-    L --> M[Build Project in Release Mode]
+    G --> H[Update csproj Version from Tag]
+    H --> I[Setup Node.js 20.x]
+    I --> J[Install npm Dependencies]
+    J --> K[Build Umbraco 17 Frontend via Vite]
+    K --> L[Restore Dependencies]
+    L --> M[Build Project in Release Mode<br/>net8.0 + net10.0]
     M --> N[Run Tests]
     N --> O{Tests Pass?}
-    O -->|No| P[❌ Workflow Fails]
+    O -->|No| P[Workflow Fails]
     O -->|Yes| Q[Pack NuGet Package]
     Q --> R[Publish to NuGet.org]
     R --> S[Upload Package as Artifact]
-    S --> T[✓ End: Success]
+    S --> T[End: Success]
     D --> U[End: Failure]
     P --> U
 
     style D fill:#f8d7da
     style E fill:#d4edda
-    style J fill:#e1f5ff
-    style K fill:#e1f5ff
     style R fill:#fff3cd
     style T fill:#d4edda
 ```
@@ -53,20 +52,21 @@ flowchart TD
 
 ### 2. Verify Release Branch
 - **Type**: Shell script
-- **Purpose**: Security check to ensure releases only come from designated release branches
+- **Purpose**: Security check to ensure releases only come from the `main` branch
 - **Logic**:
-  - Extracts branch name from `GITHUB_REF`
-  - Checks if branch matches pattern `release/*`
-  - **Fails immediately** if not a release branch
-- **Valid Branches**: `release/v13.x`, `release/v17.x`, etc.
-- **Invalid Branches**: `main`, `master`, `feature/*`, etc.
+  - Reads `target_commitish` from the release event
+  - Checks if branch is `main`
+  - **Fails immediately** if not `main`
+- **Valid Branch**: `main` only
+- **Invalid Branches**: `feature/*`, `bugfix/*`, `release/*` (legacy), etc.
 
-**Why This Matters**: Prevents accidental production releases from development branches
+**Why This Matters**: v2.0.0+ uses multi-targeting from `main`, so all releases must originate from `main`.
 
-### 3. Setup .NET
-- **Action**: `actions/setup-dotnet@v4`
-- **Purpose**: Installs .NET SDK for building
-- **Version**: 8.0.x (hardcoded for stability)
+### 3. Setup .NET SDKs
+- **Action**: `actions/setup-dotnet@v4` (called twice)
+- **Purpose**: Installs both .NET SDK 8.0.x and 10.0.x for multi-targeted builds
+- **.NET 8**: Required for building the `net8.0` target (Umbraco 13)
+- **.NET 10**: Required for building the `net10.0` target (Umbraco 17)
 
 ### 4. Cache NuGet Packages
 - **Action**: `actions/cache@v4`
@@ -74,51 +74,63 @@ flowchart TD
 - **Cache Key**: OS + hash of lock files and project files
 - **Restore Keys**: OS-specific fallback
 
-### 5. Extract .NET Version
+### 5. Update csproj Version from Release Tag
 - **Type**: Shell script
-- **Purpose**: Detects target .NET version from project file
+- **Purpose**: Extracts version from the release tag (e.g., `v2.1.0` becomes `2.1.0`) and updates `BulkUpload.csproj`
 - **Process**:
-  - Parses `TargetFramework` from `BulkUpload.csproj`
-  - Example: `net8.0` → `8`
-  - Sets `use_npm` flag for .NET 10+ (future Umbraco 17 support)
+  - Strips the `v` prefix from the tag name
+  - Updates `<Version>` element in the `.csproj` file via `sed`
+  - Verifies the update
 
-### 6. Restore Dependencies
+### 6. Setup Node.js
+- **Action**: `actions/setup-node@v4`
+- **Purpose**: Installs Node.js 20.x for building the Umbraco 17 Lit frontend
+- **Version**: 20.x
+
+### 7. Install npm Dependencies
+- **Command**: `npm ci`
+- **Working Directory**: `src/BulkUpload/ClientV17`
+- **Purpose**: Clean install of frontend dependencies for the V17 Lit web components
+
+### 8. Build Umbraco 17 Frontend
+- **Command**: `npm run build`
+- **Working Directory**: `src/BulkUpload/ClientV17`
+- **Purpose**: Runs Vite to bundle the Lit web components into `wwwroot/bulkupload.js`
+
+### 9. Restore Dependencies
 - **Command**: `dotnet restore`
-- **Target**: `src/BulkUpload/BulkUpload.csproj` (project-level)
+- **Target**: `src/BulkUpload.sln` (solution-level)
 - **Options**: `--disable-parallel` for stability
 
-### 7. Build Project
+### 10. Build Project
 - **Command**: `dotnet build`
 - **Configuration**: Release
+- **Targets**: Builds for both `net8.0` and `net10.0` simultaneously
 - **Options**:
   - `--no-restore`: Skip restore (already done)
-  - `-p:SkipPreBuild=true`: Skip pre-build scripts
+  - `-p:SkipPreBuild=true`: Skip pre-build scripts (formatting)
+- **Outputs**: Build logs with error/warning counts are written to the GitHub Step Summary
 
-### 8. Run Tests
+### 11. Run Tests
 - **Command**: `dotnet test`
 - **Target**: `src/BulkUpload.Tests/BulkUpload.Tests.csproj`
 - **Configuration**: Release
 - **Options**:
   - `--no-build`: Use existing build output
   - `--verbosity normal`: Standard output
+- **Outputs**: Test results (passed/failed/skipped/duration) are written to the GitHub Step Summary
 
-**Critical**: Workflow fails if any test fails, preventing broken releases
+**Critical**: Workflow fails if any test fails, preventing broken releases.
 
-### 9. Pack NuGet Package
+### 12. Pack NuGet Package
 - **Command**: `dotnet pack`
 - **Configuration**: Release
 - **Options**:
   - `--no-build`: Uses existing build
   - `--output ./artifacts`: Places .nupkg in artifacts directory
-- **Output**: `BulkUpload.{version}.nupkg`
+- **Output**: `Umbraco.Community.BulkUpload.{version}.nupkg` (contains both `net8.0` and `net10.0` assemblies)
 
-### 10. NPM Steps (Conditional - Currently Commented Out)
-*Prepared for future .NET 10+ / Umbraco 17+ releases:*
-- Setup Node.js 20.x (only if .NET >= 10)
-- Install npm dependencies
-- Build npm package
-
-### 11. Publish to NuGet
+### 13. Publish to NuGet
 - **Command**: `dotnet nuget push`
 - **Target**: All `.nupkg` files in `./artifacts/`
 - **Destination**: https://api.nuget.org/v3/index.json
@@ -126,9 +138,9 @@ flowchart TD
 - **Options**:
   - `--skip-duplicate`: Prevents errors if version already exists
 
-**Security Note**: Requires `NUGET_API_KEY` secret to be configured in repository settings
+**Security Note**: Requires `NUGET_API_KEY` secret to be configured in repository settings.
 
-### 12. Upload Package Artifact
+### 14. Upload Package Artifact
 - **Action**: `actions/upload-artifact@v4`
 - **Purpose**: Archives the NuGet package in GitHub Actions
 - **Artifact Name**: `nuget-package`
@@ -143,113 +155,100 @@ sequenceDiagram
     participant GH as GitHub
     participant Workflow as Release Workflow
     participant NuGet as NuGet.org
-    participant Post as Post-Release Workflow
 
-    Dev->>GH: Tag release on release/v13.x
+    Dev->>GH: Create tag (e.g., v2.1.0) on main
     Dev->>GH: Publish GitHub Release
     GH->>Workflow: Trigger release workflow
     Workflow->>Workflow: Verify main branch
+    Workflow->>Workflow: Setup .NET 8 + .NET 10
+    Workflow->>Workflow: Build V17 frontend (npm + Vite)
     Workflow->>Workflow: Build & Test (net8.0 + net10.0)
     Workflow->>Workflow: Pack NuGet package
     Workflow->>NuGet: Publish package
     NuGet-->>Workflow: Confirm published
     Workflow->>GH: Upload artifact
-    Note over NuGet: Package available to users
+    Note over NuGet: Package available to users<br/>(both Umbraco 13 & 17)
 ```
 
 ## Environment
 
 - **Runner**: `ubuntu-latest`
-- **.NET SDK**: 8.0.x (for build tooling)
-- **Target Framework**: Dynamically detected from project
-- **Node.js**: 20.x (when npm support is enabled)
+- **.NET SDKs**: 8.0.x and 10.0.x (both installed for multi-targeting)
+- **Node.js**: 20.x (for V17 frontend build)
 
 ## Required Secrets
 
 | Secret | Purpose | Required |
 |--------|---------|----------|
-| `NUGET_API_KEY` | Authentication for publishing to NuGet.org | ✅ Yes |
-| `GITHUB_TOKEN` | Automatic - for artifact upload | ✅ Auto |
+| `NUGET_API_KEY` | Authentication for publishing to NuGet.org | Yes |
+| `GITHUB_TOKEN` | Automatic - for artifact upload | Auto |
 
 ## Files Used
 
-- `src/BulkUpload/BulkUpload.csproj` - Main project file
+- `src/BulkUpload/BulkUpload.csproj` - Main project file (multi-targeted)
 - `src/BulkUpload.Tests/BulkUpload.Tests.csproj` - Test project
+- `src/BulkUpload/ClientV17/package.json` - V17 frontend dependencies
 - `packages.lock.json` - NuGet dependencies (for caching)
 
 ## Artifacts Generated
 
-1. **NuGet Package** (`BulkUpload.{version}.nupkg`)
+1. **NuGet Package** (`Umbraco.Community.BulkUpload.{version}.nupkg`)
+   - Contains both `net8.0` and `net10.0` assemblies
    - Published to NuGet.org
    - Archived as GitHub Actions artifact
    - Available for 90 days (default retention)
 
 ## Branch Strategy Integration
 
-This workflow enforces the branching strategy:
+This workflow enforces the v2.0.0+ main-branch strategy:
 
 ```mermaid
 graph LR
-    A[main] -->|not allowed| X[❌ Release Fails]
-    B[feature/xyz] -->|not allowed| X
-    C[release/v13.x] -->|allowed| Y[✅ Release Succeeds]
-    D[release/v17.x] -->|allowed| Y
+    A[main] -->|allowed| Y[Release Succeeds]
+    B[feature/xyz] -->|not allowed| X[Release Fails]
+    C[bugfix/xyz] -->|not allowed| X
+    D[release/v13.x] -->|not allowed - legacy| X
 ```
 
-**Valid Release Branches**:
-- `release/v13.x` - For Umbraco 13 releases
-- `release/v17.x` - For Umbraco 17 releases (future)
+**All releases come from `main`** - the single NuGet package supports both Umbraco 13 and 17 via multi-targeting.
 
 ## Success Criteria
 
 The release succeeds when:
-1. ✅ Release is from a `release/*` branch
-2. ✅ Dependencies restore successfully
-3. ✅ Project builds without errors
-4. ✅ All tests pass
-5. ✅ NuGet package is created
-6. ✅ Package publishes to NuGet.org (or is already published)
-7. ✅ Artifact is uploaded to GitHub
+1. Release is from `main` branch
+2. Version is extracted from release tag
+3. V17 frontend builds successfully (npm + Vite)
+4. Dependencies restore successfully
+5. Project builds for both `net8.0` and `net10.0` without errors
+6. All tests pass
+7. NuGet package is created with both framework targets
+8. Package publishes to NuGet.org (or is already published)
+9. Artifact is uploaded to GitHub
 
 ## Failure Scenarios
 
 The workflow fails if:
-- ❌ Release is not from a `release/*` branch
-- ❌ Build errors occur
-- ❌ Any test fails
-- ❌ NuGet publish fails (network, authentication, etc.)
-
-## Post-Release Integration
-
-Upon successful completion, this workflow triggers:
-- **Post-Release Workflow** - Handles version bumping and changelog updates
-
-## Future Enhancements
-
-**NPM Support** (commented out, ready to enable):
-- Activated automatically for .NET 10+ projects
-- Builds frontend assets
-- Supports Umbraco 17+ requirements
-
-To enable:
-1. Uncomment lines 70-82 in `release.yml`
-2. Ensure `package.json` and npm scripts are configured
-3. Test on a development release first
+- Release is not from `main` branch
+- npm install or build fails (V17 frontend)
+- Build errors occur for either framework target
+- Any test fails
+- NuGet pack or publish fails (network, authentication, etc.)
 
 ## Manual Release Process
 
 To create a release:
 
-1. Ensure you're on a `release/*` branch
-2. Update version in `BulkUpload.csproj`
+1. Ensure all changes are merged to `main`
+2. Update version in `BulkUpload.csproj` (optional - workflow updates from tag)
 3. Update `CHANGELOG.md`
-4. Commit changes
-5. Create and push a git tag: `git tag v1.2.3 && git push origin v1.2.3`
-6. Go to GitHub → Releases → Draft a new release
-7. Select the tag (targeting main branch), fill in release notes
-8. Click "Publish release"
-9. Workflow runs automatically and publishes to NuGet
-10. Verify release on NuGet.org
+4. Commit changes: `git commit -m "chore: prepare release v2.1.0"`
+5. Push to main: `git push origin main`
+6. Go to GitHub -> Releases -> Draft a new release
+7. Create tag (e.g., `v2.1.0`) targeting `main` branch
+8. Fill in release notes
+9. Click "Publish release"
+10. Workflow runs automatically and publishes to NuGet
+11. Verify release on NuGet.org (may take 5-10 minutes to index)
 
 ## Workflow File
 

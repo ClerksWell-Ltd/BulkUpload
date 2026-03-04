@@ -30,7 +30,9 @@ When multiple CSV files are included, the system:
 | Column | Description | Example |
 |--------|-------------|---------|
 | `fileName` | The exact filename of the media file in the ZIP | `product-image.jpg` |
-| `parentId` | The ID of the parent media folder in Umbraco | `1150` |
+| `parent` | The parent media folder (supports ID, GUID, or path) | `1150`, `a1b2c3d4-...`, `/Products/Images/` |
+
+> **Note:** `parentId` is supported for backward compatibility but `parent` is the recommended column name. The `parent` column accepts three formats: integer ID (`1150`), GUID (`a1b2c3d4-e5f6-7890-abcd-ef1234567890`), or folder path (`/Products/Images/` - auto-creates folders).
 
 ### Optional Columns
 
@@ -40,14 +42,13 @@ When multiple CSV files are included, the system:
 | `mediaTypeAlias` | Umbraco media type (auto-detected from extension if empty) | `Image`, `File`, `Video` |
 | `altText` | Alt text for images | `Red widget product` |
 | `caption` | Caption for images | `Main product photo` |
-| `bulkUploadLegacyId` | Legacy CMS identifier for tracking/reference (not persisted as a media property) | `old-cms-123` |
 
 ### Additional Property Columns
 
 You can include any custom media property by adding columns with the property alias. Use the pipe syntax to specify a resolver:
 
 ```csv
-fileName,parentId,name,tags|stringArray,publishDate|dateTime
+fileName,parent,name,tags|stringArray,publishDate|dateTime
 image1.jpg,1150,Hero Image,"marketing,featured","2024-01-15"
 ```
 
@@ -63,13 +64,13 @@ If you don't specify `mediaTypeAlias`, the system automatically detects the medi
 ## Sample CSV
 
 ```csv
-fileName,parentId,name,mediaTypeAlias,altText,caption,bulkUploadLegacyId
-product-hero.jpg,1150,Product Hero Image,Image,Red widget product photo,Main product showcase image,old-123
-product-thumbnail.jpg,1150,Product Thumbnail,Image,Red widget thumbnail,Product thumbnail view,old-124
-banner-homepage.png,1150,Homepage Banner,Image,Welcome to our site,Hero section banner,
-user-manual.pdf,1151,User Manual V2,File,,Product documentation,old-125
-brochure.pdf,1151,Marketing Brochure,File,,Sales material,
-logo.svg,1150,Company Logo,Image,Company logo,Corporate branding,old-126
+fileName,parent,name,mediaTypeAlias,altText,caption
+product-hero.jpg,1150,Product Hero Image,Image,Red widget product photo,Main product showcase image
+product-thumbnail.jpg,1150,Product Thumbnail,Image,Red widget thumbnail,Product thumbnail view
+banner-homepage.png,1150,Homepage Banner,Image,Welcome to our site,Hero section banner
+user-manual.pdf,/Docs/Manuals/,User Manual V2,File,,Product documentation
+brochure.pdf,1151,Marketing Brochure,File,,Sales material
+logo.svg,/Brand/,Company Logo,Image,Company logo,Corporate branding
 ```
 
 See `docs/bulk-upload-media-sample.csv` for a complete example.
@@ -116,18 +117,36 @@ media-import.zip
 - All files referenced in any CSV's `fileName` column must exist in the ZIP
 - Files can be in subdirectories within the ZIP
 - CSV filenames can be anything ending in `.csv`
-- **Deduplication:** If the same filename appears in multiple CSVs, the media is created only once and reused
+- **Deduplication:** If the same filename appears in multiple CSVs, the media is created only once and reused (case-insensitive matching)
 
-## Finding Parent IDs
+## Specifying Parent Folders
 
-To find the parent folder ID:
+The `parent` column supports three formats:
 
-1. Go to the Media section in Umbraco
-2. Right-click on the folder where you want to import media
-3. Select "Info" or view the URL - the ID will be shown or visible in the browser address bar
-4. Use this ID in the `parentId` column of your CSV
+### By Integer ID
+Find the folder ID in Umbraco (right-click folder -> Info, or check the URL), then use it directly:
+```csv
+parent
+1150
+```
+Use `-1` to import to the root of the Media section.
 
-Alternatively, use `-1` to import to the root of the Media section.
+### By GUID
+Use the folder's GUID for a more stable reference:
+```csv
+parent
+a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+### By Path (Auto-Creates Folders)
+Specify a folder path and BulkUpload will automatically create any folders that don't exist:
+```csv
+parent
+/Products/Images/
+/Docs/Manuals/
+```
+
+> **Backward compatibility:** The `parentId` column name is still supported and works the same way.
 
 ## Import Results
 
@@ -144,28 +163,28 @@ Click "Download Results CSV" to get a detailed report. The report includes:
 
 Example with a simple input CSV:
 ```csv
-fileName,parentId,name,bulkUploadLegacyId
-product-hero.jpg,1150,Product Hero,old-123
-product-error.jpg,1150,Product Error,old-124
+fileName,parent,name
+product-hero.jpg,1150,Product Hero
+product-error.jpg,1150,Product Error
 ```
 
 Results in this report CSV:
 ```csv
-bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId,fileName,parentId,name,bulkUploadLegacyId
-product-hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123,product-hero.jpg,1150,Product Hero,old-123
-product-error.jpg,false,,,File not found in ZIP archive: product-error.jpg,old-124,product-error.jpg,1150,Product Error,old-124
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,fileName,parent,name
+product-hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,product-hero.jpg,1150,Product Hero
+product-error.jpg,false,,,File not found in ZIP archive: product-error.jpg,product-error.jpg,1150,Product Error
 ```
 
 Example with custom properties and resolvers:
 ```csv
-fileName,parentId,name,altText,tags|stringArray,bulkUploadLegacyId
-hero.jpg,1150,Hero Image,Alt text here,"tag1,tag2",old-123
+fileName,parent,name,altText,tags|stringArray
+hero.jpg,1150,Hero Image,Alt text here,"tag1,tag2"
 ```
 
 Results in:
 ```csv
-bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,bulkUploadLegacyId,fileName,parentId,name,altText,tags|stringArray,bulkUploadLegacyId
-hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,old-123,hero.jpg,1150,Hero Image,Alt text here,"tag1,tag2",old-123
+bulkUploadFileName,bulkUploadSuccess,bulkUploadMediaGuid,bulkUploadMediaUdi,bulkUploadErrorMessage,fileName,parent,name,altText,tags|stringArray
+hero.jpg,true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,umb://media/a1b2c3d4e5f67890abcdef1234567890,,hero.jpg,1150,Hero Image,Alt text here,"tag1,tag2"
 ```
 
 The report preserves your original column names (including resolver syntax like `tags|stringArray`) and values, making it easy to correlate results with your source data.
@@ -225,7 +244,7 @@ The results CSV provides two identifiers for each imported media item:
 You can use these in a subsequent content import CSV by referencing the GUID:
 
 ```csv
-parentId,docTypeAlias,name,heroImage|guidToMediaUdi
+parent,docTypeAlias,name,heroImage|guidToMediaUdi
 1100,productPage,Red Widget,a1b2c3d4-e5f6-7890-abcd-ef1234567890
 ```
 
@@ -238,7 +257,7 @@ Common errors and solutions:
 | "No CSV file found in ZIP archive" | Ensure your ZIP contains a `.csv` file |
 | "File not found in ZIP archive: filename.jpg" | Check that the filename in CSV exactly matches the file in ZIP (case-sensitive) |
 | "Media type 'CustomType' not found" | Verify the mediaTypeAlias exists in your Umbraco installation |
-| "Invalid import object: Missing required fields" | Ensure each row has both `fileName` and `parentId` |
+| "Invalid import object: Missing required fields" | Ensure each row has a media source (`fileName`, `mediaSource\|urlToStream`, or `mediaSource\|pathToStream`) and a `parent` (or `parentId`) |
 
 ## Tips
 
@@ -253,9 +272,9 @@ Common errors and solutions:
 If your media type has custom properties, you can set them using the resolver syntax:
 
 ```csv
-fileName,parentId,photographer,dateTaken|dateTime,tags|stringArray
+fileName,parent,photographer,dateTaken|dateTime,tags|stringArray
 photo1.jpg,1150,John Smith,"2024-03-15","landscape,sunset,beach"
-photo2.jpg,1150,Jane Doe,"2024-03-16","portrait,studio"
+photo2.jpg,/Photography/,Jane Doe,"2024-03-16","portrait,studio"
 ```
 
 Available resolvers:
