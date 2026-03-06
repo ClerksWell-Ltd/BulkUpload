@@ -1,7 +1,11 @@
-+-------------------------+------------------------+------------+------------+
-| File                    | Package                | OldVersion | NewVersion |
-+-------------------------+------------------------+------------+------------+
-| BulkUpload.Tests.csproj | Microsoft.NET.Test.Sdk |     17.8.0 |    17.14.1 |
-| BulkUpload.Tests.csproj | Moq                    |    4.20.70 |    4.20.72 |
-| BulkUpload.Tests.csproj | xunit                  |      2.6.2 |      2.9.3 |
-+-------------------------+------------------------+------------+------------+
++------------------------------+----------------------------------------+------------+------------+
+| File                         | Package                                | OldVersion | NewVersion |
++------------------------------+----------------------------------------+------------+------------+
+| BulkUpload.TestSite17.csproj | Umbraco.Cms                            |     17.1.0 |     17.2.1 |
+| BulkUpload.TestSite17.csproj | Umbraco.Cms.DevelopmentMode.Backoffice |     17.1.0 |     17.2.1 |
++------------------------------+----------------------------------------+------------+------------+
+| BulkUpload.csproj            | Umbraco.Cms.Api.Common                 |     17.1.0 |     17.2.1 |
+| BulkUpload.csproj            | Umbraco.Cms.Web.Website                |     17.1.0 |     17.2.1 |
+| BulkUpload.csproj            | Swashbuckle.AspNetCore.SwaggerGen      |     10.0.1 |     10.1.4 |
+| BulkUpload.csproj            | Microsoft.OpenApi                      |      2.3.0 |      2.7.0 |
++------------------------------+----------------------------------------+------------+------------+
