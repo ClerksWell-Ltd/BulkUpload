@@ -178,6 +178,15 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                     aliasParameter = resolverParts.Length > 1 ? resolverParts[1] : null;
                 }
 
+                // Check if this is an objectToJson column - scan the JSON value for embedded media refs
+                if (resolverAlias == "objectToJson")
+                {
+                    var jsonValueStr = property.Value?.ToString();
+                    if (!string.IsNullOrWhiteSpace(jsonValueStr))
+                        ExtractEmbeddedMediaReferencesFromJson(jsonValueStr, mediaReferences, sourceFileName);
+                    continue;
+                }
+
                 // Check if this is a media resolver
                 if (resolverAlias != "urlToMedia" && resolverAlias != "pathToMedia" && resolverAlias != "zipFileToMedia")
                     continue;
@@ -522,6 +531,99 @@ public class MediaPreprocessorService : IMediaPreprocessorService
             return "Audio";
 
         return "File";
+    }
+
+    /// <summary>
+    /// Walks a JSON string and extracts any embedded media resolver references
+    /// (e.g. "https://example.com/img.jpg|urlToMedia" inside block grid/list JSON).
+    /// </summary>
+    private void ExtractEmbeddedMediaReferencesFromJson(string jsonStr, Dictionary<string, MediaReference> mediaReferences, string sourceFileName)
+    {
+        Newtonsoft.Json.Linq.JToken token;
+        try
+        {
+            token = Newtonsoft.Json.Linq.JToken.Parse(jsonStr);
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        ExtractEmbeddedMediaReferencesFromToken(token, mediaReferences, sourceFileName);
+    }
+
+    private void ExtractEmbeddedMediaReferencesFromToken(Newtonsoft.Json.Linq.JToken token, Dictionary<string, MediaReference> mediaReferences, string sourceFileName)
+    {
+        switch (token)
+        {
+            case Newtonsoft.Json.Linq.JObject obj:
+                foreach (var prop in obj.Properties())
+                    ExtractEmbeddedMediaReferencesFromToken(prop.Value, mediaReferences, sourceFileName);
+                break;
+
+            case Newtonsoft.Json.Linq.JArray arr:
+                foreach (var item in arr)
+                    ExtractEmbeddedMediaReferencesFromToken(item, mediaReferences, sourceFileName);
+                break;
+
+            case Newtonsoft.Json.Linq.JValue { Type: Newtonsoft.Json.Linq.JTokenType.String } strVal:
+                var str = strVal.Value as string;
+                if (!string.IsNullOrEmpty(str))
+                    TryExtractEmbeddedMediaReference(str, mediaReferences, sourceFileName);
+                break;
+        }
+    }
+
+    private void TryExtractEmbeddedMediaReference(string str, Dictionary<string, MediaReference> mediaReferences, string sourceFileName)
+    {
+        var pipeIndex = str.LastIndexOf('|');
+        if (pipeIndex <= 0 || pipeIndex == str.Length - 1) return;
+
+        var mediaValue = str[..pipeIndex].Trim();
+        var resolverPart = str[(pipeIndex + 1)..].Trim();
+
+        if (string.IsNullOrEmpty(mediaValue)) return;
+
+        // Parse alias:parameter (e.g. "urlToMedia:/Folder")
+        var resolverParts = resolverPart.Split(':', 2);
+        var resolverAlias = resolverParts[0];
+        var aliasParameter = resolverParts.Length > 1 ? resolverParts[1] : null;
+
+        if (resolverAlias != "urlToMedia" && resolverAlias != "pathToMedia" && resolverAlias != "zipFileToMedia")
+            return;
+
+        if (mediaReferences.ContainsKey(mediaValue))
+            return;
+
+        var refType = resolverAlias switch
+        {
+            "urlToMedia" => MediaReferenceType.Url,
+            "pathToMedia" => MediaReferenceType.Path,
+            "zipFileToMedia" => MediaReferenceType.ZipFile,
+            _ => MediaReferenceType.Path
+        };
+
+        string? fileName = null;
+        try
+        {
+            if (refType == MediaReferenceType.Url && Uri.TryCreate(mediaValue, UriKind.Absolute, out var uri))
+                fileName = Path.GetFileName(uri.LocalPath);
+            else
+                fileName = Path.GetFileName(mediaValue);
+        }
+        catch
+        {
+            fileName = mediaValue;
+        }
+
+        mediaReferences[mediaValue] = new MediaReference
+        {
+            OriginalValue = mediaValue,
+            Type = refType,
+            Parent = aliasParameter,
+            FileName = fileName,
+            SourceCsvFileName = sourceFileName
+        };
     }
 
     /// <summary>

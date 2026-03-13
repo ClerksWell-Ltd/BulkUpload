@@ -1,11 +1,21 @@
 using BulkUpload.Resolvers;
+
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
 using Moq;
 
 namespace Umbraco.Community.BulkUpload.Tests.Resolvers;
 
 public class ResolverFactoryTests
 {
+    private static ObjectToJsonResolver CreateObjectToJsonResolver()
+    {
+        var factory = new Mock<IResolverFactory>();
+        var logger = new Mock<ILogger<ObjectToJsonResolver>>();
+        return new ObjectToJsonResolver(factory.Object, logger.Object);
+    }
+
     private static IServiceProvider CreateServiceProvider(List<IResolver> resolvers)
     {
         var services = new ServiceCollection();
@@ -43,7 +53,7 @@ public class ResolverFactoryTests
         // Arrange
         var resolvers = new List<IResolver>
         {
-            new ObjectToJsonResolver(),
+            CreateObjectToJsonResolver(),
             new TestResolver("test1"),
             new TestResolver("test2")
         };
@@ -64,7 +74,7 @@ public class ResolverFactoryTests
         // Arrange
         var resolvers = new List<IResolver>
         {
-            new ObjectToJsonResolver(),
+            CreateObjectToJsonResolver(),
             new TestResolver("test1"),
             new TestResolver("test2")
         };
@@ -85,7 +95,7 @@ public class ResolverFactoryTests
         // Arrange
         var resolvers = new List<IResolver>
         {
-            new ObjectToJsonResolver()
+            CreateObjectToJsonResolver()
         };
         var serviceProvider = CreateServiceProvider(resolvers);
         var factory = new ResolverFactory(serviceProvider);
@@ -103,7 +113,7 @@ public class ResolverFactoryTests
         // Arrange
         var resolvers = new List<IResolver>
         {
-            new ObjectToJsonResolver()
+            CreateObjectToJsonResolver()
         };
         var serviceProvider = CreateServiceProvider(resolvers);
         var factory = new ResolverFactory(serviceProvider);
@@ -127,7 +137,7 @@ public class ResolverFactoryTests
         // Arrange
         var resolvers = new List<IResolver>
         {
-            new ObjectToJsonResolver(),
+            CreateObjectToJsonResolver(),
             new TestResolver("test1"),
             new TestResolver("test2"),
             new TestResolver("test3")
