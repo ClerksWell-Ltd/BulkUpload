@@ -1,46 +1,47 @@
 using BulkUpload.Resolvers;
 
+using Microsoft.Extensions.Logging;
+
+using Moq;
+
+using Newtonsoft.Json.Linq;
+
 namespace Umbraco.Community.BulkUpload.Tests.Resolvers;
 
 public class ObjectToJsonResolverTests
 {
+    private readonly Mock<IResolverFactory> _resolverFactoryMock;
+    private readonly Mock<ILogger<ObjectToJsonResolver>> _loggerMock;
     private readonly ObjectToJsonResolver _resolver;
 
     public ObjectToJsonResolverTests()
     {
-        _resolver = new ObjectToJsonResolver();
+        _resolverFactoryMock = new Mock<IResolverFactory>();
+        _loggerMock = new Mock<ILogger<ObjectToJsonResolver>>();
+        _resolver = new ObjectToJsonResolver(_resolverFactoryMock.Object, _loggerMock.Object);
     }
 
     [Fact]
     public void Alias_ReturnsCorrectAlias()
     {
-        // Act
         var alias = _resolver.Alias();
-
-        // Assert
         Assert.Equal("objectToJson", alias);
     }
 
     [Fact]
     public void Resolve_ReturnsEmptyString_WhenValueIsNull()
     {
-        // Act
         var result = _resolver.Resolve(null!);
-
-        // Assert
         Assert.Equal(string.Empty, result);
     }
 
     [Fact]
     public void Resolve_ReturnsJsonString_WhenValueIsSimpleObject()
     {
-        // Arrange
         var testObject = new { Name = "Test", Value = 123 };
 
-        // Act
         var result = _resolver.Resolve(testObject);
 
-        // Assert
         Assert.IsType<string>(result);
         var jsonString = result as string;
         Assert.Contains("\"Name\"", jsonString);
@@ -52,13 +53,10 @@ public class ObjectToJsonResolverTests
     [Fact]
     public void Resolve_ReturnsJsonString_WhenValueIsString()
     {
-        // Arrange
         var testValue = "Test String";
 
-        // Act
         var result = _resolver.Resolve(testValue);
 
-        // Assert
         Assert.IsType<string>(result);
         Assert.Equal("\"Test String\"", result);
     }
@@ -66,13 +64,10 @@ public class ObjectToJsonResolverTests
     [Fact]
     public void Resolve_ReturnsJsonString_WhenValueIsNumber()
     {
-        // Arrange
         var testValue = 42;
 
-        // Act
         var result = _resolver.Resolve(testValue);
 
-        // Assert
         Assert.IsType<string>(result);
         Assert.Equal("42", result);
     }
@@ -80,13 +75,10 @@ public class ObjectToJsonResolverTests
     [Fact]
     public void Resolve_ReturnsJsonArray_WhenValueIsArray()
     {
-        // Arrange
         var testArray = new[] { 1, 2, 3, 4, 5 };
 
-        // Act
         var result = _resolver.Resolve(testArray);
 
-        // Assert
         Assert.IsType<string>(result);
         var jsonString = result as string;
         Assert.StartsWith("[", jsonString);
@@ -98,7 +90,6 @@ public class ObjectToJsonResolverTests
     [Fact]
     public void Resolve_ReturnsJsonString_WhenValueIsComplexObject()
     {
-        // Arrange
         var complexObject = new
         {
             Id = 1,
@@ -111,10 +102,8 @@ public class ObjectToJsonResolverTests
             Items = new[] { "Item1", "Item2", "Item3" }
         };
 
-        // Act
         var result = _resolver.Resolve(complexObject);
 
-        // Assert
         Assert.IsType<string>(result);
         var jsonString = result as string;
         Assert.Contains("\"Id\"", jsonString);
@@ -127,14 +116,151 @@ public class ObjectToJsonResolverTests
     [Fact]
     public void Resolve_ReturnsJsonBoolean_WhenValueIsBoolean()
     {
-        // Arrange
         var testValue = true;
 
-        // Act
         var result = _resolver.Resolve(testValue);
 
-        // Assert
         Assert.IsType<string>(result);
         Assert.Equal("true", result);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsEmptyString_WhenValueIsWhitespace()
+    {
+        var result = _resolver.Resolve("   ");
+        Assert.Equal(string.Empty, result);
+    }
+
+    [Fact]
+    public void Resolve_SerializesPlainString_WhenInputIsNotJson()
+    {
+        var result = _resolver.Resolve("just a plain string");
+        Assert.Equal("\"just a plain string\"", result);
+    }
+
+    [Fact]
+    public void Resolve_LeavesStringValuesUnchanged_WhenNoPipePresent()
+    {
+        var json = """{"image":"https://example.com/photo.jpg","title":"Hello"}""";
+
+        _resolverFactoryMock.Setup(f => f.GetByAlias(It.IsAny<string>())).Returns((IResolver?)null);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        Assert.Equal("https://example.com/photo.jpg", parsed["image"]!.Value<string>());
+        Assert.Equal("Hello", parsed["title"]!.Value<string>());
+    }
+
+    [Fact]
+    public void Resolve_LeavesStringValueUnchanged_WhenResolverAliasNotFound()
+    {
+        var json = """{"image":"https://example.com/photo.jpg|unknownResolver"}""";
+
+        _resolverFactoryMock.Setup(f => f.GetByAlias("unknownResolver")).Returns((IResolver?)null);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        Assert.Equal("https://example.com/photo.jpg|unknownResolver", parsed["image"]!.Value<string>());
+    }
+
+    [Fact]
+    public void Resolve_ReplacesStringValue_WhenResolverAliasFound()
+    {
+        var json = """{"image":"https://example.com/photo.jpg|urlToMedia"}""";
+        var expectedUdi = "umb://media/abc123";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve("https://example.com/photo.jpg")).Returns(expectedUdi);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("urlToMedia")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        Assert.Equal(expectedUdi, parsed["image"]!.Value<string>());
+    }
+
+    [Fact]
+    public void Resolve_ReplacesStringValue_WithParameterizedAlias()
+    {
+        var json = """{"image":"https://example.com/photo.jpg|urlToMedia:/Images"}""";
+        var expectedUdi = "umb://media/abc123";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve("https://example.com/photo.jpg")).Returns(expectedUdi);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("urlToMedia:/Images")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        Assert.Equal(expectedUdi, parsed["image"]!.Value<string>());
+    }
+
+    [Fact]
+    public void Resolve_ProcessesNestedObjects()
+    {
+        var json = """{"block":{"image":"https://example.com/photo.jpg|urlToMedia","title":"Test"}}""";
+        var expectedUdi = "umb://media/abc123";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve("https://example.com/photo.jpg")).Returns(expectedUdi);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("urlToMedia")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        Assert.Equal(expectedUdi, parsed["block"]!["image"]!.Value<string>());
+        Assert.Equal("Test", parsed["block"]!["title"]!.Value<string>());
+    }
+
+    [Fact]
+    public void Resolve_ProcessesArrayStringValues()
+    {
+        var json = """{"images":["https://example.com/a.jpg|urlToMedia","https://example.com/b.jpg|urlToMedia"]}""";
+        var udiA = "umb://media/aaa";
+        var udiB = "umb://media/bbb";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve("https://example.com/a.jpg")).Returns(udiA);
+        mockResolver.Setup(r => r.Resolve("https://example.com/b.jpg")).Returns(udiB);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("urlToMedia")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+        var images = parsed["images"]!.ToArray();
+
+        Assert.Equal(udiA, images[0].Value<string>());
+        Assert.Equal(udiB, images[1].Value<string>());
+    }
+
+    [Fact]
+    public void Resolve_DoesNotResolve_WhenAliasIsObjectToJson()
+    {
+        // Guard against infinite recursion
+        var json = """{"value":"something|objectToJson"}""";
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        // Value should be unchanged since self-reference is blocked
+        Assert.Equal("something|objectToJson", parsed["value"]!.Value<string>());
+        _resolverFactoryMock.Verify(f => f.GetByAlias(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Resolve_LeavesValueUnchanged_WhenResolverReturnsEmpty()
+    {
+        var json = """{"image":"https://example.com/photo.jpg|pathToMedia"}""";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve(It.IsAny<object>())).Returns(string.Empty);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("pathToMedia")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        // Empty string result means resolution failed - the resolved empty string is written back
+        Assert.Equal(string.Empty, parsed["image"]!.Value<string>());
     }
 }
