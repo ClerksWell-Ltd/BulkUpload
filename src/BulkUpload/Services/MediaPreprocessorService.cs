@@ -567,7 +567,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                 break;
 
             case Newtonsoft.Json.Linq.JValue { Type: Newtonsoft.Json.Linq.JTokenType.String } strVal:
-                var str = strVal.Value<string>();
+                var str = strVal.Value as string;
                 if (!string.IsNullOrEmpty(str))
                     TryExtractEmbeddedMediaReference(str, mediaReferences, sourceFileName);
                 break;
