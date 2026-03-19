@@ -46,6 +46,7 @@ internal class BulkUploadComposer : IComposer
         builder.Services.AddTransient<IResolver, MediaIdToMediaUdiResolver>();
         builder.Services.AddTransient<IResolver, MediaIdsToMediaUdisResolver>();
         builder.Services.AddTransient<IResolver, UrlToMediaResolver>();
+        builder.Services.AddTransient<IResolver, UrlToMediaPickerResolver>();
         builder.Services.AddTransient<IResolver, PathToMediaResolver>();
         builder.Services.AddTransient<IResolver, ZipFileToMediaResolver>();
         builder.Services.AddTransient<IResolver, UrlToStreamResolver>();

@@ -211,7 +211,11 @@ public class ParentLookupCache : IParentLookupCache
 
     /// <summary>
     /// Resolves a content folder path like "/Blog/Articles/" to a content folder GUID.
-    /// Resolves to existing folders (does not create).
+    /// Resolves to existing content nodes (does not create).
+    ///
+    /// Handles the common Umbraco pattern where a root-level "Home" node hides from URLs,
+    /// so a path like "/blog/" may need to be found as a child of the Home node rather than
+    /// a direct child of the content root.
     /// </summary>
     private Guid? ResolveOrCreateContentFolderPath(string normalizedPath)
     {
@@ -224,9 +228,9 @@ public class ParentLookupCache : IParentLookupCache
         Guid currentParentGuid = Guid.Empty; // Root uses Guid.Empty
         var currentPath = "";
 
-        foreach (var segment in segments)
+        for (int i = 0; i < segments.Length; i++)
         {
-            var folderName = segment.Trim();
+            var folderName = segments[i].Trim();
             if (string.IsNullOrWhiteSpace(folderName))
             {
                 continue;
@@ -242,44 +246,65 @@ public class ParentLookupCache : IParentLookupCache
                 continue;
             }
 
-            // Look for existing folder with this name under current parent
-            // Convert GUID to ID for querying (GetPagedChildren doesn't support GUID in all versions)
-            int currentParentId;
-            if (currentParentGuid == Guid.Empty)
+            var found = FindContentByName(currentParentGuid, folderName);
+
+            // If not found at root level, try searching under each root-level node.
+            // This handles the common Umbraco pattern where a "Home" node sits at root
+            // and hides from URLs, so /blog/ is actually Root > Home > Blog.
+            if (found == null && currentParentGuid == Guid.Empty && i == 0)
             {
-                currentParentId = UmbracoConstants.System.Root;
-            }
-            else
-            {
-                var parentContent = _contentService.GetById(currentParentGuid);
-                if (parentContent == null)
+                var rootChildren = _contentService.GetPagedChildren(UmbracoConstants.System.Root, 0, int.MaxValue, out _);
+                foreach (var rootChild in rootChildren)
                 {
-                    _logger.LogError("Could not find content with GUID {Guid}", currentParentGuid);
-                    return null;
+                    found = FindContentByName(rootChild.Key, folderName);
+                    if (found != null)
+                    {
+                        _logger.LogDebug("Found content '{FolderName}' under root node '{RootNodeName}'", folderName, rootChild.Name);
+                        break;
+                    }
                 }
-                currentParentId = parentContent.Id;
             }
 
-            var children = _contentService.GetPagedChildren(currentParentId, 0, int.MaxValue, out _);
-            var existingFolder = children.FirstOrDefault(x =>
-                string.Equals(x.Name, folderName, StringComparison.InvariantCultureIgnoreCase));
-
-            if (existingFolder != null)
+            if (found != null)
             {
-                currentParentGuid = existingFolder.Key;
+                currentParentGuid = found.Key;
                 // Cache this sub-path
-                _contentPathCache.TryAdd(currentPath.ToLowerInvariant(), existingFolder.Key);
-                _logger.LogDebug("Found existing content folder '{FolderName}' with GUID {Guid}", folderName, existingFolder.Key);
+                _contentPathCache.TryAdd(currentPath.ToLowerInvariant(), found.Key);
+                _logger.LogDebug("Found existing content '{FolderName}' with GUID {Guid}", folderName, found.Key);
             }
             else
             {
-                // For content, we'll just log a warning and return null
-                // Content folder creation is more complex as we need to know the content type
-                _logger.LogWarning("Content folder '{FolderName}' not found and auto-creation not supported for content", folderName);
+                _logger.LogWarning("Content '{FolderName}' not found under current parent and auto-creation not supported for content", folderName);
                 return null;
             }
         }
 
         return currentParentGuid == Guid.Empty ? null : currentParentGuid;
+    }
+
+    /// <summary>
+    /// Finds a content node by name under the specified parent.
+    /// </summary>
+    private IContent? FindContentByName(Guid parentGuid, string name)
+    {
+        int parentId;
+        if (parentGuid == Guid.Empty)
+        {
+            parentId = UmbracoConstants.System.Root;
+        }
+        else
+        {
+            var parentContent = _contentService.GetById(parentGuid);
+            if (parentContent == null)
+            {
+                _logger.LogError("Could not find content with GUID {Guid}", parentGuid);
+                return null;
+            }
+            parentId = parentContent.Id;
+        }
+
+        var children = _contentService.GetPagedChildren(parentId, 0, int.MaxValue, out _);
+        return children.FirstOrDefault(x =>
+            string.Equals(x.Name, name, StringComparison.InvariantCultureIgnoreCase));
     }
 }

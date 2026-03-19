@@ -263,4 +263,61 @@ public class ObjectToJsonResolverTests
         // Empty string result means resolution failed - the resolved empty string is written back
         Assert.Equal(string.Empty, parsed["image"]!.Value<string>());
     }
+
+    [Fact]
+    public void Resolve_EmbedsJsonArrayAsStructure_WhenResolverReturnsJsonArray()
+    {
+        var json = """{"image":"https://example.com/photo.jpg|urlToMediaPicker"}""";
+        var mediaPickerJson = """[{"key":"11111111-1111-1111-1111-111111111111","mediaKey":"22222222-2222-2222-2222-222222222222"}]""";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve("https://example.com/photo.jpg")).Returns(mediaPickerJson);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("urlToMediaPicker")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        // Should be a JSON array, not a string
+        Assert.Equal(JTokenType.Array, parsed["image"]!.Type);
+        var items = (JArray)parsed["image"]!;
+        Assert.Single(items);
+        Assert.Equal("22222222-2222-2222-2222-222222222222", items[0]["mediaKey"]!.Value<string>());
+    }
+
+    [Fact]
+    public void Resolve_EmbedsJsonObjectAsStructure_WhenResolverReturnsJsonObject()
+    {
+        var json = """{"data":"test|customResolver"}""";
+        var jsonObjectResult = """{"nested":"value","count":42}""";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve("test")).Returns(jsonObjectResult);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("customResolver")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        // Should be a JSON object, not a string
+        Assert.Equal(JTokenType.Object, parsed["data"]!.Type);
+        Assert.Equal("value", parsed["data"]!["nested"]!.Value<string>());
+        Assert.Equal(42, parsed["data"]!["count"]!.Value<int>());
+    }
+
+    [Fact]
+    public void Resolve_KeepsAsString_WhenResolverReturnsInvalidJson()
+    {
+        var json = """{"value":"test|customResolver"}""";
+        var notJson = "[this is not valid json";
+
+        var mockResolver = new Mock<IResolver>();
+        mockResolver.Setup(r => r.Resolve("test")).Returns(notJson);
+        _resolverFactoryMock.Setup(f => f.GetByAlias("customResolver")).Returns(mockResolver.Object);
+
+        var result = _resolver.Resolve(json) as string;
+        var parsed = JObject.Parse(result!);
+
+        // Invalid JSON should remain as a string value
+        Assert.Equal(JTokenType.String, parsed["value"]!.Type);
+        Assert.Equal(notJson, parsed["value"]!.Value<string>());
+    }
 }
