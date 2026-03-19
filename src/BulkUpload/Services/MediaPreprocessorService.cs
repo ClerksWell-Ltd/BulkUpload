@@ -188,7 +188,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                 }
 
                 // Check if this is a media resolver
-                if (resolverAlias != "urlToMedia" && resolverAlias != "pathToMedia" && resolverAlias != "zipFileToMedia")
+                if (resolverAlias != "urlToMedia" && resolverAlias != "urlToMediaPicker" && resolverAlias != "pathToMedia" && resolverAlias != "zipFileToMedia")
                     continue;
 
                 // Extract the value
@@ -212,7 +212,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                 {
                     var refType = resolverAlias switch
                     {
-                        "urlToMedia" => MediaReferenceType.Url,
+                        "urlToMedia" or "urlToMediaPicker" => MediaReferenceType.Url,
                         "pathToMedia" => MediaReferenceType.Path,
                         "zipFileToMedia" => MediaReferenceType.ZipFile,
                         _ => MediaReferenceType.Path // Default to Path for unknown
@@ -589,7 +589,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
         var resolverAlias = resolverParts[0];
         var aliasParameter = resolverParts.Length > 1 ? resolverParts[1] : null;
 
-        if (resolverAlias != "urlToMedia" && resolverAlias != "pathToMedia" && resolverAlias != "zipFileToMedia")
+        if (resolverAlias != "urlToMedia" && resolverAlias != "urlToMediaPicker" && resolverAlias != "pathToMedia" && resolverAlias != "zipFileToMedia")
             return;
 
         if (mediaReferences.ContainsKey(mediaValue))
@@ -597,7 +597,7 @@ public class MediaPreprocessorService : IMediaPreprocessorService
 
         var refType = resolverAlias switch
         {
-            "urlToMedia" => MediaReferenceType.Url,
+            "urlToMedia" or "urlToMediaPicker" => MediaReferenceType.Url,
             "pathToMedia" => MediaReferenceType.Path,
             "zipFileToMedia" => MediaReferenceType.ZipFile,
             _ => MediaReferenceType.Path
