@@ -257,8 +257,8 @@
     color: var(--umb-text-muted);
 }
 
-/* Hidden file input */
-input[type="file"] {
+/* Hidden file input - scoped to dashboard to avoid breaking Umbraco's built-in upload */
+.bulk-upload-dashboard input[type="file"] {
     position: absolute;
     width: 1px;
     height: 1px;
