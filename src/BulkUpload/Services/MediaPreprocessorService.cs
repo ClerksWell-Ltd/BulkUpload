@@ -276,6 +276,11 @@ public class MediaPreprocessorService : IMediaPreprocessorService
             {
                 fileName = $"download_{Guid.NewGuid():N}{GetFileExtension(response.Content.Headers.ContentType?.MediaType)}";
             }
+            else if (!Path.HasExtension(fileName))
+            {
+                // URL has a filename but no extension (e.g. Unsplash URLs) - detect from Content-Type
+                fileName += GetFileExtension(response.Content.Headers.ContentType?.MediaType);
+            }
 
             // Resolve parent
             var parent = ResolveParent(mediaRef.Parent);

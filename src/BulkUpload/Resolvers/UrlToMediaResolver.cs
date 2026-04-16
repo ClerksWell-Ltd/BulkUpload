@@ -134,8 +134,8 @@ public class UrlToMediaResolver : IResolver
                 return string.Empty;
             }
 
-            // Extract filename from URL
-            var fileName = GetFileNameFromUrl(uri);
+            // Extract filename from URL, using Content-Type to detect extension if needed
+            var fileName = GetFileNameFromUrl(uri, response);
             var extension = Path.GetExtension(fileName).ToLowerInvariant();
 
             // Determine media type from extension
@@ -270,7 +270,7 @@ public class UrlToMediaResolver : IResolver
         return UmbracoConstants.System.Root;
     }
 
-    private string GetFileNameFromUrl(Uri uri)
+    private string GetFileNameFromUrl(Uri uri, HttpResponseMessage response)
     {
         var segments = uri.Segments;
         var lastSegment = segments.Length > 0 ? segments[^1] : "downloaded-file";
@@ -285,13 +285,46 @@ public class UrlToMediaResolver : IResolver
             fileName = fileName.Substring(0, queryIndex);
         }
 
-        // Ensure we have an extension
+        // If no extension, detect from Content-Type header
         if (!Path.HasExtension(fileName))
         {
-            fileName += ".jpg"; // Default to .jpg if no extension
+            var extension = GetFileExtensionFromContentType(response.Content.Headers.ContentType?.MediaType);
+            fileName += extension;
         }
 
         return fileName;
+    }
+
+    private static string GetFileExtensionFromContentType(string? contentType)
+    {
+        if (string.IsNullOrWhiteSpace(contentType))
+            return ".bin";
+
+        return contentType.ToLowerInvariant() switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            "image/bmp" => ".bmp",
+            "image/webp" => ".webp",
+            "image/svg+xml" => ".svg",
+            "video/mp4" => ".mp4",
+            "video/avi" or "video/x-msvideo" => ".avi",
+            "video/quicktime" => ".mov",
+            "video/x-ms-wmv" => ".wmv",
+            "video/webm" => ".webm",
+            "audio/mpeg" => ".mp3",
+            "audio/wav" or "audio/x-wav" => ".wav",
+            "audio/ogg" => ".ogg",
+            "audio/x-ms-wma" => ".wma",
+            "application/pdf" => ".pdf",
+            "application/msword" => ".doc",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" => ".docx",
+            "application/vnd.ms-excel" => ".xls",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" => ".xlsx",
+            "text/plain" => ".txt",
+            _ => ".bin"
+        };
     }
 
     private string DetermineMediaTypeFromExtension(string extension)
