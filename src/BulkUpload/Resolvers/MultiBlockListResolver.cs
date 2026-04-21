@@ -364,6 +364,16 @@ public class MultiBlockListResolver : IResolver
             return cachedGuid;
         }
 
+        // Check if it's a base64 data URI
+        if (DataUriParser.IsDataUri(reference))
+        {
+            var mediaGuid = CreateMediaFromDataUri(reference);
+            if (mediaGuid != Guid.Empty)
+            {
+                return mediaGuid;
+            }
+        }
+
         // Check if it's a URL
         if (Uri.TryCreate(reference, UriKind.Absolute, out var uri) &&
             (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
@@ -438,6 +448,40 @@ public class MultiBlockListResolver : IResolver
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating media from URL: {Url}", urlString);
+            return Guid.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Creates a media item from a base64 data URI.
+    /// </summary>
+    private Guid CreateMediaFromDataUri(string dataUri)
+    {
+        if (!DataUriParser.TryParse(dataUri, out var mimeType, out var fileBytes))
+        {
+            _logger.LogWarning("Malformed or unsupported data URI in block list image reference");
+            return Guid.Empty;
+        }
+
+        try
+        {
+            var fileName = DataUriParser.GenerateFileName(mimeType, fileBytes);
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            var mediaTypeAlias = DetermineMediaTypeFromExtension(extension);
+
+            var mediaGuid = CreateAndUploadMedia(fileName, fileBytes, mediaTypeAlias);
+
+            if (mediaGuid != Guid.Empty)
+            {
+                _mediaItemCache.TryAdd(dataUri, mediaGuid);
+                _logger.LogInformation("Successfully created media from data URI, GUID: {Guid}", mediaGuid);
+            }
+
+            return mediaGuid;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating media from data URI");
             return Guid.Empty;
         }
     }

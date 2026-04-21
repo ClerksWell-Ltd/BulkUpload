@@ -222,7 +222,11 @@ public class MediaPreprocessorService : IMediaPreprocessorService
                     string? fileName = null;
                     try
                     {
-                        if (refType == MediaReferenceType.Url && Uri.TryCreate(mediaValue, UriKind.Absolute, out var uri))
+                        if (refType == MediaReferenceType.Url && DataUriParser.IsDataUri(mediaValue))
+                        {
+                            fileName = null; // synthesised deterministically when the media is created
+                        }
+                        else if (refType == MediaReferenceType.Url && Uri.TryCreate(mediaValue, UriKind.Absolute, out var uri))
                         {
                             fileName = Path.GetFileName(uri.LocalPath);
                         }
@@ -252,10 +256,13 @@ public class MediaPreprocessorService : IMediaPreprocessorService
     }
 
     /// <summary>
-    /// Creates a media item from a URL.
+    /// Creates a media item from a URL or a base64 data URI.
     /// </summary>
     private Guid CreateMediaFromUrl(MediaReference mediaRef)
     {
+        if (DataUriParser.IsDataUri(mediaRef.OriginalValue))
+            return CreateMediaFromDataUri(mediaRef);
+
         if (!Uri.TryCreate(mediaRef.OriginalValue, UriKind.Absolute, out var uri))
         {
             _logger.LogWarning("Invalid URL: {Url}", mediaRef.OriginalValue);
@@ -304,6 +311,40 @@ public class MediaPreprocessorService : IMediaPreprocessorService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error downloading media from URL: {Url}", mediaRef.OriginalValue);
+            return Guid.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Creates a media item from a base64 data URI.
+    /// </summary>
+    private Guid CreateMediaFromDataUri(MediaReference mediaRef)
+    {
+        if (!DataUriParser.TryParse(mediaRef.OriginalValue, out var mimeType, out var fileBytes))
+        {
+            _logger.LogWarning("Malformed or unsupported data URI");
+            return Guid.Empty;
+        }
+
+        try
+        {
+            var fileName = DataUriParser.GenerateFileName(mimeType, fileBytes);
+            var parent = ResolveParent(mediaRef.Parent);
+            var extension = Path.GetExtension(fileName).TrimStart('.');
+            var mediaTypeAlias = GetMediaTypeAlias(extension);
+
+            var mediaItem = CreateMediaItem(fileName, parent, mediaTypeAlias);
+            if (mediaItem == null)
+                return Guid.Empty;
+
+            UploadMediaFile(mediaItem, fileName, fileBytes);
+            _mediaService.Save(mediaItem);
+
+            return mediaItem.Key;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating media from data URI");
             return Guid.Empty;
         }
     }
@@ -611,7 +652,9 @@ public class MediaPreprocessorService : IMediaPreprocessorService
         string? fileName = null;
         try
         {
-            if (refType == MediaReferenceType.Url && Uri.TryCreate(mediaValue, UriKind.Absolute, out var uri))
+            if (refType == MediaReferenceType.Url && DataUriParser.IsDataUri(mediaValue))
+                fileName = null; // synthesised deterministically when the media is created
+            else if (refType == MediaReferenceType.Url && Uri.TryCreate(mediaValue, UriKind.Absolute, out var uri))
                 fileName = Path.GetFileName(uri.LocalPath);
             else
                 fileName = Path.GetFileName(mediaValue);

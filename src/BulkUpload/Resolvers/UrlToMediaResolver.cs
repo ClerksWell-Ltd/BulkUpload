@@ -15,8 +15,8 @@ using UmbracoConstants = Umbraco.Cms.Core.Constants;
 namespace BulkUpload.Resolvers;
 
 /// <summary>
-/// Resolver that downloads media from a URL and uploads it to Umbraco,
-/// returning the UDI of the created media item.
+/// Resolver that downloads media from a URL (or decodes a base64 data URI) and
+/// uploads it to Umbraco, returning the UDI of the created media item.
 ///
 /// Supports flexible parent folder specification:
 /// - Alias parameter: imageUrl|urlToMedia:1234 or imageUrl|urlToMedia:/Folder/Path/
@@ -27,6 +27,11 @@ namespace BulkUpload.Resolvers;
 /// - Integer ID: 1234
 /// - GUID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
 /// - Path: /Blog/Header Images/ (creates folders if they don't exist)
+///
+/// Data URI support:
+/// - Values starting with "data:" followed by a base64-encoded image payload are
+///   decoded and uploaded without a network request, e.g.
+///   data:image/png;base64,iVBORw0KGgo...|urlToMedia[:parentParameter]
 /// </summary>
 public class UrlToMediaResolver : IResolver
 {
@@ -101,6 +106,9 @@ public class UrlToMediaResolver : IResolver
             return cachedUdi.ToString();
         }
 
+        if (DataUriParser.IsDataUri(urlString))
+            return ResolveDataUri(urlString, valueParameter, aliasParameter);
+
         if (!Uri.TryCreate(urlString, UriKind.Absolute, out var uri))
         {
             _logger.LogWarning("UrlToMediaResolver received invalid URL: {Url}", urlString);
@@ -136,82 +144,95 @@ public class UrlToMediaResolver : IResolver
 
             // Extract filename from URL, using Content-Type to detect extension if needed
             var fileName = GetFileNameFromUrl(uri, response);
-            var extension = Path.GetExtension(fileName).ToLowerInvariant();
 
-            // Determine media type from extension
-            var mediaTypeAlias = DetermineMediaTypeFromExtension(extension);
-
-            // Verify media type exists
-            var mediaType = _mediaTypeService.Get(mediaTypeAlias);
-            if (mediaType == null)
-            {
-                _logger.LogWarning("Media type '{MediaType}' not found", mediaTypeAlias);
-                return string.Empty;
-            }
-
-            // Create media item in the determined parent folder using GUID or int
-            IMedia mediaItem;
-            if (parent is Guid guid)
-            {
-                mediaItem = guid == Guid.Empty
-                    ? _mediaService.CreateMedia(fileName, UmbracoConstants.System.Root, mediaTypeAlias)
-                    : _mediaService.CreateMedia(fileName, guid, mediaTypeAlias);
-            }
-            else if (parent is int id)
-            {
-                mediaItem = _mediaService.CreateMedia(fileName, id, mediaTypeAlias);
-            }
-            else
-            {
-                _logger.LogWarning("Invalid parent type resolved for URL: {Url}", urlString);
-                return string.Empty;
-            }
-
-            // Upload the file
-            using (var fileStream = new MemoryStream(fileBytes))
-            {
-                // Get the property type for umbracoFile
-                var propertyType = mediaItem.Properties["umbracoFile"]?.PropertyType;
-                if (propertyType == null)
-                {
-                    _logger.LogWarning("Media type does not have umbracoFile property");
-                    return string.Empty;
-                }
-
-                // Get the media path
-                var mediaPath = _mediaFileManager.GetMediaPath(fileName, propertyType.Key, mediaItem.Key);
-
-                // Save the file to the media file system
-                _mediaFileManager.FileSystem.AddFile(mediaPath, fileStream, true);
-
-                // Set the file path on the media item
-                mediaItem.SetValue("umbracoFile", mediaPath);
-            }
-
-            // Save the media item
-            var saveResult = _mediaService.Save(mediaItem);
-            if (!saveResult.Success)
-            {
-                _logger.LogWarning("Failed to save media item for URL: {Url}", urlString);
-                return string.Empty;
-            }
-
-            // Cache the created media item to avoid duplicates in subsequent imports
-            _mediaItemCache.TryAdd(urlString, mediaItem.Key);
-
-            // Return the UDI
-            var udi = Udi.Create(UmbracoConstants.UdiEntityType.Media, mediaItem.Key);
-            var udiString = udi.ToString();
-
-            _logger.LogInformation("Successfully created media from URL: {Url}, Parent: {Parent}, UDI: {Udi}",
-                urlString, parent, udiString);
-            return udiString;
+            return CreateAndSaveMedia(fileBytes, fileName, parent, urlString);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error resolving URL to media: {Url}", urlString);
             return string.Empty;
         }
+    }
+
+    private string ResolveDataUri(string dataUri, string? valueParameter, string? aliasParameter)
+    {
+        if (!DataUriParser.TryParse(dataUri, out var mimeType, out var fileBytes))
+        {
+            _logger.LogWarning("UrlToMediaResolver received malformed or unsupported data URI");
+            return string.Empty;
+        }
+
+        try
+        {
+            var parent = ResolveParent(valueParameter, aliasParameter);
+            var fileName = DataUriParser.GenerateFileName(mimeType, fileBytes);
+            return CreateAndSaveMedia(fileBytes, fileName, parent, dataUri);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resolving data URI to media");
+            return string.Empty;
+        }
+    }
+
+    private string CreateAndSaveMedia(byte[] fileBytes, string fileName, object parent, string cacheKey)
+    {
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var mediaTypeAlias = DetermineMediaTypeFromExtension(extension);
+
+        var mediaType = _mediaTypeService.Get(mediaTypeAlias);
+        if (mediaType == null)
+        {
+            _logger.LogWarning("Media type '{MediaType}' not found", mediaTypeAlias);
+            return string.Empty;
+        }
+
+        IMedia mediaItem;
+        if (parent is Guid guid)
+        {
+            mediaItem = guid == Guid.Empty
+                ? _mediaService.CreateMedia(fileName, UmbracoConstants.System.Root, mediaTypeAlias)
+                : _mediaService.CreateMedia(fileName, guid, mediaTypeAlias);
+        }
+        else if (parent is int id)
+        {
+            mediaItem = _mediaService.CreateMedia(fileName, id, mediaTypeAlias);
+        }
+        else
+        {
+            _logger.LogWarning("Invalid parent type resolved for media: {FileName}", fileName);
+            return string.Empty;
+        }
+
+        using (var fileStream = new MemoryStream(fileBytes))
+        {
+            var propertyType = mediaItem.Properties["umbracoFile"]?.PropertyType;
+            if (propertyType == null)
+            {
+                _logger.LogWarning("Media type does not have umbracoFile property");
+                return string.Empty;
+            }
+
+            var mediaPath = _mediaFileManager.GetMediaPath(fileName, propertyType.Key, mediaItem.Key);
+            _mediaFileManager.FileSystem.AddFile(mediaPath, fileStream, true);
+            mediaItem.SetValue("umbracoFile", mediaPath);
+        }
+
+        var saveResult = _mediaService.Save(mediaItem);
+        if (!saveResult.Success)
+        {
+            _logger.LogWarning("Failed to save media item for: {FileName}", fileName);
+            return string.Empty;
+        }
+
+        _mediaItemCache.TryAdd(cacheKey, mediaItem.Key);
+
+        var udi = Udi.Create(UmbracoConstants.UdiEntityType.Media, mediaItem.Key);
+        var udiString = udi.ToString();
+
+        _logger.LogInformation("Successfully created media: {FileName}, Parent: {Parent}, UDI: {Udi}",
+            fileName, parent, udiString);
+        return udiString;
     }
 
     /// <summary>
