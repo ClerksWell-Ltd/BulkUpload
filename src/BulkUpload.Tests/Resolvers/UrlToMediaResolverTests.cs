@@ -600,4 +600,74 @@ public class UrlToMediaResolverTests
     }
 
     #endregion
+
+    #region Data URI Tests
+
+    // 1x1 transparent PNG
+    private const string PngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+    [Fact]
+    public void Resolve_DoesNotCallHttpClient_ForDataUri()
+    {
+        var dataUri = $"data:image/png;base64,{PngBase64}";
+
+        _resolver.Resolve(dataUri);
+
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsEmptyString_ForMalformedDataUri()
+    {
+        var dataUri = "data:image/png;base64,@@@not-base64@@@";
+
+        var result = _resolver.Resolve(dataUri);
+
+        Assert.Equal(string.Empty, result);
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsEmptyString_WhenDataUriMediaTypeIsMissing()
+    {
+        var dataUri = $"data:image/png;base64,{PngBase64}";
+        // IMediaTypeService.Get("Image") defaults to returning null with an unset mock,
+        // which exercises the "Media type not found" fall-through.
+
+        var result = _resolver.Resolve(dataUri);
+
+        Assert.Equal(string.Empty, result);
+        _mockMediaTypeService.Verify(x => x.Get("Image"), Times.Once);
+    }
+
+    [Fact]
+    public void Resolve_ReturnsCachedUdi_ForDuplicateDataUri()
+    {
+        var dataUri = $"data:image/png;base64,{PngBase64}";
+        var cachedGuid = Guid.NewGuid();
+        _mockMediaItemCache
+            .Setup(x => x.TryGetGuid(dataUri, out cachedGuid))
+            .Returns(true);
+
+        var result = _resolver.Resolve(dataUri);
+
+        Assert.Contains(cachedGuid.ToString("N"), result.ToString());
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Never);
+        _mockMediaTypeService.Verify(x => x.Get(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public void Resolve_HandlesDataUriWithParentParameter()
+    {
+        // Data URI followed by |parent parameter (value-level parameter)
+        var dataUri = $"data:image/png;base64,{PngBase64}|1234";
+
+        var result = _resolver.Resolve(dataUri);
+
+        // Parent parameter should be extracted; HTTP client should still not be called
+        Assert.Equal(string.Empty, result);
+        _mockHttpClientFactory.Verify(x => x.CreateClient(It.IsAny<string>()), Times.Never);
+    }
+
+    #endregion
 }
