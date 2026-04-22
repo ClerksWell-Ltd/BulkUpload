@@ -215,7 +215,12 @@ public class UrlToMediaResolver : IResolver
 
             var mediaPath = _mediaFileManager.GetMediaPath(fileName, propertyType.Key, mediaItem.Key);
             _mediaFileManager.FileSystem.AddFile(mediaPath, fileStream, true);
-            mediaItem.SetValue("umbracoFile", mediaPath);
+
+            // Store the URL-form path ("/media/abc/logo.jpg") on umbracoFile. GetMediaPath
+            // returns a filesystem-relative path; ImageCropper + v17 MediaPicker3 need the
+            // /media/-prefixed URL to build link/preview.
+            var umbracoFileValue = _mediaFileManager.FileSystem.GetUrl(mediaPath);
+            mediaItem.SetValue("umbracoFile", umbracoFileValue);
         }
 
         var saveResult = _mediaService.Save(mediaItem);

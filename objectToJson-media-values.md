@@ -11,12 +11,20 @@ When a CSV column uses the `objectToJson` resolver, any string value within the 
 
 ## Supported resolvers
 
-| Resolver | Input | Parent folder support |
-|---|---|---|
-| `urlToMedia` | Absolute HTTP/HTTPS URL | Yes |
-| `pathToMedia` | Local or network file path | Yes |
-| `zipFileToMedia` | Filename from the uploaded ZIP | Yes |
-| `guidToMediaUdi` | Existing media item GUID | No |
+| Resolver | Input | Output shape | Parent folder support |
+|---|---|---|---|
+| `urlToMedia` | Absolute HTTP/HTTPS URL | Bare media UDI | Yes |
+| `urlToMediaPicker` | Absolute HTTP/HTTPS URL | Media Picker 3 array | Yes |
+| `pathToMedia` | Local or network file path | Bare media UDI | Yes |
+| `pathToMediaPicker` | Local or network file path | Media Picker 3 array | Yes |
+| `zipFileToMedia` | Filename from the uploaded ZIP | Bare media UDI | Yes |
+| `zipFileToMediaPicker` | Filename from the uploaded ZIP | Media Picker 3 array | Yes |
+| `guidToMediaUdi` | Existing media item GUID | Bare media UDI | No |
+
+### Which variant to use
+
+- Use the **`…ToMedia`** variants when the target property stores a plain media UDI string (e.g. a custom property or the legacy media picker).
+- Use the **`…ToMediaPicker`** variants when the target property is `Umbraco.MediaPicker3` (the default in Umbraco 13+). This includes media pickers nested inside block list / block grid JSON. A bare UDI string is rendered as an empty picker in the backoffice even though the underlying media item is created correctly.
 
 ## Parent folder formats (optional)
 
@@ -36,12 +44,14 @@ When a CSV column uses the `objectToJson` resolver, any string value within the 
 ```json
 { "image": "/mnt/assets/photo.jpg|pathToMedia" }
 { "image": "/mnt/assets/photo.jpg|pathToMedia:/Blog/Images" }
+{ "image": "/mnt/assets/photo.jpg|pathToMediaPicker:/Blog/Images" }
 ```
 
 **File from uploaded ZIP:**
 ```json
 { "image": "photo.jpg|zipFileToMedia" }
 { "image": "subfolder/photo.jpg|zipFileToMedia:/Blog/Images" }
+{ "image": "photo.jpg|zipFileToMediaPicker" }
 ```
 
 **Existing media by GUID:**

@@ -265,7 +265,7 @@ public class ObjectToJsonResolverTests
     }
 
     [Fact]
-    public void Resolve_EmbedsJsonArrayAsStructure_WhenResolverReturnsJsonArray()
+    public void Resolve_KeepsJsonArrayAsString_WhenResolverReturnsJsonArray()
     {
         var json = """{"image":"https://example.com/photo.jpg|urlToMediaPicker"}""";
         var mediaPickerJson = """[{"key":"11111111-1111-1111-1111-111111111111","mediaKey":"22222222-2222-2222-2222-222222222222"}]""";
@@ -277,15 +277,14 @@ public class ObjectToJsonResolverTests
         var result = _resolver.Resolve(json) as string;
         var parsed = JObject.Parse(result!);
 
-        // Should be a JSON array, not a string
-        Assert.Equal(JTokenType.Array, parsed["image"]!.Type);
-        var items = (JArray)parsed["image"]!;
-        Assert.Single(items);
-        Assert.Equal("22222222-2222-2222-2222-222222222222", items[0]["mediaKey"]!.Value<string>());
+        // Resolver string results are embedded as-is (escaped JSON string), not parsed
+        // into nested arrays — v17 block list `values[].value` expects the stringified form.
+        Assert.Equal(JTokenType.String, parsed["image"]!.Type);
+        Assert.Equal(mediaPickerJson, parsed["image"]!.Value<string>());
     }
 
     [Fact]
-    public void Resolve_EmbedsJsonObjectAsStructure_WhenResolverReturnsJsonObject()
+    public void Resolve_KeepsJsonObjectAsString_WhenResolverReturnsJsonObject()
     {
         var json = """{"data":"test|customResolver"}""";
         var jsonObjectResult = """{"nested":"value","count":42}""";
@@ -297,10 +296,9 @@ public class ObjectToJsonResolverTests
         var result = _resolver.Resolve(json) as string;
         var parsed = JObject.Parse(result!);
 
-        // Should be a JSON object, not a string
-        Assert.Equal(JTokenType.Object, parsed["data"]!.Type);
-        Assert.Equal("value", parsed["data"]!["nested"]!.Value<string>());
-        Assert.Equal(42, parsed["data"]!["count"]!.Value<int>());
+        // Resolver string results are embedded as-is, not parsed as nested objects.
+        Assert.Equal(JTokenType.String, parsed["data"]!.Type);
+        Assert.Equal(jsonObjectResult, parsed["data"]!.Value<string>());
     }
 
     [Fact]

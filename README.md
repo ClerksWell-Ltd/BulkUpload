@@ -118,6 +118,18 @@ parent,docTypeAlias,name,title,heroImage|zipFileToMedia,publishDate|dateTime
 - **CSV only** - For content without media or using URL/path media references
 - **ZIP file** - Package CSV + media files together
 
+**Media reference resolvers:**
+
+When the target property uses `Umbraco.MediaPicker3` (the default in Umbraco 13+), use the picker variants so the backoffice renders the image. A bare media UDI is stored, but MediaPicker3 expects a JSON array.
+
+```csv
+heroImage|urlToMediaPicker:/Blog/Headers/
+heroImage|pathToMediaPicker:/Blog/Headers/
+heroImage|zipFileToMediaPicker:/Blog/Headers/
+```
+
+Use the non-picker variants (`urlToMedia`, `pathToMedia`, `zipFileToMedia`) only when the target column stores a plain media UDI string.
+
 See the [Package README](.github/README.md#content-import) for detailed instructions.
 
 ### Update Mode
