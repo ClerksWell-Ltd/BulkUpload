@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace BulkUpload.Resolvers;
 
 /// <summary>
@@ -18,7 +16,6 @@ namespace BulkUpload.Resolvers;
 /// </summary>
 public class UrlToMediaPickerResolver : IResolver
 {
-    private const string MediaUdiPrefix = "umb://media/";
     private readonly UrlToMediaResolver _urlToMediaResolver;
 
     public UrlToMediaPickerResolver(UrlToMediaResolver urlToMediaResolver)
@@ -31,20 +28,6 @@ public class UrlToMediaPickerResolver : IResolver
     public object Resolve(object value)
     {
         var result = _urlToMediaResolver.Resolve(value);
-
-        if (result is string udiStr && udiStr.StartsWith(MediaUdiPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            var guidStr = udiStr[MediaUdiPrefix.Length..];
-            if (Guid.TryParse(guidStr, out var mediaGuid))
-            {
-                var pickerItems = new[]
-                {
-                    new { key = Guid.NewGuid(), mediaKey = mediaGuid }
-                };
-                return JsonConvert.SerializeObject(pickerItems);
-            }
-        }
-
-        return result;
+        return MediaUdiHelper.WrapAsPickerArray(result) ?? result;
     }
 }

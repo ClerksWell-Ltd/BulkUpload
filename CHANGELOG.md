@@ -12,6 +12,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.6] - 2026-04-22
+
+### Added
+- `pathToMediaPicker` resolver: emits Media Picker 3 array format for local or network file paths. Previously only `urlToMediaPicker` supported this shape, forcing callers to base64-encode file bytes as data URIs or host files on HTTP.
+- `zipFileToMediaPicker` resolver: same as `pathToMediaPicker` but for files bundled in the upload ZIP.
+
+### Fixed
+- **Umbraco 17 media rendering**: media items created by `urlToMedia`, `urlToMediaPicker`, `pathToMedia`, `pathToMediaPicker`, `zipFileToMediaPicker`, and `multiBlockList` (image/carousel/iconlink) now store the URL-form path (`/media/abc/file.jpg`) on `umbracoFile` instead of the filesystem-relative path (`abc/file.jpg`). Previously the Umbraco 17 MediaPicker3 rendered as "no link" because the ImageCropper could not build an image URL from the stored value.
+- **Umbraco 17 MediaPicker3 inside block list**: `urlToMediaPicker`, `pathToMediaPicker`, and `zipFileToMediaPicker` now emit the full picker item shape — `mediaTypeAlias`, `crops`, `focalPoint` are required for the v17 picker to render a link.
+- **`objectToJson` resolver wrapping**: resolver string results are no longer auto-parsed into nested JSON arrays/objects. The v17 block list `values[].value` format stores MediaPicker3 values as escaped JSON strings, not as native arrays.
+
+### Changed
+- Shared the UDI → Media Picker 3 array conversion between the URL, path, and zip picker resolvers via a new internal `MediaUdiHelper`. No behavioural change to `urlToMediaPicker` output shape; only the extra fields now emitted.
+
 ## [2.0.0] - 2026-03-04
 
 ### 🎉 Major Release: Multi-Targeting Architecture

@@ -556,7 +556,11 @@ public class MultiBlockListResolver : IResolver
 
                 var mediaPath = _mediaFileManager.GetMediaPath(fileName, propertyType.Key, mediaItem.Key);
                 _mediaFileManager.FileSystem.AddFile(mediaPath, fileStream, true);
-                mediaItem.SetValue("umbracoFile", mediaPath);
+
+                // Store the URL-form path ("/media/abc/logo.jpg") on umbracoFile so the
+                // v17 ImageCropper / MediaPicker3 can build the preview link.
+                var umbracoFileValue = _mediaFileManager.FileSystem.GetUrl(mediaPath);
+                mediaItem.SetValue("umbracoFile", umbracoFileValue);
             }
 
             // Save the media item

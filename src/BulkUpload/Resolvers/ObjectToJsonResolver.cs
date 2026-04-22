@@ -132,19 +132,11 @@ public class ObjectToJsonResolver : IResolver
             var result = resolver.Resolve(rawValue);
             if (result is string resultStr)
             {
-                // If the result is a JSON array or object, embed as structured JSON
-                // so that resolvers returning e.g. Media Picker 3 format are stored
-                // as proper JSON structures rather than escaped strings.
-                if (!string.IsNullOrEmpty(resultStr))
-                {
-                    var trimmed = resultStr.TrimStart();
-                    if (trimmed.Length > 0 && (trimmed[0] == '[' || trimmed[0] == '{'))
-                    {
-                        try { return JToken.Parse(resultStr); }
-                        catch (JsonException) { /* Not valid JSON, fall through to JValue */ }
-                    }
-                }
-
+                // Always embed resolver string results as-is (do not auto-parse JSON
+                // arrays/objects into nested JSON structures). The v17 block list
+                // `values[].value` format and the legacy block-level flat format
+                // both expect MediaPicker3 values stored as escaped JSON strings,
+                // not as nested arrays — nesting them breaks MediaPicker3 rendering.
                 return new JValue(resultStr);
             }
             if (result != null)
