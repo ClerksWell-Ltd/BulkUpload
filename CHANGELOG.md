@@ -12,6 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-04-24
+
+### Security
+- **Umbraco 17 (net10.0): require backoffice authentication on import endpoints.** In 2.0.0–2.0.6, `BulkUploadController` and `MediaImportController` inherited `ControllerBase` with no `[Authorize]` attribute and were routed at `/api/v1/content/...` and `/api/v1/media/...` — outside Umbraco's management-API path. That placement meant the endpoints were reachable without a backoffice session AND couldn't be protected by the standard Umbraco auth policies, because OpenIddict only validates tokens for paths under `/umbraco/`. The controllers are now routed via `[VersionedApiBackOfficeRoute]` under `/umbraco/management/api/v1/bulk-upload/...` and require the `SectionAccessContent` / `SectionAccessMedia` policies. Umbraco 13 (net8.0) was never affected — those builds inherit `UmbracoAuthorizedApiController`.
+
+### Changed (Breaking — Umbraco 17 only)
+- **API endpoint URLs moved under `/umbraco/management/api/v1/bulk-upload/...`.** This was required to plug the authorization gap above. If you call these endpoints directly from external scripts, CI jobs, or integrations, update your URLs:
+  - `POST /api/v1/content/importall` → `POST /umbraco/management/api/v1/bulk-upload/content/importall`
+  - `POST /api/v1/content/exportresults` → `POST /umbraco/management/api/v1/bulk-upload/content/exportresults`
+  - `POST /api/v1/content/exportmediapreprocessingresults` → `POST /umbraco/management/api/v1/bulk-upload/content/exportmediapreprocessingresults`
+  - `POST /api/v1/media/importmedia` → `POST /umbraco/management/api/v1/bulk-upload/media/importmedia`
+  - `POST /api/v1/media/importmediafromzip` → `POST /umbraco/management/api/v1/bulk-upload/media/importmediafromzip`
+  - `POST /api/v1/media/exportresults` → `POST /umbraco/management/api/v1/bulk-upload/media/exportresults`
+
+  External callers must now include a valid backoffice bearer token (`Authorization: Bearer <token>`) obtained via the standard Umbraco management-API OAuth2 authorization_code + PKCE flow. The bundled backoffice dashboard has been updated automatically.
+
 ## [2.0.6] - 2026-04-22
 
 ### Added

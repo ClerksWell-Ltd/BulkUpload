@@ -70,7 +70,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.post<ImportResultResponse>(
-        '/api/v1/content/importall',
+        '/umbraco/management/api/v1/bulk-upload/content/importall',
         file
       );
       return response;
@@ -91,7 +91,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.post<ImportResultResponse>(
-        '/api/v1/media/importmedia',
+        '/umbraco/management/api/v1/bulk-upload/media/importmedia',
         file
       );
       return response;
@@ -113,7 +113,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.post<ImportResultResponse>(
-        '/api/v1/media/importmediafromzip',
+        '/umbraco/management/api/v1/bulk-upload/media/importmediafromzip',
         file
       );
       return response;
@@ -134,7 +134,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.postForBlob(
-        '/api/v1/content/exportresults',
+        '/umbraco/management/api/v1/bulk-upload/content/exportresults',
         results
       );
       return response;
@@ -155,7 +155,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.postForBlob(
-        '/api/v1/media/exportresults',
+        '/umbraco/management/api/v1/bulk-upload/media/exportresults',
         results
       );
       return response;
@@ -176,7 +176,7 @@ export class BulkUploadApiClient {
 
     try {
       const response = await this.postForBlob(
-        '/api/v1/content/exportmediapreprocessingresults',
+        '/umbraco/management/api/v1/bulk-upload/content/exportmediapreprocessingresults',
         results
       );
       return response;
@@ -251,13 +251,16 @@ export class BulkUploadApiClient {
     // Get base URL and build full URL
     const baseUrl = apiContext.getBaseUrl();
     const fullUrl = baseUrl ? `${baseUrl}${url}` : url;
-    const credentials = apiContext.getCredentials();
 
+    // The Umbraco 17 backoffice stores the real access token in an HTTP-only cookie
+    // (__Host-umbAccessToken) and the Authorization header carries a '[redacted]' sentinel.
+    // OpenIddict's HideBackOfficeTokensHandler swaps the sentinel for the cookie value on the server,
+    // so the cookie MUST be sent with the request. Force credentials:'include' to guarantee that.
     const response = await fetch(fullUrl, {
       method: 'POST',
       body,
       headers,
-      credentials
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -288,13 +291,12 @@ export class BulkUploadApiClient {
     // Get base URL and build full URL
     const baseUrl = apiContext.getBaseUrl();
     const fullUrl = baseUrl ? `${baseUrl}${url}` : url;
-    const credentials = apiContext.getCredentials();
 
     const response = await fetch(fullUrl, {
       method: 'POST',
       body: JSON.stringify(data),
       headers,
-      credentials
+      credentials: 'include'
     });
 
     if (!response.ok) {

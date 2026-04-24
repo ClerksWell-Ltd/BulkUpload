@@ -19,7 +19,10 @@ using Umbraco.Cms.Core.Web;
 using Umbraco.Cms.Web.BackOffice.Controllers;
 
 #else
+using Microsoft.AspNetCore.Authorization;
 using Umbraco.Cms.Api.Common.Attributes;
+using Umbraco.Cms.Api.Management.Routing;
+using Umbraco.Cms.Web.Common.Authorization;
 using Asp.Versioning;
 #endif
 using BulkUpload.Models;
@@ -35,11 +38,12 @@ public class BulkUploadController : UmbracoAuthorizedApiController
 /// BulkUpload API for importing content from CSV/ZIP files into Umbraco CMS.
 /// Supports single and multi-CSV imports, media deduplication, legacy CMS migration, and update mode.
 /// </summary>
-[Route("api/v{version:apiVersion}/content")]
+[VersionedApiBackOfficeRoute("bulk-upload/content")]
 [ApiVersion("1.0")]
 [ApiExplorerSettings(GroupName = "Content")]
 [MapToApi("bulk-upload")]
 [ApiController]
+[Authorize(Policy = AuthorizationPolicies.SectionAccessContent)]
 public class BulkUploadController : ControllerBase
 #endif
 {

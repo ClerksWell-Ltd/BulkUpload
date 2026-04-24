@@ -13,7 +13,7 @@
     <PackageTags>umbraco;umbraco-marketplace;umbraco13;umbraco17</PackageTags>
     <RootNamespace>BulkUpload</RootNamespace>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Version>2.0.6</Version>
+    <Version>2.1.0</Version>
     <Authors>ClerksWell,Paul Seal</Authors>
     <Copyright>$([System.DateTime]::UtcNow.ToString(`yyyy`)) © Paul Seal</Copyright>
     <PackageProjectUrl>https://github.com/ClerksWell-Ltd/BulkUpload</PackageProjectUrl>
@@ -81,6 +81,7 @@
   <!-- Umbraco 17 dependencies -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Umbraco.Cms.Api.Common" Version="17.1.0" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="17.1.0" />
     <PackageReference Include="Umbraco.Cms.Web.Website" Version="17.1.0" />
     <!-- Swashbuckle and OpenAPI for Swagger documentation -->
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.0.1" />
