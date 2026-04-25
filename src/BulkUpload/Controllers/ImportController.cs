@@ -33,11 +33,11 @@ namespace BulkUpload.Controllers;
 #if NET8_0
 public class BulkUploadController : UmbracoAuthorizedApiController
 #else
-[Authorize(Policy = AuthorizationPolicies.SectionAccessContent)]
 /// <summary>
 /// BulkUpload API for importing content from CSV/ZIP files into Umbraco CMS.
 /// Supports single and multi-CSV imports, media deduplication, legacy CMS migration, and update mode.
 /// </summary>
+[Authorize(Policy = AuthorizationPolicies.SectionAccessContent)]
 [Route("api/v{version:apiVersion}/content")]
 [ApiVersion("1.0")]
 [ApiExplorerSettings(GroupName = "Content")]
