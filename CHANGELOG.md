@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.7] - 2026-04-25
 
 ### Security
-- **Unauthenticated API access on .NET 10+**: `BulkUploadController` and `MediaImportController` now require back-office authentication on Umbraco 17 (net10.0). On net8.0 (Umbraco 13) both controllers already inherited `UmbracoAuthorizedApiController` and were unaffected. On net10.0 the controllers inherit `ControllerBase` and previously had no `[Authorize]` attribute, meaning all import and export endpoints were publicly accessible without logging in. `[Authorize(Policy = AuthorizationPolicies.SectionAccessContent)]` has been added to `BulkUploadController` and `[Authorize(Policy = AuthorizationPolicies.SectionAccessMedia)]` to `MediaImportController`. Thanks to the external security researcher who reported this responsibly.
+- **Unauthenticated API access on .NET 10+**: `BulkUploadController` and `MediaImportController` now require back-office authentication on Umbraco 17 (net10.0). On net8.0 (Umbraco 13) both controllers already inherited `UmbracoAuthorizedApiController` and were unaffected. On net10.0 the controllers inherit `ControllerBase` and previously had no `[Authorize]` attribute, meaning all import and export endpoints were publicly accessible without logging in. `[Authorize(Policy = AuthorizationPolicies.SectionAccessContent)]` has been added to `BulkUploadController` and `[Authorize(Policy = AuthorizationPolicies.SectionAccessMedia)]` to `MediaImportController`. Thanks to [@stvnhrlnd](https://github.com/stvnhrlnd) for reporting this responsibly.
 
 ## [2.0.6] - 2026-04-22
 
