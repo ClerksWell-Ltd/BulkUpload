@@ -1,15 +1,13 @@
 /**
  * Bulk Upload for Umbraco 17
- * Entry point for extension registration
+ * Entry point for API auth wiring. Section + dashboard are declared in umbraco-package.json.
  */
 
-import { manifests } from './manifests.js';
 import { UmbEntryPointOnInit } from '@umbraco-cms/backoffice/extension-api';
 import { UMB_AUTH_CONTEXT } from '@umbraco-cms/backoffice/auth';
 import { apiContext } from './api/api-context.js';
 
-export const onInit: UmbEntryPointOnInit = (host, extensionRegistry) => {
-  // Set up API authentication context
+export const onInit: UmbEntryPointOnInit = (host) => {
   host.consumeContext(UMB_AUTH_CONTEXT, async (authContext) => {
     if (!authContext) return;
 
@@ -21,9 +19,6 @@ export const onInit: UmbEntryPointOnInit = (host, extensionRegistry) => {
       credentials: config.credentials,
     });
   });
-
-  // Register manifests
-  extensionRegistry.registerMany(manifests);
 };
 
 export * from './components/bulk-upload-dashboard.element.js';
