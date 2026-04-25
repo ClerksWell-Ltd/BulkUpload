@@ -13,7 +13,9 @@ using Microsoft.Extensions.Logging;
 using Umbraco.Cms.Web.BackOffice.Controllers;
 
 #else
+using Microsoft.AspNetCore.Authorization;
 using Umbraco.Cms.Api.Common.Attributes;
+using Umbraco.Cms.Web.Common.Authorization;
 using Asp.Versioning;
 #endif
 using BulkUpload.Models;
@@ -24,6 +26,7 @@ namespace BulkUpload.Controllers;
 #if NET8_0
 public class MediaImportController : UmbracoAuthorizedApiController
 #else
+[Authorize(Policy = AuthorizationPolicies.SectionAccessMedia)]
 /// <summary>
 /// Media Import API for importing media files from CSV/ZIP files, URLs, or server file paths into Umbraco CMS.
 /// Supports auto-folder creation, media deduplication, and update mode for property-only updates.
