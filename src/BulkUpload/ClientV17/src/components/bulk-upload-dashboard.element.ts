@@ -4,7 +4,8 @@
  * Single unified upload field for all content and media scenarios
  */
 
-import { LitElement, html, css, nothing } from 'lit';
+import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element';
+import { html, css, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { BulkUploadApiClient } from '../api/bulk-upload-api';
 import { BulkUploadService, type BulkUploadState, type Notification } from '../services/bulk-upload.service';
@@ -13,7 +14,7 @@ import { downloadResponseFile } from '../utils/result.utils';
 import type { ImportResultResponse, MediaPreprocessingResult } from '../api/bulk-upload-api';
 
 @customElement('bulk-upload-dashboard')
-export class BulkUploadDashboardElement extends LitElement {
+export class BulkUploadDashboardElement extends UmbLitElement {
   @state() private dashboardState: BulkUploadState;
   @state() private isDragOver = false;
   private service: BulkUploadService;
