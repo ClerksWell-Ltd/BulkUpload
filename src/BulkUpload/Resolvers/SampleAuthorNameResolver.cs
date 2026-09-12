@@ -3,6 +3,7 @@ using Umbraco.Cms.Core.Web;
 using Umbraco.Extensions;
 #if !NET8_0
 using Umbraco.Cms.Core.PublishedCache;
+using Umbraco.Cms.Core.Services.Navigation;
 #endif
 
 namespace BulkUpload.Resolvers;
@@ -11,12 +12,17 @@ public class SampleAuthorNameResolver : IResolver
 {
     private readonly IUmbracoContextFactory _contextFactory;
 #if !NET8_0
-    private readonly IPublishedContentQuery _publishedContentQuery;
+    private readonly IDocumentNavigationQueryService _navigationQueryService;
+    private readonly IPublishedContentCache _publishedContentCache;
 
-    public SampleAuthorNameResolver(IUmbracoContextFactory contextFactory, IPublishedContentQuery publishedContentQuery)
+    public SampleAuthorNameResolver(
+        IUmbracoContextFactory contextFactory,
+        IDocumentNavigationQueryService navigationQueryService,
+        IPublishedContentCache publishedContentCache)
     {
         _contextFactory = contextFactory;
-        _publishedContentQuery = publishedContentQuery;
+        _navigationQueryService = navigationQueryService;
+        _publishedContentCache = publishedContentCache;
     }
 #else
     public SampleAuthorNameResolver(IUmbracoContextFactory contextFactory) => _contextFactory = contextFactory;
@@ -34,8 +40,9 @@ public class SampleAuthorNameResolver : IResolver
 #if NET8_0
             var homePage = contextReference.UmbracoContext.Content?.GetAtRoot().FirstOrDefault();
 #else
-            // Umbraco 17: Use IPublishedContentQuery.ContentAtRoot()
-            var homePage = _publishedContentQuery.ContentAtRoot()?.FirstOrDefault();
+            // Umbraco 17: the navigation service and published cache are both singletons, unlike
+            // IPublishedContentQuery — see PublishedContentRoots.
+            var homePage = PublishedContentRoots.First(_navigationQueryService, _publishedContentCache);
 #endif
 
             if (homePage is null)
