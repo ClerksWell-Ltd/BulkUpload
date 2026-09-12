@@ -20,6 +20,7 @@ public class ImportUtilityService : IImportUtilityService
     private readonly IResolverFactory _resolverFactory;
     private readonly IParentLookupCache _parentLookupCache;
     private readonly ILegacyIdCache _legacyIdCache;
+    private readonly IIdKeyMap _idKeyMap;
     private readonly ILogger<ImportUtilityService> _logger;
 
     public ImportUtilityService(
@@ -27,12 +28,14 @@ public class ImportUtilityService : IImportUtilityService
         IResolverFactory resolverFactory,
         IParentLookupCache parentLookupCache,
         ILegacyIdCache legacyIdCache,
+        IIdKeyMap idKeyMap,
         ILogger<ImportUtilityService> logger)
     {
         _contentService = contentService;
         _resolverFactory = resolverFactory;
         _parentLookupCache = parentLookupCache;
         _legacyIdCache = legacyIdCache;
+        _idKeyMap = idKeyMap;
         _logger = logger;
     }
 
@@ -454,12 +457,14 @@ public class ImportUtilityService : IImportUtilityService
                 }
             }
 
-            // Get parent GUID if content has a parent
+            // Get parent GUID if content has a parent. IIdKeyMap answers this from its own id↔key cache,
+            // so the common case costs no database read at all — unlike GetById, which loads the whole
+            // parent document just to read its Key.
             Guid? bulkUploadParentGuid = null;
             if (contentItem.ParentId != UmbracoConstants.System.Root)
             {
-                var parentContent = _contentService.GetById(contentItem.ParentId);
-                bulkUploadParentGuid = parentContent?.Key;
+                var parentKeyAttempt = _idKeyMap.GetKeyForId(contentItem.ParentId, UmbracoObjectTypes.Document);
+                bulkUploadParentGuid = parentKeyAttempt.Success ? parentKeyAttempt.Result : null;
             }
 
             // Determine if we need to add an info message for update mode with no changes
