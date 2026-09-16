@@ -6,14 +6,19 @@
 
 import { LitElement, html, css, nothing } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { UmbElementMixin } from '@umbraco-cms/backoffice/element-api';
 import { BulkUploadApiClient } from '../api/bulk-upload-api';
 import { BulkUploadService, type BulkUploadState, type Notification } from '../services/bulk-upload.service';
 import { formatFileSize, analyzeUploadFile } from '../utils/file.utils';
 import { downloadResponseFile } from '../utils/result.utils';
 import type { ImportResultResponse, MediaPreprocessingResult } from '../api/bulk-upload-api';
 
+// UmbElementMixin is required, not optional: since Umbraco 17.5.0 the dashboard router calls
+// `context.provideAt(component)` unconditionally when it mounts a dashboard, and that needs the
+// `provideContext` method the mixin adds. A plain LitElement fails with
+// "TypeError: t.provideContext is not a function" and the dashboard never renders.
 @customElement('bulk-upload-dashboard')
-export class BulkUploadDashboardElement extends LitElement {
+export class BulkUploadDashboardElement extends UmbElementMixin(LitElement) {
   @state() private dashboardState: BulkUploadState;
   @state() private isDragOver = false;
   private service: BulkUploadService;

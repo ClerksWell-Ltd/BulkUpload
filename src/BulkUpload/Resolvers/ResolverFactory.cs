@@ -15,9 +15,10 @@ public class ResolverFactory : IResolverFactory
         // Lazy initialization to build resolver cache
         _resolverCache = new Lazy<Dictionary<string, IResolver>>(() =>
         {
-            // Create a scope to resolve resolvers that depend on scoped services
-            using var scope = serviceProvider.CreateScope();
-            var resolvers = scope.ServiceProvider.GetServices<IResolver>();
+            // Resolve from the root provider, not a temporary scope: the instances are cached for the
+            // lifetime of this singleton factory, so anything captured from a scope would outlive the
+            // scope that created it. See IResolver — resolvers must be singleton-safe.
+            var resolvers = serviceProvider.GetServices<IResolver>();
 
             // Cache all resolver instances by alias
             return resolvers.ToDictionary(r => r.Alias(), r => r, StringComparer.OrdinalIgnoreCase);

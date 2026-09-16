@@ -12,6 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-09-16
+
+### Added
+- **`IBulkImportService` for programmatic import from inside the Umbraco process.** `ImportCsvFilesAsync(csvFilePaths, mediaDirectory, ct)` and `ImportRecordsAsync(records, mediaDirectory, ct)` run the same sequence as the `/api/v1/content/importall` endpoint — cache clear, CSV read, media preprocessing, resolver mapping, hierarchy sort and save — without the HTTP layer. Code already running inside the site (an AI tool, a background job, another package) can now call the import directly instead of posting a CSV back to its own site, which removes the need for an API user and client secret on that path. Resolver and hierarchy exceptions propagate with their real message rather than being flattened into a generic 500.
+- Imports are serialised behind a `SemaphoreSlim(1,1)`. The parent-lookup, media-item and legacy-id caches are process-wide and cleared at the start of every import, so two overlapping imports could previously wipe each other's state mid-run; a second import now queues behind the first.
+
+### Changed
+- `ImportAll` now delegates to `IBulkImportService`, keeping only the HTTP-specific work: file validation, ZIP/temp-directory handling, the 500 mapping and cleanup. Its behaviour and response shape are unchanged.
+- `BulkUploadController` no longer injects `IContentService`, `IUmbracoContextAccessor`, `IContentTypeService`, `IJsonSerializer`, `ILocalizationService`, `ILanguageRepository` or `ICoreScopeProvider` — none of them were used.
+
+### Fixed
+- **Bulk Upload dashboard blank on Umbraco 17.5.0+**: `BulkUploadDashboardElement` now extends `UmbElementMixin(LitElement)`. Since 17.5.0 the dashboard router calls `context.provideAt(component)` unconditionally when mounting a dashboard, which needs the `provideContext` method the mixin adds; without it the dashboard failed with `TypeError: t.provideContext is not a function` and never rendered. Thanks to [@nul800sebastiaan](https://github.com/nul800sebastiaan) for the [Cultiv.Hangfire fix](https://github.com/nul800sebastiaan/Cultiv.Hangfire/commit/69f66dcd49cfd860e195353929afc43afbd76feb) that identified the cause.
+- `ResolverFactory` resolved every `IResolver` inside a service scope it then disposed, while caching the instances for the lifetime of the singleton factory. Any resolver holding a scoped dependency was therefore holding it past the end of its scope. Resolvers are now resolved from the root provider, and `IResolver` documents that implementations must be singleton-safe.
+- `SampleAuthorNameResolver` and `SampleCategoryNamesResolver` held `IPublishedContentQuery`, which Umbraco registers as scoped — so with the `ResolverFactory` change above they would have failed to resolve at all on a host with scope validation enabled. On net10.0 they now read the content roots through `IDocumentNavigationQueryService` and `IPublishedContentCache`, both singletons. No behaviour change; the net8.0 path was already using the context's own cache.
+- `ImportUtilityService` used `IContentService.GetById` after each save purely to read the parent's key, loading the whole parent document for one GUID. It now uses `IIdKeyMap.GetKeyForId`, which answers from its own id↔key cache — one less database read per imported row.
+
 ## [2.0.6] - 2026-04-25
 
 ### Security
