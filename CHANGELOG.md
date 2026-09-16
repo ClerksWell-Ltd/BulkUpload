@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.8] - 2026-09-12
+## [2.1.0] - 2026-09-16
 
 ### Added
 - **`IBulkImportService` for programmatic import from inside the Umbraco process.** `ImportCsvFilesAsync(csvFilePaths, mediaDirectory, ct)` and `ImportRecordsAsync(records, mediaDirectory, ct)` run the same sequence as the `/api/v1/content/importall` endpoint — cache clear, CSV read, media preprocessing, resolver mapping, hierarchy sort and save — without the HTTP layer. Code already running inside the site (an AI tool, a background job, another package) can now call the import directly instead of posting a CSV back to its own site, which removes the need for an API user and client secret on that path. Resolver and hierarchy exceptions propagate with their real message rather than being flattened into a generic 500.
