@@ -11,6 +11,8 @@ public class ContentImportResult
     public bool BulkUploadShouldUpdateColumnExisted { get; set; }
     public bool BulkUploadShouldPublish { get; set; }
     public bool BulkUploadShouldPublishColumnExisted { get; set; }
+    public bool BulkUploadShouldUnpublish { get; set; }
+    public bool BulkUploadShouldUnpublishColumnExisted { get; set; }
 
     /// <summary>
     /// Original CSV row data with column names including resolver syntax (e.g., "tags|stringArray")

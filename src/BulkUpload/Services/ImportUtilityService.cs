@@ -96,9 +96,7 @@ public class ImportUtilityService : IImportUtilityService
             legacyParentId = legacyParentIdValue?.ToString();
         }
 
-        // Extract bulkUploadShouldPublish flag
-        // Column presence indicates UPDATE MODE (file-level)
-        // Row value determines whether to update this specific row (row-level)
+        // Extract bulkUploadShouldPublish flag - governs publishing only
         bool bulkUploadShouldPublish = false;
         bool bulkUploadShouldPublishColumnExisted = false;
         var shouldPublishKey = dynamicProperties.Keys.FirstOrDefault(k =>
@@ -110,6 +108,21 @@ public class ImportUtilityService : IImportUtilityService
             {
                 var shouldPublishStr = shouldPublishValue?.ToString()?.Trim().ToLowerInvariant();
                 bulkUploadShouldPublish = shouldPublishStr == "true" || shouldPublishStr == "yes" || shouldPublishStr == "1";
+            }
+        }
+
+        // Extract bulkUploadShouldUnpublish flag - governs unpublishing only
+        bool bulkUploadShouldUnpublish = false;
+        bool bulkUploadShouldUnpublishColumnExisted = false;
+        var shouldUnpublishKey = dynamicProperties.Keys.FirstOrDefault(k =>
+            k.Split('|')[0].Equals(ReservedColumns.BulkUploadShouldUnpublish, StringComparison.OrdinalIgnoreCase));
+        if (shouldUnpublishKey != null)
+        {
+            bulkUploadShouldUnpublishColumnExisted = true;
+            if (dynamicProperties.TryGetValue(shouldUnpublishKey, out object? shouldUnpublishValue))
+            {
+                var shouldUnpublishStr = shouldUnpublishValue?.ToString()?.Trim().ToLowerInvariant();
+                bulkUploadShouldUnpublish = shouldUnpublishStr == "true" || shouldUnpublishStr == "yes" || shouldUnpublishStr == "1";
             }
         }
 
@@ -135,9 +148,8 @@ public class ImportUtilityService : IImportUtilityService
             }
         }
 
-        // Extract bulkUploadShouldUpdate flag
-        // Column presence indicates UPDATE MODE (file-level)
-        // Row value determines whether to update this specific row (row-level)
+        // Extract bulkUploadShouldUpdate flag - the only gate on writing data to existing content.
+        // On a create row, the column being present with a falsy value marks the row to be skipped.
         bool bulkUploadShouldUpdate = false;
         bool bulkUploadShouldUpdateColumnExisted = false;
         var shouldUpdateKey = dynamicProperties.Keys.FirstOrDefault(k =>
@@ -164,7 +176,9 @@ public class ImportUtilityService : IImportUtilityService
             BulkUploadShouldUpdate = bulkUploadShouldUpdate,
             BulkUploadShouldUpdateColumnExisted = bulkUploadShouldUpdateColumnExisted,
             BulkUploadShouldPublish = bulkUploadShouldPublish,
-            BulkUploadShouldPublishColumnExisted = bulkUploadShouldPublishColumnExisted
+            BulkUploadShouldPublishColumnExisted = bulkUploadShouldPublishColumnExisted,
+            BulkUploadShouldUnpublish = bulkUploadShouldUnpublish,
+            BulkUploadShouldUnpublishColumnExisted = bulkUploadShouldUnpublishColumnExisted
         };
 
         var contentPickerDependencies = new List<string>();
@@ -231,16 +245,30 @@ public class ImportUtilityService : IImportUtilityService
         return importObject;
     }
 
-    public virtual ContentImportResult ImportSingleItem(ImportObject importObject, bool publish = false)
+    public virtual ContentImportResult ImportSingleItem(ImportObject importObject, bool publish = false, bool unpublish = false)
     {
         try
         {
             IContent? contentItem;
             var parentContentGuid = importObject.BulkUploadParentGuid;
             var changesApplied = false;
+            var infoMessages = new List<string>();
+
+            // bulkUploadShouldUpdate is the only gate on writing data to existing content.
+            // New content always has its data written.
+            var isExisting = importObject.BulkUploadContentGuid.HasValue;
+            var writeData = !isExisting || importObject.BulkUploadShouldUpdate;
+
+            // Publish and unpublish act independently of writeData. Unpublish wins when both are requested.
+            if (publish && unpublish)
+            {
+                _logger.LogWarning("Row '{Name}' (GUID {Guid}) has both bulkUploadShouldPublish and bulkUploadShouldUnpublish set - unpublish wins",
+                    importObject.Name, importObject.BulkUploadContentGuid);
+                publish = false;
+            }
 
             // Check if this is an update operation (bulkUploadContentGuid is present)
-            if (importObject.BulkUploadContentGuid.HasValue)
+            if (isExisting)
             {
                 // Update mode: Get existing content by GUID
                 contentItem = _contentService.GetById(importObject.BulkUploadContentGuid.Value);
@@ -257,6 +285,8 @@ public class ImportUtilityService : IImportUtilityService
                         BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                         BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
                         BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
+                        BulkUploadShouldUnpublish = importObject.BulkUploadShouldUnpublish,
+                        BulkUploadShouldUnpublishColumnExisted = importObject.BulkUploadShouldUnpublishColumnExisted,
                         OriginalCsvData = importObject.OriginalCsvData,
                         SourceCsvFileName = importObject.SourceCsvFileName
                     };
@@ -264,15 +294,22 @@ public class ImportUtilityService : IImportUtilityService
 
                 _logger.LogDebug("Updating existing content with GUID {Guid}", importObject.BulkUploadContentGuid.Value);
 
+                if (!writeData && HasDataColumns(importObject))
+                {
+                    _logger.LogWarning("Content with GUID {Guid}: properties present but bulkUploadShouldUpdate is not true - data not written",
+                        importObject.BulkUploadContentGuid.Value);
+                    infoMessages.Add("Properties present but bulkUploadShouldUpdate is not true - data not written");
+                }
+
                 // Update name if different
-                if (!string.IsNullOrWhiteSpace(importObject.Name) && contentItem.Name != importObject.Name)
+                if (writeData && !string.IsNullOrWhiteSpace(importObject.Name) && contentItem.Name != importObject.Name)
                 {
                     contentItem.Name = importObject.Name;
                     changesApplied = true;
                 }
 
                 // Move to new parent if bulkUploadParentGuid is specified
-                if (importObject.BulkUploadParentGuid.HasValue)
+                if (writeData && importObject.BulkUploadParentGuid.HasValue)
                 {
                     var newParentGuid = importObject.BulkUploadParentGuid.Value;
                     int newParentId;
@@ -296,6 +333,8 @@ public class ImportUtilityService : IImportUtilityService
                                 BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                                 BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
                                 BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
+                                BulkUploadShouldUnpublish = importObject.BulkUploadShouldUnpublish,
+                                BulkUploadShouldUnpublishColumnExisted = importObject.BulkUploadShouldUnpublishColumnExisted,
                                 OriginalCsvData = importObject.OriginalCsvData,
                                 SourceCsvFileName = importObject.SourceCsvFileName
                             };
@@ -342,6 +381,8 @@ public class ImportUtilityService : IImportUtilityService
                             BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                             BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
                             BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
+                            BulkUploadShouldUnpublish = importObject.BulkUploadShouldUnpublish,
+                            BulkUploadShouldUnpublishColumnExisted = importObject.BulkUploadShouldUnpublishColumnExisted,
                             OriginalCsvData = importObject.OriginalCsvData,
                             SourceCsvFileName = importObject.SourceCsvFileName
                         };
@@ -379,6 +420,8 @@ public class ImportUtilityService : IImportUtilityService
                         BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                         BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
                         BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
+                        BulkUploadShouldUnpublish = importObject.BulkUploadShouldUnpublish,
+                        BulkUploadShouldUnpublishColumnExisted = importObject.BulkUploadShouldUnpublishColumnExisted,
                         OriginalCsvData = importObject.OriginalCsvData,
                         SourceCsvFileName = importObject.SourceCsvFileName
                     };
@@ -386,7 +429,7 @@ public class ImportUtilityService : IImportUtilityService
             }
 
             // Update properties (same for both new and existing)
-            if (importObject.Properties != null && importObject.Properties.Any())
+            if (writeData && importObject.Properties != null && importObject.Properties.Any())
             {
                 foreach (var property in importObject.Properties)
                 {
@@ -396,7 +439,7 @@ public class ImportUtilityService : IImportUtilityService
             }
 
             // Resolve and set deferred properties (e.g., content pickers by legacy ID)
-            if (importObject.DeferredProperties != null && importObject.DeferredProperties.Any())
+            if (writeData && importObject.DeferredProperties != null && importObject.DeferredProperties.Any())
             {
                 foreach (var deferredProperty in importObject.DeferredProperties)
                 {
@@ -420,24 +463,53 @@ public class ImportUtilityService : IImportUtilityService
                 }
             }
 
-            // Save or publish
+            // Save, publish and unpublish. Saving a published item without publishing it stores a draft
+            // and leaves the published version serving.
             if (publish)
             {
 #if NET8_0
-                _contentService.SaveAndPublish(contentItem);
+                // SaveAndPublish is the only way to publish on Umbraco 13, so a row that publishes without
+                // writing data saves the unmodified item first. That save changes nothing.
+                var publishResult = _contentService.SaveAndPublish(contentItem);
 #else
-                    // Umbraco 17: Save and Publish are separate operations
+                // Umbraco 17: Save and Publish are separate operations
+                if (writeData)
+                {
                     _contentService.Save(contentItem);
-                    _contentService.Publish(contentItem, Array.Empty<string>());
+                }
+                var publishResult = _contentService.Publish(contentItem, Array.Empty<string>());
 #endif
+                if (!publishResult.Success)
+                {
+                    _logger.LogWarning("Publishing content '{Name}' ({Guid}) did not succeed: {Result}",
+                        contentItem.Name, contentItem.Key, publishResult.Result);
+                    infoMessages.Add($"Publish did not succeed: {publishResult.Result}");
+                }
             }
             else
             {
-                var published = contentItem.Published;
-                _contentService.Save(contentItem);
-                if (published)
+                if (writeData)
                 {
-                    _contentService.Unpublish(contentItem);
+                    _contentService.Save(contentItem);
+                }
+
+                if (unpublish)
+                {
+                    if (contentItem.Published)
+                    {
+                        var unpublishResult = _contentService.Unpublish(contentItem);
+                        if (!unpublishResult.Success)
+                        {
+                            _logger.LogWarning("Unpublishing content '{Name}' ({Guid}) did not succeed: {Result}",
+                                contentItem.Name, contentItem.Key, unpublishResult.Result);
+                            infoMessages.Add($"Unpublish did not succeed: {unpublishResult.Result}");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogDebug("Content '{Name}' ({Guid}) is not published - nothing to unpublish",
+                            contentItem.Name, contentItem.Key);
+                    }
                 }
             }
 
@@ -467,13 +539,14 @@ public class ImportUtilityService : IImportUtilityService
                 bulkUploadParentGuid = parentKeyAttempt.Success ? parentKeyAttempt.Result : null;
             }
 
-            // Determine if we need to add an info message for update mode with no changes
-            string? infoMessage = null;
-            if (importObject.BulkUploadContentGuid.HasValue && !changesApplied)
+            // Add an info message when an update was asked for but changed nothing. Rows that only change
+            // the publish state do not ask for an update, so they get no such message.
+            if (isExisting && writeData && !changesApplied)
             {
-                infoMessage = "No properties were updated";
-                _logger.LogInformation("Content update for GUID {Guid}: No properties were changed", importObject.BulkUploadContentGuid.Value);
+                infoMessages.Insert(0, "No properties were updated");
+                _logger.LogInformation("Content update for GUID {Guid}: No properties were changed", importObject.BulkUploadContentGuid!.Value);
             }
+            string? infoMessage = infoMessages.Count > 0 ? string.Join("; ", infoMessages) : null;
 
             // Return success result
             return new ContentImportResult
@@ -486,6 +559,8 @@ public class ImportUtilityService : IImportUtilityService
                 BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                 BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
                 BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
+                BulkUploadShouldUnpublish = importObject.BulkUploadShouldUnpublish,
+                BulkUploadShouldUnpublishColumnExisted = importObject.BulkUploadShouldUnpublishColumnExisted,
                 OriginalCsvData = importObject.OriginalCsvData,
                 SourceCsvFileName = importObject.SourceCsvFileName,
                 BulkUploadInfoMessage = infoMessage
@@ -503,10 +578,22 @@ public class ImportUtilityService : IImportUtilityService
                 BulkUploadShouldUpdateColumnExisted = importObject.BulkUploadShouldUpdateColumnExisted,
                 BulkUploadShouldPublish = importObject.BulkUploadShouldPublish,
                 BulkUploadShouldPublishColumnExisted = importObject.BulkUploadShouldPublishColumnExisted,
+                BulkUploadShouldUnpublish = importObject.BulkUploadShouldUnpublish,
+                BulkUploadShouldUnpublishColumnExisted = importObject.BulkUploadShouldUnpublishColumnExisted,
                 OriginalCsvData = importObject.OriginalCsvData,
                 SourceCsvFileName = importObject.SourceCsvFileName
             };
         }
+    }
+
+    /// <summary>
+    /// Whether the row carries anything that would write data to existing content: property values or a move.
+    /// </summary>
+    private static bool HasDataColumns(ImportObject importObject)
+    {
+        return (importObject.Properties != null && importObject.Properties.Count > 0)
+            || (importObject.DeferredProperties != null && importObject.DeferredProperties.Count > 0)
+            || importObject.BulkUploadParentGuid.HasValue;
     }
 
     /// <summary>

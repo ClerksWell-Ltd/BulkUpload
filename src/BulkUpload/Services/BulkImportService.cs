@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 
+using BulkUpload.Constants;
 using BulkUpload.Models;
 
 using CsvHelper;
@@ -143,17 +144,17 @@ public class BulkImportService : IBulkImportService
             };
         }
 
-        // Detect if this import supports update mode (per-file detection)
+        // Log whether the import can write data to existing content (per-file detection, logging only)
         var firstRecord = (IDictionary<string, object>)allRecordsWithSource.First().record;
         var hasUpdateColumn = firstRecord.Keys.Any(k =>
-            k.Split('|')[0].Equals("bulkUploadShouldUpdate", StringComparison.OrdinalIgnoreCase));
+            k.Split('|')[0].Equals(ReservedColumns.BulkUploadShouldUpdate, StringComparison.OrdinalIgnoreCase));
         if (hasUpdateColumn)
         {
-            _logger.LogInformation("Bulk Upload: Import file contains 'bulkUploadShouldUpdate' column - update mode is available. Each row's value will determine update vs create.");
+            _logger.LogInformation("Bulk Upload: Import file contains 'bulkUploadShouldUpdate' column - rows with a content GUID and a true value will have their data written.");
         }
         else
         {
-            _logger.LogInformation("Bulk Upload: Import file does not contain 'bulkUploadShouldUpdate' column - all items will be created.");
+            _logger.LogInformation("Bulk Upload: Import file does not contain 'bulkUploadShouldUpdate' column - data will not be written to existing content; rows with a content GUID can only change publish state.");
         }
 
         // Step 2: Preprocess media items from all CSV files to avoid duplicates
@@ -169,21 +170,10 @@ public class BulkImportService : IBulkImportService
             importObject.OriginalCsvData = ConvertCsvRecordToDictionary(record);
             importObject.SourceCsvFileName = sourceFileName;
 
-            // In UPDATE MODE, skip rows where bulkUploadShouldUpdate = false
-            if (importObject.BulkUploadShouldUpdateColumnExisted && !importObject.BulkUploadShouldUpdate)
+            if (ShouldSkip(importObject, out var skipReason))
             {
                 skippedCount++;
-                _logger.LogDebug("Skipping row '{Name}' - bulkUploadShouldUpdate is false", importObject.Name);
-                continue;
-            }
-
-            // In PUBLISH-ONLY MODE (no bulkUploadShouldUpdate column), skip rows where bulkUploadShouldPublish = false
-            if (!importObject.BulkUploadShouldUpdateColumnExisted
-                && importObject.BulkUploadShouldPublishColumnExisted
-                && !importObject.BulkUploadShouldPublish)
-            {
-                skippedCount++;
-                _logger.LogDebug("Skipping row '{Name}' - bulkUploadShouldPublish is false", importObject.Name);
+                _logger.LogDebug("Skipping row '{Name}' - {Reason}", importObject.Name, skipReason);
                 continue;
             }
 
@@ -195,7 +185,7 @@ public class BulkImportService : IBulkImportService
 
         if (skippedCount > 0)
         {
-            _logger.LogInformation("Bulk Upload: Skipped {SkippedCount} row(s) where bulkUploadShouldUpdate was false", skippedCount);
+            _logger.LogInformation("Bulk Upload: Skipped {SkippedCount} row(s) with nothing to do", skippedCount);
         }
 
         // Step 4: Validate and sort ALL import objects across all CSV files based on legacy hierarchy
@@ -208,7 +198,7 @@ public class BulkImportService : IBulkImportService
         var allResults = new List<ContentImportResult>();
         foreach (var importObject in sortedImportObjects)
         {
-            var result = _importUtilityService.ImportSingleItem(importObject, importObject.BulkUploadShouldPublish);
+            var result = _importUtilityService.ImportSingleItem(importObject, importObject.BulkUploadShouldPublish, importObject.BulkUploadShouldUnpublish);
             allResults.Add(result);
         }
 
@@ -226,6 +216,33 @@ public class BulkImportService : IBulkImportService
             Results = allResults,
             MediaPreprocessingResults = allMediaPreprocessingResults
         };
+    }
+
+    /// <summary>
+    /// Whether a row has nothing to do and is skipped silently, producing no result.
+    /// A row for existing content is skipped when it neither writes data nor changes publish state.
+    /// A row for new content is skipped when the bulkUploadShouldUpdate column is present and falsy.
+    /// </summary>
+    private static bool ShouldSkip(ImportObject importObject, out string reason)
+    {
+        if (importObject.BulkUploadContentGuid.HasValue)
+        {
+            if (!importObject.BulkUploadShouldUpdate
+                && !importObject.BulkUploadShouldPublish
+                && !importObject.BulkUploadShouldUnpublish)
+            {
+                reason = "none of bulkUploadShouldUpdate, bulkUploadShouldPublish or bulkUploadShouldUnpublish is true";
+                return true;
+            }
+        }
+        else if (importObject.BulkUploadShouldUpdateColumnExisted && !importObject.BulkUploadShouldUpdate)
+        {
+            reason = "bulkUploadShouldUpdate is false on a row without bulkUploadContentGuid";
+            return true;
+        }
+
+        reason = "";
+        return false;
     }
 
     /// <summary>

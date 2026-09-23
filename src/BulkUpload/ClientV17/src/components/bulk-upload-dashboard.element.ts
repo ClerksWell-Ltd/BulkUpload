@@ -493,7 +493,7 @@ export class BulkUploadDashboardElement extends UmbElementMixin(LitElement) {
               <div class="req-grid">
                 <div class="req-item">
                   <code>bulkUploadShouldUpdate</code>
-                  <div class="desc">Set to true to enable update mode</div>
+                  <div class="desc">Set to true to write this row's data to the item. The only column that changes an existing item's data</div>
                   <div class="examples">
                     <span>true</span>
                   </div>
@@ -503,6 +503,20 @@ export class BulkUploadDashboardElement extends UmbElementMixin(LitElement) {
                   <div class="desc">GUID of the content item to update</div>
                   <div class="examples">
                     <span>71332aa7-…</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>bulkUploadShouldPublish</code>
+                  <div class="desc">Optional. Set to true to publish the item, with or without a data update</div>
+                  <div class="examples">
+                    <span>true</span>
+                  </div>
+                </div>
+                <div class="req-item">
+                  <code>bulkUploadShouldUnpublish</code>
+                  <div class="desc">Optional. Set to true to unpublish the item, with or without a data update. Wins over bulkUploadShouldPublish</div>
+                  <div class="examples">
+                    <span>true</span>
                   </div>
                 </div>
                 <div class="req-item">
