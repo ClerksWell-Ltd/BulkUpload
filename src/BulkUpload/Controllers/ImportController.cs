@@ -66,8 +66,8 @@ public class BulkUploadController : ControllerBase
     ///   <item><description><strong>Legacy migration:</strong> Use bulkUploadLegacyId and bulkUploadLegacyParentId for legacy CMS migration</description></item>
     /// </list>
     ///
-    /// <para><strong>Update Mode:</strong></para>
-    /// <para>Include a 'bulkUploadShouldUpdate' column (true/false) in your CSV to enable update mode. Rows with 'true' will update existing content, while 'false' rows are skipped.</para>
+    /// <para><strong>Update Mode and Publish State:</strong></para>
+    /// <para>Three independent columns control what happens to each row. 'bulkUploadShouldUpdate' is the only column that writes data (name, parent and property values) to existing content identified by 'bulkUploadContentGuid'. 'bulkUploadShouldPublish' publishes and 'bulkUploadShouldUnpublish' unpublishes, whether or not data is written; when both are true, unpublish wins. A row for existing content with none of the three set to true is skipped. A row for new content is skipped when 'bulkUploadShouldUpdate' is present and false.</para>
     ///
     /// <para><strong>Media Deduplication:</strong></para>
     /// <para>When importing multiple CSVs, media files referenced across different CSVs are automatically deduplicated - each unique file is created only once.</para>
@@ -83,8 +83,10 @@ public class BulkUploadController : ControllerBase
     /// <list type="bullet">
     ///   <item><description>bulkUploadLegacyId - Legacy CMS identifier for this content item</description></item>
     ///   <item><description>bulkUploadLegacyParentId - Legacy CMS parent identifier (enables cross-file hierarchy)</description></item>
-    ///   <item><description>bulkUploadShouldUpdate - Set to 'true' to update existing content instead of creating new</description></item>
-    ///   <item><description>bulkUploadShouldPublish - Set to 'true' to publish content after creation (default: false)</description></item>
+    ///   <item><description>bulkUploadContentGuid - GUID of existing content to update, publish or unpublish</description></item>
+    ///   <item><description>bulkUploadShouldUpdate - Set to 'true' to write this row's data to the existing content identified by bulkUploadContentGuid</description></item>
+    ///   <item><description>bulkUploadShouldPublish - Set to 'true' to publish the content (default: false, publish state unchanged)</description></item>
+    ///   <item><description>bulkUploadShouldUnpublish - Set to 'true' to unpublish existing content (default: false, publish state unchanged)</description></item>
     ///   <item><description>propertyAlias|resolverAlias - Content properties using resolver syntax (e.g., heroImage|zipFileToMedia)</description></item>
     /// </list>
     /// </remarks>
@@ -246,6 +248,7 @@ public class BulkUploadController : ControllerBase
     ///   <item><description><strong>bulkUploadErrorMessage</strong> - Error details (only included if errors occurred)</description></item>
     ///   <item><description><strong>bulkUploadLegacyId</strong> - Legacy CMS identifier (only if used in import)</description></item>
     ///   <item><description><strong>bulkUploadShouldPublish</strong> - Publish flag (only if used in import)</description></item>
+    ///   <item><description><strong>bulkUploadShouldUnpublish</strong> - Unpublish flag (only if used in import)</description></item>
     ///   <item><description><strong>bulkUploadShouldUpdate</strong> - Update flag value</description></item>
     ///   <item><description><strong>Original columns</strong> - All original CSV columns are preserved</description></item>
     /// </list>
@@ -354,6 +357,9 @@ public class BulkUploadController : ControllerBase
         bool hadShouldPublishColumn = results.Any(r => r.OriginalCsvData != null &&
             r.OriginalCsvData.Keys.Any(k => k.Split('|')[0].Equals("bulkUploadShouldPublish", StringComparison.OrdinalIgnoreCase)));
 
+        bool hadShouldUnpublishColumn = results.Any(r => r.OriginalCsvData != null &&
+            r.OriginalCsvData.Keys.Any(k => k.Split('|')[0].Equals("bulkUploadShouldUnpublish", StringComparison.OrdinalIgnoreCase)));
+
         var csv = new StringBuilder();
 
         // Build header: BulkUpload columns + original columns
@@ -377,6 +383,11 @@ public class BulkUploadController : ControllerBase
         if (hadShouldPublishColumn)
         {
             headerParts.Add("bulkUploadShouldPublish");
+        }
+
+        if (hadShouldUnpublishColumn)
+        {
+            headerParts.Add("bulkUploadShouldUnpublish");
         }
 
         headerParts.Add("bulkUploadShouldUpdate");
@@ -412,6 +423,15 @@ public class BulkUploadController : ControllerBase
                     ? result.BulkUploadShouldPublish.ToString()
                     : "false";
                 rowParts.Add(shouldPublishValue);
+            }
+
+            if (hadShouldUnpublishColumn)
+            {
+                // If column existed in original upload, use the value; otherwise use false
+                var shouldUnpublishValue = result.BulkUploadShouldUnpublishColumnExisted
+                    ? result.BulkUploadShouldUnpublish.ToString()
+                    : "false";
+                rowParts.Add(shouldUnpublishValue);
             }
 
             // If column existed in original upload, use the value; otherwise use false

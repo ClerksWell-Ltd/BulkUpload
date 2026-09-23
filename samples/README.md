@@ -13,100 +13,47 @@ Creates new content or media items. Requires:
 
 ### Update Mode
 Updates existing content or media items. Requires:
-- **Content**: `bulkUploadShouldUpdate=true`, `bulkUploadContentGuid`, `parent`, `name`
+- **Content**: `bulkUploadContentGuid` plus at least one of `bulkUploadShouldUpdate`, `bulkUploadShouldPublish` or `bulkUploadShouldUnpublish`
 - **Media**: `bulkUploadShouldUpdate=true`, `bulkUploadMediaGuid`, `parent`, `name`
 
 **Key Points:**
 - Update mode uses the GUID to locate the specific item to update
-- The `parent` and `name` fields help verify you're updating the correct item
-- Any additional property columns will update those properties on the existing item
+- `bulkUploadShouldUpdate=true` is what writes the row's name, parent and property values to existing content
+- `bulkUploadShouldPublish` and `bulkUploadShouldUnpublish` change the publish state of content, with or without a data update
 - Missing columns won't be modified (partial updates are supported)
+
+See [Publish state](../.github/docs/user-guides/UPDATE_MODE_GUIDE.md#publish-state) in the update mode guide for how the three columns combine.
 
 ## Sample Files
 
-### Update Mode Samples
+### content-upload-basic.csv
+Creates a single content item at the root and publishes it:
+- `name` and `docTypeAlias` identify the new item
+- `bulkUploadShouldPublish=true` publishes it; with `false` (or without the column) it would be saved as a draft
+- `title` and `subtitle` are set as property values
 
-#### content-update-sample.csv
-Demonstrates updating existing content items:
-- Uses `bulkUploadShouldUpdate=true` to enable update mode
-- Uses `bulkUploadContentGuid` to identify the specific content item
-- Updates properties like title, description, and publish date
-- Parent and name fields verify you're updating the correct item
+Replace `content` with a document type alias from your site before uploading.
 
-**Usage:**
-1. Replace the sample GUIDs with actual content item GUIDs from your Umbraco instance
-2. Update the property values as needed
-3. Create a ZIP file containing only this CSV file
-4. Upload through the Bulk Upload interface
-5. Existing content items will be updated with the new values
+### content-unpublish-basic.csv
+Unpublishes existing content without changing its data:
+- `bulkUploadContentGuid` identifies each item
+- `bulkUploadShouldUnpublish=true` unpublishes it
+- There is no `bulkUploadShouldUpdate` column, so no data is written; `name` is only there to make the file readable
 
-#### media-update-sample.csv
-Demonstrates updating existing media items:
-- Uses `bulkUploadShouldUpdate=true` to enable update mode
-- Uses `bulkUploadMediaGuid` to identify the specific media item
-- Updates properties like altText and tags
-- Parent and name fields verify you're updating the correct item
+Replace the sample GUIDs with content GUIDs from your Umbraco instance (the results CSV of an earlier import includes them).
 
-**Usage:**
-1. Replace the sample GUIDs with actual media item GUIDs from your Umbraco instance
-2. Update the property values as needed
-3. Create a ZIP file containing only this CSV file
-4. Upload through the Bulk Upload interface
-5. Existing media items will be updated with the new values
+### media-upload-from-zip-file.zip
+A media import: a CSV (`parent`, `name`, `fileName`) together with the image files it references. Upload it through the media import.
 
-### Create Mode Samples
+### media-only.zip
+A ZIP of media files in folders, with no CSV.
 
-#### 1. bulk-upload-mixed-sources.csv
-Demonstrates importing media from multiple sources in a single upload:
-- Files from the ZIP archive (using `fileName` column)
-- Files from local/network paths (using `mediaSource|pathToStream`)
-- Files from URLs (using `mediaSource|urlToStream`)
-
-**Usage:**
-1. Create a ZIP file containing:
-   - This CSV file
-   - Any files referenced in the `fileName` column (logo.png, product.jpg)
-2. Upload the ZIP through the Bulk Upload Media interface
-3. Files will be imported from all three sources
-
-### 2. bulk-upload-with-folder-paths.csv
-Demonstrates using flexible parent folder specification to automatically organize media:
-- Uses `parent` column with folder paths like `/Products/Bikes/`
-- Automatically creates folder structures if they don't exist
-- Media items are organized into the specified folders
-
-**Usage:**
-1. Create a ZIP file containing only this CSV file (no media files needed)
-2. Ensure the file paths in the CSV point to actual files on your server
-3. Upload the ZIP through the Bulk Upload Media interface
-4. Media will be imported from the file system and organized into folders
-
-### 3. test-page-multiblock-with-urls.csv
-Demonstrates the enhanced MultiBlockListResolver that creates images directly from URLs:
-- Image blocks with URLs instead of GUIDs
-- Carousel blocks with multiple image URLs
-- Icon link blocks with icon URLs
-- No need to pre-create media items
-- Automatic media type detection and caching
-
-**Features Demonstrated:**
-- `image::https://example.com/photo.jpg|Caption` - Creates image from URL
-- `carousel::https://example.com/1.jpg,https://example.com/2.jpg` - Multiple images from URLs
-- `iconlink::https://example.com/icon.png|https://link.com|Link Name` - Icon from URL
-- Mixed with richtext, video, and code blocks
-- All images are downloaded and created automatically
-
-**Usage:**
-1. Create a ZIP file containing only this CSV file
-2. Upload through the Bulk Upload interface (content import, not media import)
-3. Images will be automatically downloaded from URLs and media items created
-4. The page content will reference the newly created media items
-
-**Benefits:**
-- Simplified CSV files - no GUID management needed
-- Supports URLs, file paths, and GUIDs (backward compatible)
-- Built-in caching prevents duplicate media creation
-- Automatic media type detection from file extension
+### multi-csv-with-legacy-content-pickers.zip
+A multi-CSV content import that builds a small blog (home, article list, articles, authors and categories) across several CSV files:
+- `bulkUploadLegacyId` and `bulkUploadLegacyParentId` build the hierarchy across files
+- `legacyContentPicker` and `legacyContentPickers` link articles to authors and categories
+- `zipFileToMedia` creates author images from files in the ZIP
+- `bulkUploadShouldPublish=TRUE` publishes every item
 
 ## CSV Column Reference
 
@@ -128,10 +75,12 @@ Demonstrates the enhanced MultiBlockListResolver that creates images directly fr
 ### Update Mode - Required Columns
 
 **Content CSV:**
-- **bulkUploadShouldUpdate**: Must be set to `true` to enable update mode
 - **bulkUploadContentGuid**: GUID of the content item to update
-- **parent**: Parent ID, GUID, or path (used to verify correct item)
-- **name**: Name to match existing item (used to verify correct item)
+- **bulkUploadShouldUpdate**: `true` to write the row's name, parent and property values to the item
+- **bulkUploadShouldPublish**: `true` to publish the item
+- **bulkUploadShouldUnpublish**: `true` to unpublish the item (wins over `bulkUploadShouldPublish`)
+
+At least one of the three flags must be `true`, or the row is skipped. `true`, `yes` and `1` all count as true.
 
 **Media CSV:**
 - **bulkUploadShouldUpdate**: Must be set to `true` to enable update mode
@@ -141,6 +90,10 @@ Demonstrates the enhanced MultiBlockListResolver that creates images directly fr
 
 ### Optional Columns
 
+**Content CSV:**
+- **bulkUploadShouldPublish**: `true` to publish a new item; otherwise it is saved as a draft
+
+**Media CSV:**
 - **name**: Display name for the media item (defaults to fileName)
 - **mediaTypeAlias**: Umbraco media type (auto-detected from extension if not provided)
 
@@ -188,7 +141,21 @@ bulkUploadShouldUpdate,bulkUploadContentGuid,parent,name,title,description|text
 true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,1100,My Article,Updated Title,New description text
 ```
 
-#### Example 2: Update Media Properties
+#### Example 2: Unpublish Content Without Changing It
+```csv
+bulkUploadContentGuid,bulkUploadShouldUnpublish,name
+a1b2c3d4-e5f6-7890-abcd-ef1234567890,true,My Article
+```
+No `bulkUploadShouldUpdate` column, so the item's data is left alone and only its publish state changes. This is [content-unpublish-basic.csv](content-unpublish-basic.csv).
+
+#### Example 3: Update Content and Keep the Published Version Serving
+```csv
+bulkUploadShouldUpdate,bulkUploadContentGuid,title
+true,a1b2c3d4-e5f6-7890-abcd-ef1234567890,Draft title for review
+```
+No publish column, so the change is saved as a draft and the page stays published with its current content until someone publishes the draft.
+
+#### Example 4: Update Media Properties
 ```csv
 bulkUploadShouldUpdate,bulkUploadMediaGuid,parent,name,altText|text,tags|stringArray
 true,d4e5f6a7-b8c9-0123-def0-123456789abc,1150,Logo,New alt text,"tag1,tag2,tag3"
@@ -196,28 +163,28 @@ true,d4e5f6a7-b8c9-0123-def0-123456789abc,1150,Logo,New alt text,"tag1,tag2,tag3
 
 ### Create Mode Examples
 
-#### Example 3: Simple ZIP Upload with Folder Paths
+#### Example 5: Simple ZIP Upload with Folder Paths
 ```csv
 fileName,parent,name
 logo.png,/Brand/Logos/,Company Logo
 banner.jpg,/Marketing/Banners/,Homepage Banner
 ```
 
-#### Example 4: Import from Network Share with Auto-Created Folders
+#### Example 6: Import from Network Share with Auto-Created Folders
 ```csv
 mediaSource|pathToStream,parent,name
 \\\\nas.company.local\\assets\\logo.png,/Brand/Logos/,Company Logo
 \\\\nas.company.local\\assets\\banner.jpg,/Marketing/Banners/,Homepage Banner
 ```
 
-#### Example 5: Import from CDN with Integer Parent ID
+#### Example 7: Import from CDN with Integer Parent ID
 ```csv
 mediaSource|urlToStream,parent,name
 https://cdn.example.com/images/logo.png,1150,Company Logo
 https://cdn.example.com/images/banner.jpg,1150,Homepage Banner
 ```
 
-#### Example 6: Mixed Sources with Properties
+#### Example 8: Mixed Sources with Properties
 ```csv
 fileName,mediaSource|pathToStream,mediaSource|urlToStream,parent,name,altText|text,tags|stringArray
 local.jpg,,,/Gallery/Featured/,Local Image,From ZIP,"featured,homepage"
@@ -225,7 +192,7 @@ local.jpg,,,/Gallery/Featured/,Local Image,From ZIP,"featured,homepage"
 ,,https://example.com/cdn.jpg,/Stock/External/,CDN Image,From CDN,"external,stock"
 ```
 
-#### Example 7: Organize with GUID Parent Reference
+#### Example 9: Organize with GUID Parent Reference
 ```csv
 mediaSource|pathToStream,parent,name,altText|text
 C:/Assets/Headers/tech-post.jpg,a1b2c3d4-e5f6-7890-abcd-ef1234567890,Tech Blog Header,Technology article header
@@ -238,14 +205,16 @@ This demonstrates a real-world workflow where you import media from URLs first, 
 
 ### Files Involved
 
-1. **features-media-from-urls.csv** - Media import with image URLs
-2. **features-content-workflow.csv** - Content CSV with placeholder GUIDs
+You write two CSVs for this workflow:
+
+1. **A media CSV** - uses `mediaSource|urlToStream` to import images from URLs
+2. **A content CSV** - references those images by GUID, using placeholders until the media exists
 
 ### Step-by-Step Workflow
 
 #### Step 1: Import Media from URLs
 
-1. Create a ZIP file containing **only** `features-media-from-urls.csv` (no media files needed since we're using URLs)
+1. Create a ZIP file containing **only** your media CSV (no media files needed since we're using URLs)
 2. Go to Bulk Upload dashboard → **Media Import** tab
 3. Upload the ZIP file
 4. Wait for import to complete
@@ -265,7 +234,7 @@ carousel-image-1.jpg,true,ghi789-...,umb://media/ghi789...,...
 
 #### Step 3: Update Content CSV with Real GUIDs
 
-Edit `features-content-workflow.csv` and replace the placeholders:
+Edit your content CSV and replace the placeholders:
 
 - `REPLACE-WITH-FEATURE-HERO-GUID` → `abc123-...` (from feature-hero.jpg)
 - `REPLACE-WITH-IMAGE-ROW-EXAMPLE-GUID` → `def456-...` (from image-row-example.jpg)
@@ -289,14 +258,12 @@ This two-step process is useful when:
 
 ### Quick Test
 
-Want to test immediately? The sample uses **via.placeholder.com** which provides reliable, simple placeholder images without query parameters.
-
-Other placeholder image services you can use:
-- **via.placeholder.com** - Simple, reliable placeholders (used in the sample)
+Want to test immediately? Point your media CSV at a placeholder image service:
+- **via.placeholder.com** - Simple, reliable placeholders
 - **placeholder.com** - Customizable placeholders
 - **placehold.co** - Simple placeholder generator
 
-The sample URLs will download real placeholder images during import!
+The URLs will download real placeholder images during import.
 
 ## Tips
 

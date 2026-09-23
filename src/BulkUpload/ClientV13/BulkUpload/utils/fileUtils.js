@@ -152,11 +152,13 @@
       normalizedHeaders.indexOf('doctypealias') !== -1 &&
       normalizedHeaders.indexOf('name') !== -1;
 
-    // UPDATE/PUBLISH MODE: requires bulkUploadContentGuid and (bulkUploadShouldUpdate or bulkUploadShouldPublish)
+    // UPDATE/PUBLISH/UNPUBLISH MODE: requires bulkUploadContentGuid and
+    // (bulkUploadShouldUpdate or bulkUploadShouldPublish or bulkUploadShouldUnpublish)
     var hasContentUpdateHeaders =
       normalizedHeaders.indexOf('bulkuploadcontentguid') !== -1 &&
       (normalizedHeaders.indexOf('bulkuploadshouldupdate') !== -1 ||
-       normalizedHeaders.indexOf('bulkuploadshouldpublish') !== -1);
+       normalizedHeaders.indexOf('bulkuploadshouldpublish') !== -1 ||
+       normalizedHeaders.indexOf('bulkuploadshouldunpublish') !== -1);
 
     // Media CSV identifiers
     // CREATE MODE: requires at least one

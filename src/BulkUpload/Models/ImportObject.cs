@@ -60,32 +60,46 @@ public class ImportObject
     public Guid? BulkUploadParentGuid { get; set; }
 
     /// <summary>
-    /// Indicates whether the content item should be published after saving.
-    /// Defaults to false if not specified in the CSV.
-    /// This is NOT persisted as a content property.
+    /// Not used by the import. Publishing is controlled by <see cref="BulkUploadShouldPublish"/>.
     /// </summary>
+    [Obsolete("Not used by the import. Use BulkUploadShouldPublish instead.")]
     public bool ShouldPublish { get; set; } = false;
 
     /// <summary>
-    /// Per-row flag indicating whether to update this specific content item.
-    /// When false, creates new content (default behavior).
-    /// When true with BulkUploadContentGuid, updates the existing content item.
+    /// Per-row flag indicating whether to publish this content item.
+    /// Governs publishing only and acts independently of BulkUploadShouldUpdate.
+    /// When false, the publish state is left unchanged (new content is saved as a draft).
+    /// Ignored when BulkUploadShouldUnpublish is also true.
     /// This is NOT persisted as a content property.
     /// </summary>
     public bool BulkUploadShouldPublish { get; set; } = false;
 
     /// <summary>
-    /// Per-file flag tracking whether the bulkUploadShouldUpdate column existed in the CSV.
-    /// When true, the import file supports update mode (column is present).
-    /// Individual rows still use BulkUploadShouldUpdate value to determine update vs create.
+    /// Tracks whether the bulkUploadShouldPublish column existed in the CSV.
     /// This is NOT persisted as a content property.
     /// </summary>
     public bool BulkUploadShouldPublishColumnExisted { get; set; } = false;
 
     /// <summary>
-    /// Per-row flag indicating whether to update this specific content item.
-    /// When false, creates new content (default behavior).
-    /// When true with BulkUploadContentGuid, updates the existing content item.
+    /// Per-row flag indicating whether to unpublish this content item.
+    /// Governs unpublishing only and acts independently of BulkUploadShouldUpdate.
+    /// Wins over BulkUploadShouldPublish when both are true. New content is saved as a draft.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public bool BulkUploadShouldUnpublish { get; set; } = false;
+
+    /// <summary>
+    /// Tracks whether the bulkUploadShouldUnpublish column existed in the CSV.
+    /// This is NOT persisted as a content property.
+    /// </summary>
+    public bool BulkUploadShouldUnpublishColumnExisted { get; set; } = false;
+
+    /// <summary>
+    /// Per-row flag indicating whether to write data to an existing content item.
+    /// When true with BulkUploadContentGuid, the name, parent and property values are written.
+    /// When false with BulkUploadContentGuid, the item's data is left untouched; the publish and
+    /// unpublish flags still apply.
+    /// On a row without BulkUploadContentGuid, a false value with the column present skips the row.
     /// This is NOT persisted as a content property.
     /// </summary>
     public bool BulkUploadShouldUpdate { get; set; } = false;
@@ -110,7 +124,7 @@ public class ImportObject
     public string? SourceCsvFileName { get; set; }
 
 
-    // Updated: allow import when GUID present with update or publish flag, even if Name or ContentTypeAlais are missing
-    public bool CanImport => (BulkUploadContentGuid.HasValue && (BulkUploadShouldUpdate || BulkUploadShouldPublish))
+    // Allow import when GUID present with an update, publish or unpublish flag, even if Name or ContentTypeAlais are missing
+    public bool CanImport => (BulkUploadContentGuid.HasValue && (BulkUploadShouldUpdate || BulkUploadShouldPublish || BulkUploadShouldUnpublish))
         || (!string.IsNullOrWhiteSpace(Name) && !string.IsNullOrWhiteSpace(ContentTypeAlais));
 }

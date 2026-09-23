@@ -144,6 +144,26 @@ git push origin main
 
 That's it! The release is complete. The package is now available on NuGet with support for both Umbraco 13 and 17.
 
+## Testing the Package Locally
+
+The test sites reference the project directly, so they never exercise the packaged artefact. To test the real `.nupkg` in another site before releasing, pack it to a folder outside the repo and add that folder as a user-level NuGet source:
+
+```powershell
+# pack outside the repo so nothing stray gets committed
+dotnet pack src/BulkUpload/BulkUpload.csproj -c Release -o D:\Code\local-nuget
+dotnet nuget add source D:\Code\local-nuget -n local-bulkupload   # user-level, one-off
+```
+
+Then, in the consuming site:
+
+1. Set the `Umbraco.Community.BulkUpload` package reference to the version in `BulkUpload.csproj`
+2. Run `dotnet nuget locals http-cache --clear` so a previously restored copy of the same version is not reused
+3. Restore, build and run the site
+
+Repacking the same version number needs the global packages cache cleared too (`dotnet nuget locals global-packages --clear`), or bump to a pre-release version such as `2.2.0-local.1`.
+
+**Do not commit a `nuget.config` that points at a local path** — it breaks restore in CI and for everyone else. Keep the source at user level as above.
+
 ## Release Types
 
 ### Patch Release (2.1.0 → 2.1.1)

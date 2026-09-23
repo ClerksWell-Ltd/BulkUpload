@@ -340,6 +340,25 @@ public class ImportObjectTests
     }
 
     [Fact]
+    public void CanImport_ReturnsTrue_WhenGuidAndShouldUnpublish()
+    {
+        // Arrange
+        var importObject = new ImportObject
+        {
+            Name = null!,
+            ContentTypeAlais = null!,
+            BulkUploadContentGuid = Guid.NewGuid(),
+            BulkUploadShouldUnpublish = true
+        };
+
+        // Act
+        var result = importObject.CanImport;
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
     public void CanImport_ReturnsFalse_WhenGuidOnly()
     {
         // Arrange

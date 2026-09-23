@@ -10,12 +10,14 @@ The BulkUpload extension supports legacy hierarchy mapping during bulk imports. 
 
 ### Reserved CSV Columns
 
-Two new optional, reserved columns are available:
+Two optional, reserved columns drive legacy hierarchy mapping:
 
 - **`bulkUploadLegacyId`**: The unique identifier from your legacy CMS for the current item
 - **`bulkUploadLegacyParentId`**: The legacy identifier of the parent item
 
 These columns are used exclusively for import logic and are **never persisted** as Umbraco content properties.
+
+The other reserved content columns (`bulkUploadContentGuid`, `bulkUploadParentGuid`, `bulkUploadShouldUpdate`, `bulkUploadShouldPublish` and `bulkUploadShouldUnpublish`) can be combined with these; they are described in the [Update Mode Guide](UPDATE_MODE_GUIDE.md).
 
 ### Key Capabilities
 
@@ -210,7 +212,7 @@ The parent must be created before this item.
    - Resolves parents via legacy cache in `ImportSingleItem()`
    - Caches created GUIDs for child items
 
-6. **Updated `BulkUploadController`**
+6. **`BulkImportService`** (`BulkUpload/Services/BulkImportService.cs`)
    - Validates and sorts import objects before processing
    - Processes items in dependency order
 
@@ -218,10 +220,12 @@ The parent must be created before this item.
 
 The architecture supports future reserved columns:
 
-1. Add new column name to `ReservedColumns` class
-2. Extract value in `ImportUtilityService.CreateImportObject()`
-3. Add processing logic in `ImportUtilityService.ImportSingleItem()`
-4. No changes needed to core import logic!
+1. Add new column name to `ReservedColumns` class **and to its `All` set** - `All` is what stops the column being mapped onto a content property
+2. Add the value to `ImportObject` (and `ContentImportResult` if it should appear in the results)
+3. Extract value in `ImportUtilityService.CreateImportObject()`, matching the header on the part before any `|` and ignoring case
+4. Add processing logic in `ImportUtilityService.ImportSingleItem()`
+5. If the column should appear in the results CSV, add it to `ImportController.ExportResults`
+6. If a CSV could consist of only this column and `bulkUploadContentGuid`, add it to the client CSV detection in `ClientV13/BulkUpload/utils/fileUtils.js` and `ClientV17/src/utils/file.utils.ts`
 
 ## Backward Compatibility
 

@@ -69,13 +69,12 @@ Then:
 Download our sample CSV files to quickly test the package:
 
 #### Content Import Samples
-- [📄 Basic Content Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-sample.csv?raw=true) - Article import with various property types
-- [🔄 Content Update Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/content-update-sample.csv?raw=true) - Update existing content by GUID
+- [📄 Basic Content Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/content-upload-basic.csv?raw=true) - Create and publish a content item
+- [🔄 Unpublish Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/content-unpublish-basic.csv?raw=true) - Unpublish existing content by GUID without changing its data
+- [🗂️ Multi-CSV with Legacy Content Pickers](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/multi-csv-with-legacy-content-pickers.zip?raw=true) - Cross-file hierarchy, content pickers and media from a ZIP
 
 #### Media Import Samples
-- [🖼️ Media with ZIP](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-sample.csv?raw=true) - For importing media files from a ZIP
-- [🌐 Media from URLs](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/bulk-upload-media-url-sample.csv?raw=true) - For downloading media from URLs
-- [🔄 Media Update Sample](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/media-update-sample.csv?raw=true) - Update existing media by GUID
+- [🖼️ Media with ZIP](https://github.com/ClerksWell-Ltd/BulkUpload/blob/main/samples/media-upload-from-zip-file.zip?raw=true) - A media CSV and the files it references
 
 For more examples, explore the [samples directory](samples/).
 
@@ -149,12 +148,29 @@ true,d4e5f6a7-b8c9-0123-def0-123456789abc,1150,Logo,Updated alt text
 ```
 
 **Key Points:**
-- Set `bulkUploadShouldUpdate=true` to enable update mode
+- Set `bulkUploadShouldUpdate=true` to write a row's data to an existing item
 - Use `bulkUploadContentGuid` or `bulkUploadMediaGuid` to identify items
 - Only specified properties will be updated (partial updates supported)
 - Export results from create operations to get GUIDs for updates
 
-See [Update Mode Samples](samples/README.md#update-mode-samples) for examples.
+#### Publish State
+
+For content, three independent columns decide what happens to an existing item: `bulkUploadShouldUpdate` writes data, `bulkUploadShouldPublish` publishes, and `bulkUploadShouldUnpublish` unpublishes.
+
+| `bulkUploadShouldUpdate` | `bulkUploadShouldPublish` | `bulkUploadShouldUnpublish` | Data | Publish state |
+|---|---|---|---|---|
+| true | false | false | Updated | Unchanged |
+| true | true | false | Updated | Published |
+| true | false | true | Updated | Unpublished |
+| true | true | true | Updated | Unpublished |
+| false | false | false | Unchanged | Unchanged (row skipped) |
+| false | true | false | Unchanged | Published |
+| false | false | true | Unchanged | Unpublished |
+| false | true | true | Unchanged | Unpublished |
+
+False means the column is absent or holds any value other than `true`, `yes` or `1`.
+
+See [Publish state](.github/docs/user-guides/UPDATE_MODE_GUIDE.md#publish-state) in the update mode guide for new content and the full rules, and [Update Mode Examples](samples/README.md#update-mode-examples) for examples.
 
 ### Media Import
 

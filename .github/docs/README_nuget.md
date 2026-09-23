@@ -14,7 +14,7 @@ BulkUpload is an Umbraco package that enables content editors and site administr
 
 - **CSV Import:** Upload and process CSV files to create or update Umbraco content nodes.
 - **Media Import:** Bulk import media files from ZIP, URLs, or file paths with automatic deduplication.
-- **Update Mode:** Update existing content and media by GUID with partial property updates.
+- **Update Mode:** Update existing content and media by GUID with partial property updates, and publish or unpublish content independently of its data.
 - **Multi-CSV Support:** Import multiple CSV files in a single ZIP upload with automatic deduplication and cross-file hierarchy management.
 - **Custom Mapping:** Supports mapping CSV columns to Umbraco content properties, including complex types.
 - **Content Type Support:** Import data for different content types by specifying aliases and parent nodes.

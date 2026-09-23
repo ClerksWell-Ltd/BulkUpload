@@ -12,6 +12,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-09-23
+
+### Added
+- **New reserved column `bulkUploadShouldUnpublish`.** A truthy value (`true`, `yes`, `1`) unpublishes the row's content if it is published, whether or not the row also writes data. When both `bulkUploadShouldPublish` and `bulkUploadShouldUnpublish` are truthy, unpublish wins and a warning is logged. The column is echoed in the results CSV, recognised by the V13 and V17 dashboards' CSV detection (so an unpublish-only CSV with `bulkUploadContentGuid` and no `name`/`docTypeAlias` is accepted), and described on both dashboards. `IImportUtilityService.ImportSingleItem` gains an optional `unpublish` parameter.
+
+### Changed
+- **Updating published content no longer unpublishes it.** A row that updates existing published content without `bulkUploadShouldPublish=true` used to save and then unpublish the page, taking it offline. The changes are now saved as a draft and the published version keeps serving. To take a page down, use `bulkUploadShouldUnpublish=true`.
+- **`bulkUploadShouldUpdate` is now the only column that writes data to existing content.** A row with a `bulkUploadContentGuid` and `bulkUploadShouldPublish=true` but no truthy `bulkUploadShouldUpdate` now publishes the item **without** applying its name, parent or property values; previously it applied them. Such a row logs the warning "properties present but bulkUploadShouldUpdate is not true - data not written" and carries the same text in its result's info message. Add `bulkUploadShouldUpdate=true` to rows that should write data.
+- **`bulkUploadShouldUpdate=false` no longer discards a requested publish.** On a row with a `bulkUploadContentGuid` it now blocks only the data write, so `bulkUploadShouldPublish=true` or `bulkUploadShouldUnpublish=true` on the same row still takes effect. A row with a GUID where none of the three flags is truthy is skipped silently, as before.
+- **New content rows with `bulkUploadShouldPublish=false` are now created as drafts.** Previously, in a file without a `bulkUploadShouldUpdate` column, such rows were skipped and nothing was created. A new content row is still skipped when `bulkUploadShouldUpdate` is present with a falsy value.
+- Publish and unpublish results are now checked. A failure is logged as a warning and its result type is added to the row's info message; the row's `bulkUploadSuccess` is unchanged, because the save itself succeeded.
+- A row that only changes publish state no longer reports "No properties were updated".
+- `ImportObject.ShouldPublish`, which the import never read, is marked `[Obsolete]`. Use `BulkUploadShouldPublish`.
+
+### Fixed
+- Sample links in `README.md`, `samples/README.md` and the update mode guide pointed at sample files that no longer exist. They now point at the samples that ship, and `samples/content-unpublish-basic.csv` is added.
+
 ## [2.1.0] - 2026-09-16
 
 ### Added

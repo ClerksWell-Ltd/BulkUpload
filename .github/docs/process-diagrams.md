@@ -5,6 +5,7 @@ Visual guides to understand how BulkUpload processes imports.
 ## Table of Contents
 
 - [Content Import Process](#content-import-process)
+  - [Row Skip and Publish State](#row-skip-and-publish-state)
 - [Media Import Process](#media-import-process)
 - [Multi-CSV Import Process](#multi-csv-import-process)
 - [Hierarchy Resolution Process](#hierarchy-resolution-process)
@@ -28,7 +29,9 @@ flowchart TD
     ValidateHeaders -->|Yes| ProcessRows[Process each row]
 
     ProcessRows --> CreateImportObject[Create ImportObject from row]
-    CreateImportObject --> ApplyResolvers[Apply resolvers to<br/>transform values]
+    CreateImportObject --> SkipRow{Row has anything<br/>to do?}
+    SkipRow -->|No| NextRow
+    SkipRow -->|Yes| ApplyResolvers[Apply resolvers to<br/>transform values]
 
     ApplyResolvers --> MediaCheck{Contains media<br/>resolvers?}
     MediaCheck -->|Yes| PreprocessMedia[Preprocess media<br/>from ZIP/URLs/paths]
@@ -37,21 +40,54 @@ flowchart TD
     SkipMedia --> BuildHierarchy
 
     BuildHierarchy --> SortTopological[Sort by parent-child<br/>dependencies]
-    SortTopological --> CreateContent[Create content nodes<br/>in correct order]
+    SortTopological --> CreateContent[Create or load content nodes<br/>in correct order]
 
-    CreateContent --> SetProperties[Set property values]
-    SetProperties --> Publish{Should publish?}
-    Publish -->|Yes| PublishNode[Publish content node]
-    Publish -->|No| SaveDraft[Save as draft]
+    CreateContent --> SetProperties[Write data and set publish state<br/>see Row Skip and Publish State]
 
-    PublishNode --> NextRow{More rows?}
-    SaveDraft --> NextRow
+    SetProperties --> NextRow{More rows?}
     NextRow -->|Yes| ProcessRows
     NextRow -->|No| GenerateResults[Generate results CSV]
 
     GenerateResults --> Success([Download results])
     Error1 --> End([End])
     Error2 --> End
+```
+
+### Row Skip and Publish State
+
+Three independent columns decide what happens to each content row: `bulkUploadShouldUpdate` writes data, `bulkUploadShouldPublish` publishes and `bulkUploadShouldUnpublish` unpublishes. A column that is absent counts as false. See [Publish state](user-guides/UPDATE_MODE_GUIDE.md#publish-state) for the full tables.
+
+```mermaid
+flowchart TD
+    Start([Content row]) --> HasGuid{Has<br/>bulkUploadContentGuid?}
+
+    HasGuid -->|Yes| AnyFlag{Update, publish or<br/>unpublish true?}
+    AnyFlag -->|No| Skip[Skip row silently<br/>no result]
+    AnyFlag -->|Yes| Load[Load existing node]
+    Load --> UpdateFlag{bulkUploadShouldUpdate<br/>true?}
+    UpdateFlag -->|Yes| WriteData[Write name, parent move<br/>and property values]
+    UpdateFlag -->|No| KeepData[Leave data unchanged]
+
+    HasGuid -->|No| UpdatePresentFalse{bulkUploadShouldUpdate<br/>present and false?}
+    UpdatePresentFalse -->|Yes| Skip
+    UpdatePresentFalse -->|No| Create[Create node and<br/>write property values]
+
+    WriteData --> Unpublish{bulkUploadShouldUnpublish<br/>true?}
+    KeepData --> Unpublish
+    Create --> Unpublish
+
+    Unpublish -->|Yes| SaveIfData1[Save if data was written]
+    SaveIfData1 --> IsPublished{Node published?}
+    IsPublished -->|Yes| DoUnpublish[Unpublish]
+    IsPublished -->|No| Done
+    Unpublish -->|No| Publish{bulkUploadShouldPublish<br/>true?}
+
+    Publish -->|Yes| DoPublish[Save and publish]
+    Publish -->|No| SaveIfData2[Save if data was written<br/>published version keeps serving]
+
+    DoUnpublish --> Done([Result row])
+    DoPublish --> Done
+    SaveIfData2 --> Done
 ```
 
 ### CSV with ZIP Media Import

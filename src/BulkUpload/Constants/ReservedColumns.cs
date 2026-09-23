@@ -19,10 +19,21 @@ public static class ReservedColumns
     public const string BulkUploadLegacyParentId = "bulkUploadLegacyParentId";
 
     /// <summary>
-    /// Column indicating whether to publish the content item after saving.
-    /// Accepts true/false values. Defaults to false if not present.
+    /// Column indicating whether to publish the content item.
+    /// Governs publishing only, independently of bulkUploadShouldUpdate: a truthy value publishes the
+    /// item, an absent or falsy value leaves its publish state unchanged (new content is saved as a draft).
+    /// Accepts true/yes/1 as truthy.
     /// </summary>
     public const string BulkUploadShouldPublish = "bulkUploadShouldPublish";
+
+    /// <summary>
+    /// Column indicating whether to unpublish the content item.
+    /// Governs unpublishing only, independently of bulkUploadShouldUpdate: a truthy value unpublishes
+    /// the item if it is published, an absent or falsy value leaves its publish state unchanged.
+    /// Wins over bulkUploadShouldPublish when both are truthy. New content is saved as a draft.
+    /// Accepts true/yes/1 as truthy.
+    /// </summary>
+    public const string BulkUploadShouldUnpublish = "bulkUploadShouldUnpublish";
 
     /// <summary>
     /// Column containing the Umbraco content GUID for updating existing content.
@@ -43,11 +54,12 @@ public static class ReservedColumns
     public const string BulkUploadMediaGuid = "bulkUploadMediaGuid";
 
     /// <summary>
-    /// Column indicating whether to update the media item (per-row decision).
-    /// PRESENCE OF THIS COLUMN: Indicates the import file supports update mode (per-file).
-    /// VALUE ON EACH ROW: Determines if that specific row should update (true) or create (false).
-    /// When true with bulkUploadMediaGuid, updates the existing media item.
-    /// When false or missing bulkUploadMediaGuid, creates new media.
+    /// Column indicating whether to write data to an existing item (per-row decision).
+    /// Content: the only column that lets the name, parent and property values of an existing item
+    /// (identified by bulkUploadContentGuid) be written. On a row without bulkUploadContentGuid a
+    /// falsy value skips the row entirely.
+    /// Media: when true with bulkUploadMediaGuid, updates the existing media item; when false or
+    /// missing bulkUploadMediaGuid, creates new media.
     /// </summary>
     public const string BulkUploadShouldUpdate = "bulkUploadShouldUpdate";
 
@@ -65,6 +77,7 @@ public static class ReservedColumns
         BulkUploadLegacyId,
         BulkUploadLegacyParentId,
         BulkUploadShouldPublish,
+        BulkUploadShouldUnpublish,
         BulkUploadContentGuid,
         BulkUploadParentGuid,
         BulkUploadMediaGuid,

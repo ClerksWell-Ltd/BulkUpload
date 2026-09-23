@@ -398,6 +398,36 @@ Common issues and solutions for BulkUpload.
    - Node cannot be its own parent
    - No circular parent chains
 
+### My Page Was Unpublished by an Import
+
+**Problem:** A published page went offline after an import updated it.
+
+**Cause:** The row had `bulkUploadShouldUnpublish` set to `true`, `yes` or `1`. That column is the only thing that unpublishes content, and it wins over `bulkUploadShouldPublish` when both are true.
+
+**Solutions:**
+
+1. **Check the results CSV** - the `bulkUploadShouldUnpublish` column shows the value each row was imported with.
+2. **To update a page and keep it live**, leave `bulkUploadShouldUnpublish` out or set it to `false`. Without `bulkUploadShouldPublish=true` the changes are saved as a draft and the published version keeps serving; with it, the changes go live.
+3. **Republish the page** from the backoffice, or re-import the row with `bulkUploadShouldPublish=true` and no `bulkUploadShouldUpdate` to publish it without changing its data.
+
+See [Publish state](user-guides/UPDATE_MODE_GUIDE.md#publish-state) for every combination.
+
+### Update Row Published but Did Not Change the Data
+
+**Problem:** A row with a `bulkUploadContentGuid` changed the page's publish state but its property values were not applied. The row's info message says "Properties present but bulkUploadShouldUpdate is not true - data not written".
+
+**Solution:** Add `bulkUploadShouldUpdate` with a value of `true` to that row. It is the only column that writes data to existing content; `bulkUploadShouldPublish` and `bulkUploadShouldUnpublish` only change the publish state.
+
+### Update Rows Missing from the Results
+
+**Problem:** Some rows produced no result and are not counted in the totals.
+
+**Cause:** Rows with nothing to do are skipped silently:
+- A row with a `bulkUploadContentGuid` where none of `bulkUploadShouldUpdate`, `bulkUploadShouldPublish` or `bulkUploadShouldUnpublish` is true
+- A row without a `bulkUploadContentGuid` where the `bulkUploadShouldUpdate` column is present and false
+
+**Solution:** Set the flag for the job you want the row to do to `true`.
+
 ---
 
 ## Resolver Issues

@@ -23,12 +23,20 @@ To update content items, your CSV must include:
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `bulkUploadShouldUpdate` | Must be `true` to enable update mode | `true` |
+| `bulkUploadShouldUpdate` | Must be `true` for the row's data to be written | `true` |
 | `bulkUploadContentGuid` | GUID of the content item to update | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
 | `parent` | Parent ID, GUID, or path (for verification) | `1100` or `/News/2024/` |
 | `name` | Content item name (for verification) | `My Article` |
 
 ### Optional Fields
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `bulkUploadShouldPublish` | `true` to publish the item | `true` |
+| `bulkUploadShouldUnpublish` | `true` to unpublish the item | `true` |
+| `bulkUploadParentGuid` | GUID of a new parent to move the item to | `b2c3d4e5-f6a7-8901-bcde-f12345678901` |
+
+See [Publish state](#publish-state) for how these combine with `bulkUploadShouldUpdate`.
 
 Any additional columns will update those properties:
 - `title` - Update the title property
@@ -75,10 +83,12 @@ To update media items, your CSV must include:
 
 | Field | Description | Example |
 |-------|-------------|---------|
-| `bulkUploadShouldUpdate` | Must be `true` to enable update mode | `true` |
+| `bulkUploadShouldUpdate` | Must be `true` to update the media item | `true` |
 | `bulkUploadMediaGuid` | GUID of the media item to update | `d4e5f6a7-b8c9-0123-def0-123456789abc` |
 | `parent` | Parent folder ID, GUID, or path (for verification) | `1150` or `/Media/Images/` |
 | `name` | Media item name (for verification) | `Company Logo` |
+
+Media has no publish state, so `bulkUploadShouldPublish` and `bulkUploadShouldUnpublish` do not apply to media imports.
 
 ### Optional Fields
 
@@ -119,6 +129,54 @@ true,f6a7b8c9-d0e1-2345-f012-34567890cdef,/Products/Gallery/,Product Photo,Enhan
    - Download the results CSV for detailed status
    - Verify updates in Umbraco Media section
 
+## Publish State
+
+Three columns control what happens to each content row, and each does one job:
+
+| Column | Governs |
+|---|---|
+| `bulkUploadShouldUpdate` | Whether data is written: name, parent, and property values |
+| `bulkUploadShouldPublish` | Publishing, and nothing else |
+| `bulkUploadShouldUnpublish` | Unpublishing, and nothing else |
+
+`true`, `yes` and `1` (any casing, surrounding spaces ignored) are treated as true.
+
+### Existing content
+
+The row carries a `bulkUploadContentGuid` that resolves to a node.
+
+| `bulkUploadShouldUpdate` | `bulkUploadShouldPublish` | `bulkUploadShouldUnpublish` | Data | Publish state |
+|---|---|---|---|---|
+| true | false | false | Updated | Unchanged |
+| true | true | false | Updated | Published |
+| true | false | true | Updated | Unpublished |
+| true | true | true | Updated | Unpublished |
+| false | false | false | Unchanged | Unchanged (row skipped) |
+| false | true | false | Unchanged | Published |
+| false | false | true | Unchanged | Unpublished |
+| false | true | true | Unchanged | Unpublished |
+
+False means the column is absent or holds any value other than `true`, `yes` or `1`.
+
+When data is updated but the publish state is unchanged, the changes are saved as a draft and the published version keeps serving. When both `bulkUploadShouldPublish` and `bulkUploadShouldUnpublish` are true, unpublish wins and a warning is logged. A skipped row produces no result and is not counted.
+
+If a row has property columns but `bulkUploadShouldUpdate` is not true, the property values are not written; a warning is logged and the row's result carries an info message saying so.
+
+### New content
+
+The row has no `bulkUploadContentGuid`.
+
+| `bulkUploadShouldPublish` | `bulkUploadShouldUnpublish` | Result |
+|---|---|---|
+| false | false | Created, saved as a draft |
+| true | false | Created and published |
+| false | true | Created, saved as a draft |
+| true | true | Created, saved as a draft |
+
+False means the column is absent or holds any value other than `true`, `yes` or `1`.
+
+**Note:** on a new content row, a `bulkUploadShouldUpdate` column that is present with a false value skips the row entirely, and nothing is created. This is the one place where an absent column and a false value differ: absent means "create normally", false means "skip this row".
+
 ## How Update Mode Works
 
 ### 1. Detection Phase
@@ -126,7 +184,8 @@ true,f6a7b8c9-d0e1-2345-f012-34567890cdef,/Products/Gallery/,Product Photo,Enhan
 When you upload a CSV file, BulkUpload automatically detects the mode:
 
 - **Create Mode** detected when CSV has `docTypeAlias` + `name` (content) or `fileName` / `mediaSource` (media)
-- **Update Mode** detected when CSV has `bulkUploadShouldUpdate` + `bulkUploadContentGuid` / `bulkUploadMediaGuid`
+- **Content update mode** detected when CSV has `bulkUploadContentGuid` plus at least one of `bulkUploadShouldUpdate`, `bulkUploadShouldPublish` or `bulkUploadShouldUnpublish`
+- **Media update mode** detected when CSV has `bulkUploadShouldUpdate` + `bulkUploadMediaGuid`
 
 The detection happens before processing, and you'll see a badge indicating the detected mode.
 
@@ -143,7 +202,8 @@ For each valid row:
 - Loads the existing content/media item
 - Updates only the properties specified in the CSV
 - Properties not in the CSV remain unchanged (partial updates)
-- Saves and publishes (for content) or saves (for media)
+- Content: saves, then publishes or unpublishes as described in [Publish state](#publish-state)
+- Media: saves
 
 ### 4. Results Phase
 
@@ -297,8 +357,8 @@ The results CSV includes all your input columns plus status columns:
 
 Download these sample files to get started:
 
-- [content-update-sample.csv](../../../samples/content-update-sample.csv) - Content update example
-- [media-update-sample.csv](../../../samples/media-update-sample.csv) - Media update example
+- [content-upload-basic.csv](../../../samples/content-upload-basic.csv) - Content create example
+- [content-unpublish-basic.csv](../../../samples/content-unpublish-basic.csv) - Unpublish existing content without changing its data
 
 ## Additional Resources
 
